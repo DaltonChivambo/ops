@@ -24,8 +24,9 @@ interface Row {
   selector: 'app-amount-reconciliation',
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [CardComponent],
+  host: { class: 'block h-full' },
   template: `
-    <section appCard class="flex flex-col gap-5">
+    <section appCard class="flex h-full flex-col gap-5">
       <div class="flex flex-wrap items-baseline justify-between gap-2">
         <h2 class="text-lg font-bold">Reconciliação de Montantes</h2>
         <p class="text-xs text-gray-400">Apurado na SIMO vs creditado no Banka · MZN</p>

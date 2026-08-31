@@ -34,15 +34,20 @@ interface Arc extends Segment {
   selector: 'app-discrepancy-source-donut',
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [CardComponent],
+  // O anfitrião estica na grelha (os itens de grid esticam por omissão), mas o
+  // `section` lá dentro ficava na altura do conteúdo — era isso que deixava este
+  // cartão e o dos montantes com alturas diferentes. `block h-full` no anfitrião
+  // e `h-full` no cartão fazem a altura chegar de fora para dentro.
+  host: { class: 'block h-full' },
   template: `
-    <section appCard class="flex flex-col gap-4">
+    <section appCard class="flex h-full flex-col gap-4">
       <h2 class="text-lg font-bold">Fechos por Tratar</h2>
 
       <!-- Abaixo do xl este cartão ocupa a largura toda, e o anel sozinho ao meio
            deixava-o um caixote vazio. Aí anel e legenda ficam lado a lado; na
            coluna estreita do xl voltam a empilhar. -->
       <div
-        class="flex flex-col items-center gap-5 sm:flex-row sm:justify-center sm:gap-10 xl:flex-col xl:gap-4"
+        class="flex flex-1 flex-col items-center justify-center gap-5 sm:flex-row sm:gap-10 xl:flex-col xl:gap-6"
       >
       <div class="relative aspect-square w-full max-w-[13rem] min-w-[9rem] shrink-0">
         @if (segments().length > 0) {
