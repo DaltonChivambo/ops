@@ -4,15 +4,21 @@ import { numberFormatter } from '../../../../../shared/format';
 import { CardComponent } from '../../../../../shared/ui/card';
 import type { ClosingSummary } from '../data/models';
 
-/** Geometria do anel. */
+/**
+ * Geometria do anel. Traço fino de propósito: quase 90% deste anel é uma cor só,
+ * e a 18px de espessura essa mancha pesava o cartão todo. A 12 o anel lê-se como
+ * uma linha e o miolo fica para o número, que é o que se vem cá ver.
+ */
 const SIZE = 200;
-const RADIUS = 82;
-const STROKE = 18;
+const RADIUS = 84;
+const STROKE = 12;
 /** Ao destacar, o arco engorda para dentro e para fora — daí a folga no viewBox. */
-const STROKE_ACTIVE = 26;
+const STROKE_ACTIVE = 18;
 const CIRCUMFERENCE = 2 * Math.PI * RADIUS;
-/** Intervalo entre fatias, em comprimento de arco (equivale a 3°). */
-const GAP = (3 / 360) * CIRCUMFERENCE;
+/** Intervalo entre fatias, em comprimento de arco (equivale a 4°). */
+const GAP = (4 / 360) * CIRCUMFERENCE;
+/** Uma fatia de 0,7% não pode desaparecer: abaixo disto lê-se como um traço. */
+const MIN_DASH = 3;
 
 interface Segment {
   readonly name: string;
@@ -73,8 +79,9 @@ interface Arc extends Segment {
                   [attr.r]="radius"
                   fill="none"
                   stroke="currentColor"
-                  class="text-gray-100"
+                  class="text-gray-100/80"
                   [attr.stroke-width]="stroke"
+                  stroke-linecap="round"
                 />
 
                 @for (arc of arcs(); track arc.name) {
@@ -89,8 +96,9 @@ interface Arc extends Segment {
                     stroke-linecap="round"
                     [attr.stroke-dasharray]="arc.dash + ' ' + circumference"
                     [attr.stroke-dashoffset]="arc.offset"
-                    [attr.opacity]="active() && !on ? 0.28 : 1"
-                    class="cursor-pointer transition-[stroke-width,opacity] duration-200"
+                    [attr.opacity]="active() && !on ? 0.22 : 1"
+                    class="cursor-pointer transition-[stroke-width,opacity,filter] duration-200"
+                    [style.filter]="on ? 'drop-shadow(0 2px 6px ' + arc.color + '59)' : null"
                     (mouseenter)="active.set(arc.name)"
                   />
                 }
@@ -107,16 +115,23 @@ interface Arc extends Segment {
             class="pointer-events-none absolute inset-0 flex flex-col items-center justify-center px-6 text-center"
           >
             @let focus = activeArc();
-            <span class="font-display text-3xl leading-tight font-bold tabular-nums">
+            <span
+              class="font-display text-[2.5rem] leading-none font-bold tracking-tight tabular-nums text-gray-900"
+            >
               {{ count(focus ? focus.count : total()) }}
             </span>
             @if (focus) {
-              <span class="mt-0.5 text-sm font-semibold tabular-nums" [style.color]="focus.color">
+              <span
+                class="mt-1.5 rounded-full px-2 py-0.5 text-2xs font-bold tabular-nums text-white"
+                [style.backgroundColor]="focus.color"
+              >
                 {{ share(focus.share) }}
               </span>
-              <span class="mt-0.5 text-2xs leading-tight text-gray-500">{{ focus.short }}</span>
+              <span class="mt-1 text-2xs leading-tight text-gray-500">{{ focus.short }}</span>
             } @else {
-              <span class="text-2xs tracking-widest text-gray-600 uppercase">Fechos</span>
+              <span class="mt-1.5 text-2xs tracking-[0.18em] text-gray-400 uppercase">
+                por tratar
+              </span>
             }
           </div>
         </div>
@@ -206,7 +221,7 @@ export class DiscrepancySourceDonutComponent {
     return segments.map((segment) => {
       const arcLength = (segment.count / total) * CIRCUMFERENCE;
       // A ponta redonda acrescenta metade da espessura de cada lado.
-      const dash = Math.max(arcLength - gap - STROKE, 0.1);
+      const dash = Math.max(arcLength - gap - STROKE, MIN_DASH);
       const offset = -(cursor + gap / 2 + STROKE / 2);
       cursor += arcLength;
       return { ...segment, dash, offset, share: segment.count / total };
