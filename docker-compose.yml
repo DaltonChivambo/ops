@@ -1,0 +1,179 @@
+# MozaOps — infraestrutura local completa.
+#
+# A fundação (entrada, base de dados, identidade, observabilidade) mais os
+# serviços de negócio. Cada serviço traz o seu bloco e as suas labels de
+# encaminhamento — um serviço novo não obriga a editar ficheiro central nenhum.
+#
+#   docker compose up -d          sobe tudo
+#   docker compose logs -f        acompanha
+#   docker compose down -v        apaga TAMBÉM os volumes (bases e realm voltam ao zero)
+
+name: mozaops
+
+services:
+  # ─── Entrada única ────────────────────────────────────────────────────────
+  # Tudo entra por aqui. O SPA e a API partilham origem, por isso não há CORS
+  # nenhum para configurar — a razão principal de existir um proxy à frente.
+  traefik:
+    image: traefik:v3.6
+    container_name: mozaops-traefik
+    restart: unless-stopped
+    command:
+      - --configFile=/etc/traefik/traefik.yml
+    ports:
+      - "80:80"
+      - "127.0.0.1:8080:8080"   # painel — só de localhost, nunca exposto
+    volumes:
+      - ./infra/traefik/traefik.yml:/etc/traefik/traefik.yml:ro
+      - ./infra/traefik/dynamic:/etc/traefik/dynamic:ro
+      # Só de leitura: o Traefik precisa de descobrir containers, não de os criar.
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    networks: [mozaops]
+    depends_on:
+      otel-collector:
+        condition: service_started
+    healthcheck:
+      test: ["CMD", "traefik", "healthcheck", "--ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
+  # ─── Serviços de negócio ──────────────────────────────────────────────────
+  # Validação de crédito de valores de fecho — POS hoje, ATM e Quiosques a
+  # seguir (é a mesma automação, muda o ficheiro de entrada).
+  closing-reconciliation:
+    build:
+      # Contexto em `backend/` e não na pasta do serviço: o workspace uv resolve
+      # `libs/` por caminho, e um contexto mais estreito não lá chegava.
+      context: ./backend
+      args:
+        SERVICE: closing-reconciliation
+    image: mozaops-closing-reconciliation
+    container_name: mozaops-closing-reconciliation
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: postgresql+asyncpg://${DB_RECONCILIATION_USER}:${DB_RECONCILIATION_PASSWORD}@postgres:5432/mozaops_closing_reconciliation
+      LOG_LEVEL: ${LOG_LEVEL}
+    networks: [mozaops]
+    depends_on:
+      postgres:
+        condition: service_healthy
+    labels:
+      - traefik.enable=true
+      # O frontend chama `/api/pos/validacao-credito-fecho/...` e o router do
+      # serviço monta em `/pos/validacao-credito-fecho`: o `/api` é a fronteira
+      # da API, não parte do caminho. O stripprefix faz aqui o que o
+      # `pathRewrite` do proxy.conf.json faz em dev — mesma topologia dos dois
+      # lados, que é o ponto de haver um proxy à frente.
+      - traefik.http.routers.closing-reconciliation.rule=Host(`${DOMAIN}`) && PathPrefix(`/api/pos/validacao-credito-fecho`)
+      - traefik.http.routers.closing-reconciliation.entrypoints=web
+      - traefik.http.middlewares.api-strip.stripprefix.prefixes=/api
+      - traefik.http.routers.closing-reconciliation.middlewares=api-strip
+      - traefik.http.services.closing-reconciliation.loadbalancer.server.port=8000
+
+  # ─── Base de dados ────────────────────────────────────────────────────────
+  # Um servidor, uma base e um role por serviço, com as ligações cruzadas
+  # revogadas. Ver infra/postgres/initdb/01-create-databases.sh.
+  postgres:
+    image: postgres:18-alpine
+    container_name: mozaops-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+      DB_RECONCILIATION_USER: ${DB_RECONCILIATION_USER}
+      DB_RECONCILIATION_PASSWORD: ${DB_RECONCILIATION_PASSWORD}
+      DB_CASES_USER: ${DB_CASES_USER}
+      DB_CASES_PASSWORD: ${DB_CASES_PASSWORD}
+      DB_KEYCLOAK_USER: ${DB_KEYCLOAK_USER}
+      DB_KEYCLOAK_PASSWORD: ${DB_KEYCLOAK_PASSWORD}
+    volumes:
+      # A partir do PostgreSQL 18 o mount é em /var/lib/postgresql e não em
+      # .../data: a imagem passou a guardar os dados numa subpasta por versão
+      # maior, para o `pg_upgrade --link` não esbarrar na fronteira do mount.
+      # Montar no caminho antigo faz o container recusar arrancar.
+      - postgres-data:/var/lib/postgresql
+      # Os scripts de initdb só correm quando o volume está vazio.
+      - ./infra/postgres/initdb:/docker-entrypoint-initdb.d:ro
+    networks: [mozaops]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  # ─── Identidade ───────────────────────────────────────────────────────────
+  keycloak:
+    image: quay.io/keycloak/keycloak:26.5
+    container_name: mozaops-keycloak
+    restart: unless-stopped
+    command: ["start-dev", "--import-realm"]
+    environment:
+      KC_BOOTSTRAP_ADMIN_USERNAME: ${KEYCLOAK_ADMIN}
+      KC_BOOTSTRAP_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD}
+      KC_DB: postgres
+      KC_DB_URL: jdbc:postgresql://postgres:5432/keycloak
+      KC_DB_USERNAME: ${DB_KEYCLOAK_USER}
+      KC_DB_PASSWORD: ${DB_KEYCLOAK_PASSWORD}
+      # Atrás do Traefik: o Keycloak tem de confiar nos cabeçalhos X-Forwarded-*
+      # para emitir um `issuer` com o endereço público, e não com o do container.
+      KC_HTTP_ENABLED: "true"
+      KC_PROXY_HEADERS: xforwarded
+      KC_HOSTNAME: http://${SSO_DOMAIN}
+      KC_HOSTNAME_STRICT: "false"
+      KC_HEALTH_ENABLED: "true"
+    volumes:
+      # O ficheiro, e não a pasta: o Keycloak importa TUDO o que estiver no
+      # directório de import, e um README ao lado seria lido como se fosse realm.
+      - ./infra/keycloak/realm-mozaops.json:/opt/keycloak/data/import/realm-mozaops.json:ro
+    networks: [mozaops]
+    depends_on:
+      postgres:
+        condition: service_healthy
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.keycloak.rule=Host(`${SSO_DOMAIN}`)
+      - traefik.http.routers.keycloak.entrypoints=web
+      - traefik.http.services.keycloak.loadbalancer.server.port=8080
+    healthcheck:
+      # A imagem não traz curl nem wget; o Keycloak 26 expõe /health no 9000.
+      test: ["CMD-SHELL", "exec 3<>/dev/tcp/127.0.0.1/9000 && echo -e 'GET /health/ready HTTP/1.1\\r\\nHost: localhost\\r\\nConnection: close\\r\\n\\r\\n' >&3 && grep -q 'UP' <&3"]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+      start_period: 40s
+
+  # ─── Observabilidade ──────────────────────────────────────────────────────
+  # Os serviços exportam para aqui e nunca directamente para o Jaeger: trocar o
+  # backend de tracing passa a ser mudar um ficheiro, não N variáveis.
+  otel-collector:
+    image: otel/opentelemetry-collector-contrib:0.144.0
+    container_name: mozaops-otel
+    restart: unless-stopped
+    command: ["--config=/etc/otel/collector.yaml"]
+    volumes:
+      - ./infra/otel/otel-collector.yaml:/etc/otel/collector.yaml:ro
+    networks: [mozaops]
+    depends_on:
+      jaeger:
+        condition: service_started
+
+  jaeger:
+    image: jaegertracing/jaeger:2.12.0
+    container_name: mozaops-jaeger
+    restart: unless-stopped
+    networks: [mozaops]
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.jaeger.rule=Host(`jaeger.${DOMAIN}`)
+      - traefik.http.routers.jaeger.entrypoints=web
+      - traefik.http.services.jaeger.loadbalancer.server.port=16686
+
+networks:
+  mozaops:
+    name: mozaops
+
+volumes:
+  postgres-data:
+    name: mozaops-postgres-data

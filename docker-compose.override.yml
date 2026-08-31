@@ -1,0 +1,36 @@
+# Sobreposições de DESENVOLVIMENTO.
+#
+# O Docker Compose lê este ficheiro automaticamente. Em produção usa-se
+# explicitamente só o base:  docker compose -f docker-compose.yml up -d
+#
+# O que se abre aqui abre-se apenas em 127.0.0.1: mesmo em desenvolvimento, uma
+# base de dados de um banco não fica à escuta na rede local.
+
+services:
+  # O `ng serve` corre no host (4200) e encaminha `/api/**` para aqui, segundo o
+  # `proxy.conf.json` — por isso a porta tem de estar publicada. Em produção não
+  # está: quem entra é o Traefik, pela rede interna.
+  closing-reconciliation:
+    ports:
+      - "127.0.0.1:8001:8000"
+
+  postgres:
+    ports:
+      # 15432 e não 5432: esta máquina já tem um PostgreSQL do sistema na porta
+      # habitual, e não é o nosso container que lhe deve tirar o lugar. Entre
+      # containers a porta continua a ser a 5432 — isto é só a publicação para
+      # o psql e o Alembic corridos a partir do host.
+      - "127.0.0.1:15432:5432"
+
+  keycloak:
+    ports:
+      - "127.0.0.1:8081:8080"
+
+  otel-collector:
+    ports:
+      - "127.0.0.1:4317:4317"
+      - "127.0.0.1:4318:4318"
+
+  jaeger:
+    ports:
+      - "127.0.0.1:16686:16686"

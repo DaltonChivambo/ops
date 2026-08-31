@@ -1,0 +1,19 @@
+# O contexto de build é `backend/` inteiro — ver o comentário no topo do
+# Dockerfile: o workspace do uv resolve `libs/` por caminho, e um contexto
+# limitado a um serviço não alcançaria as libs de que ele depende.
+
+**/__pycache__
+**/*.py[cod]
+**/.venv
+**/.pytest_cache
+**/.mypy_cache
+**/.ruff_cache
+**/htmlcov
+**/.coverage
+
+.git
+.gitignore
+.dockerignore
+Dockerfile
+**/CHANGELOG.md
+**/tests

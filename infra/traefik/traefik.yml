@@ -1,0 +1,48 @@
+# Traefik v3 — configuração estática.
+#
+# As ROTAS não vivem aqui: são labels no docker-compose.yml, ao lado do serviço
+# a que pertencem. Um serviço novo não obriga a editar um ficheiro central — que
+# é precisamente a propriedade que se quer num monorepo de microserviços.
+
+entryPoints:
+  web:
+    address: ":80"
+
+providers:
+  docker:
+    # Nada é exposto sem `traefik.enable=true` explícito no serviço.
+    exposedByDefault: false
+    network: mozaops
+  file:
+    directory: /etc/traefik/dynamic
+    watch: true
+
+api:
+  dashboard: true
+  # Só acessível pela porta 8080 publicada em localhost (ver docker-compose).
+  insecure: true
+
+log:
+  level: INFO
+
+accessLog:
+  filters:
+    statusCodes: ["400-599"]
+  fields:
+    headers:
+      defaultMode: drop
+      names:
+        # NUNCA registar o Authorization: os logs de acesso não são sítio para
+        # tokens de um banco.
+        User-Agent: keep
+        Content-Type: keep
+
+# O span de ingress é a raiz do trace: tudo o que o browser dispara aparece
+# ligado ao que os serviços fizerem a seguir.
+tracing:
+  otlp:
+    grpc:
+      endpoint: otel-collector:4317
+      insecure: true
+
+ping: {}

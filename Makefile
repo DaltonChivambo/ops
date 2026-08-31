@@ -1,47 +1,43 @@
-# Atalhos do monorepo. Todos os builds usam contexto na raiz (ver ADR 0005).
-COMPOSE := docker compose -f infra/compose/docker-compose.yml -f infra/compose/docker-compose.override.yml
-INFRA   := docker compose -f infra/compose/docker-compose.infra.yml
+SHELL := /bin/bash
+.DEFAULT_GOAL := help
 
-.PHONY: infra-up infra-down up down build logs ps migrate registry test lint keys
+COMPOSE := docker compose
 
-keys:            ## gera o par RS256 usado pelo Auth Service (dev)
-	@mkdir -p infra/compose/keys
-	openssl genpkey -algorithm RSA -pkeyopt rsa_keygen_bits:2048 -out infra/compose/keys/jwt-private.pem
-	openssl rsa -pubout -in infra/compose/keys/jwt-private.pem -out infra/compose/keys/jwt-public.pem
+.PHONY: help up down restart logs status verify-m0 psql clean migrate test lint
 
-infra-up:        ## passo 01 do roadmap: infra de pé, sem codigo aplicacional
-	$(INFRA) up -d
+help:  ## Mostra os comandos disponíveis
+	@grep -hE '^[a-zA-Z_-]+:.*?## ' $(MAKEFILE_LIST) \
+		| awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-12s\033[0m %s\n", $$1, $$2}'
 
-infra-down:
-	$(INFRA) down
-
-up: infra-up
+up:  ## Sobe a infraestrutura e os serviços
+	@test -f .env || (echo "Falta o .env — copie o .env.example e ajuste." && exit 1)
 	$(COMPOSE) up -d --build
 
-down:
+migrate:  ## Aplica as migrações Alembic de cada serviço
+	$(COMPOSE) run --rm closing-reconciliation alembic upgrade head
+
+test:  ## Testes do backend (estágio `test` da imagem — a de execução não traz pytest)
+	docker build --target test --build-arg SERVICE=closing-reconciliation \
+		-t mozaops-closing-reconciliation:test ./backend
+	docker run --rm mozaops-closing-reconciliation:test
+
+down:  ## Pára tudo, mantendo os dados
 	$(COMPOSE) down
 
-build:
-	$(COMPOSE) build
+restart:  ## Pára e volta a subir
+	$(COMPOSE) down && $(COMPOSE) up -d
 
-logs:
-	$(COMPOSE) logs -f --tail=100
+logs:  ## Segue os logs de todos os containers
+	$(COMPOSE) logs -f
 
-ps:
+status:  ## Estado dos containers
 	$(COMPOSE) ps
 
-migrate:         ## alembic upgrade head em todos os serviços
-	@for s in auth ticketing asset approval notification reporting; do \
-		echo "== $$s"; $(COMPOSE) run --rm $$s alembic upgrade head; \
-	done
+psql:  ## Abre o psql como superutilizador
+	$(COMPOSE) exec postgres psql -U $${POSTGRES_USER:-postgres}
 
-registry:        ## regenera docs/registry.md a partir dos service.yaml
-	python scripts/gen_registry.py
+clean:  ## APAGA os volumes — bases e realm voltam ao zero
+	$(COMPOSE) down -v
 
-test:
-	@for s in auth ticketing asset approval notification reporting; do \
-		echo "== $$s"; (cd backend/services/$$s && python -m pytest -q) || exit 1; \
-	done
-
-lint:
-	ruff check backend/
+verify-m0:  ## Critério de «feito» do M0: infraestrutura de pé e autenticável
+	@bash scripts/verify-m0.sh

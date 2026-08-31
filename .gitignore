@@ -1,20 +1,51 @@
+# Python
 __pycache__/
 *.py[cod]
-*.egg-info/
-.eggs/
-build/
-dist/
 .venv/
 venv/
-.env
-.env.local
 .pytest_cache/
-.coverage
-htmlcov/
 .mypy_cache/
 .ruff_cache/
+*.egg-info/
+.coverage
+htmlcov/
+
+# uv
+.uv/
+
+# Node / Angular
 node_modules/
-*.log
-uploads/
-keys/*.pem
-!keys/.gitkeep
+dist/
+.angular/
+*.tsbuildinfo
+.vitest/
+playwright-report/
+test-results/
+
+# Ambiente e segredos
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# Docker / dados locais
+staging/
+postgres-data/
+keycloak-data/
+
+# Ficheiros de trabalho do DOP (dados bancários — nunca versionar)
+docs/sample-reports/
+docs/sample-reports-updated/
+*.xlsx
+*.xls
+
+# Editores e SO
+.vscode/
+.idea/
+.DS_Store
+*.swp
+
+# Angular
+frontend/mozaops-web/.angular/
+frontend/mozaops-web/dist/

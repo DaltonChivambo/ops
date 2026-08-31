@@ -1,0 +1,218 @@
+{
+  "realm": "mozaops",
+  "displayName": "MozaOps — Moza Banco",
+  "displayNameHtml": "<b>MozaOps</b> — Meios de Pagamento e Canais",
+  "enabled": true,
+  "sslRequired": "external",
+
+  "registrationAllowed": false,
+  "resetPasswordAllowed": true,
+  "rememberMe": false,
+  "verifyEmail": false,
+  "loginWithEmailAllowed": true,
+  "duplicateEmailsAllowed": false,
+  "editUsernameAllowed": false,
+
+  "accessTokenLifespan": 900,
+  "accessTokenLifespanForImplicitFlow": 900,
+  "ssoSessionIdleTimeout": 1800,
+  "ssoSessionMaxLifespan": 36000,
+  "offlineSessionIdleTimeout": 2592000,
+  "refreshTokenMaxReuse": 0,
+  "revokeRefreshToken": true,
+
+  "bruteForceProtected": true,
+  "permanentLockout": false,
+  "maxFailureWaitSeconds": 900,
+  "failureFactor": 10,
+
+  "internationalizationEnabled": true,
+  "supportedLocales": ["pt-BR", "en"],
+  "defaultLocale": "pt-BR",
+
+  "roles": {
+    "realm": [
+      {
+        "name": "operator",
+        "description": "Retaguarda do DOP: corre automações, lê tudo, descarrega relatórios, edita e-Ticket e move casos até «em análise».",
+        "composite": false
+      },
+      {
+        "name": "supervisor",
+        "description": "Coordenação do DOP: tudo do operador, mais marcar «regularizado», reabrir casos e apagar execuções.",
+        "composite": true,
+        "composites": { "realm": ["operator"] }
+      },
+      {
+        "name": "auditor",
+        "description": "Auditoria Interna, Compliance e DRO: lê tudo, incluindo o trilho de auditoria dos casos. Nenhuma escrita, nenhuma execução.",
+        "composite": false
+      }
+    ],
+    "client": {
+      "cases": [
+        {
+          "name": "write-batch",
+          "description": "Publicar divergências em lote. Só para contas de serviço — nunca para pessoas.",
+          "composite": false
+        }
+      ]
+    }
+  },
+
+  "clients": [
+    {
+      "clientId": "mozaops-web",
+      "name": "MozaOps (aplicação web)",
+      "description": "SPA Angular. Cliente público com PKCE S256 — uma SPA não consegue guardar um segredo, por isso não tem nenhum.",
+      "enabled": true,
+      "protocol": "openid-connect",
+      "publicClient": true,
+      "bearerOnly": false,
+      "standardFlowEnabled": true,
+      "implicitFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "serviceAccountsEnabled": false,
+      "frontchannelLogout": true,
+      "redirectUris": [
+        "http://mozaops.localhost/*",
+        "http://localhost:4200/*"
+      ],
+      "webOrigins": [
+        "http://mozaops.localhost",
+        "http://localhost:4200"
+      ],
+      "attributes": {
+        "pkce.code.challenge.method": "S256",
+        "post.logout.redirect.uris": "http://mozaops.localhost/*##http://localhost:4200/*"
+      },
+      "defaultClientScopes": ["web-origins", "acr", "profile", "roles", "email"],
+      "optionalClientScopes": ["address", "phone", "offline_access"],
+      "protocolMappers": [
+        {
+          "name": "audience-closing-reconciliation",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-audience-mapper",
+          "consentRequired": false,
+          "config": {
+            "included.client.audience": "closing-reconciliation",
+            "id.token.claim": "false",
+            "access.token.claim": "true",
+            "introspection.token.claim": "true"
+          }
+        },
+        {
+          "name": "audience-cases",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-audience-mapper",
+          "consentRequired": false,
+          "config": {
+            "included.client.audience": "cases",
+            "id.token.claim": "false",
+            "access.token.claim": "true",
+            "introspection.token.claim": "true"
+          }
+        }
+      ]
+    },
+
+    {
+      "clientId": "closing-reconciliation",
+      "name": "Serviço de conciliação de fechos",
+      "description": "Servidor de recursos. Valida tokens localmente pelo JWKS. A conta de serviço serve para publicar casos.",
+      "enabled": true,
+      "protocol": "openid-connect",
+      "publicClient": false,
+      "bearerOnly": false,
+      "secret": "dev-only-closing-reconciliation-change-in-production",
+      "standardFlowEnabled": false,
+      "implicitFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "serviceAccountsEnabled": true,
+      "attributes": {
+        "use.refresh.tokens": "false"
+      },
+      "defaultClientScopes": ["acr", "roles"],
+      "optionalClientScopes": []
+    },
+
+    {
+      "clientId": "cases",
+      "name": "Serviço de casos",
+      "description": "Servidor de recursos. Não chama ninguém, por isso não tem conta de serviço.",
+      "enabled": true,
+      "protocol": "openid-connect",
+      "publicClient": false,
+      "bearerOnly": false,
+      "secret": "dev-only-cases-change-in-production",
+      "standardFlowEnabled": false,
+      "implicitFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "serviceAccountsEnabled": false,
+      "defaultClientScopes": ["acr", "roles"],
+      "optionalClientScopes": []
+    }
+  ],
+
+  "groups": [
+    {
+      "name": "DOP-Operadores",
+      "path": "/DOP-Operadores",
+      "realmRoles": ["operator"]
+    },
+    {
+      "name": "DOP-Chefias",
+      "path": "/DOP-Chefias",
+      "realmRoles": ["supervisor"]
+    },
+    {
+      "name": "Auditoria",
+      "path": "/Auditoria",
+      "realmRoles": ["auditor"]
+    }
+  ],
+
+  "users": [
+    {
+      "username": "operator.test",
+      "email": "operator.test@mozabanco.co.mz",
+      "firstName": "Operador",
+      "lastName": "de Teste",
+      "enabled": true,
+      "emailVerified": true,
+      "credentials": [{ "type": "password", "value": "operator", "temporary": false }],
+      "realmRoles": ["operator"],
+      "groups": ["/DOP-Operadores"]
+    },
+    {
+      "username": "supervisor.test",
+      "email": "supervisor.test@mozabanco.co.mz",
+      "firstName": "Supervisor",
+      "lastName": "de Teste",
+      "enabled": true,
+      "emailVerified": true,
+      "credentials": [{ "type": "password", "value": "supervisor", "temporary": false }],
+      "realmRoles": ["supervisor"],
+      "groups": ["/DOP-Chefias"]
+    },
+    {
+      "username": "auditor.test",
+      "email": "auditor.test@mozabanco.co.mz",
+      "firstName": "Auditor",
+      "lastName": "de Teste",
+      "enabled": true,
+      "emailVerified": true,
+      "credentials": [{ "type": "password", "value": "auditor", "temporary": false }],
+      "realmRoles": ["auditor"],
+      "groups": ["/Auditoria"]
+    },
+    {
+      "username": "service-account-closing-reconciliation",
+      "enabled": true,
+      "serviceAccountClientId": "closing-reconciliation",
+      "clientRoles": {
+        "cases": ["write-batch"]
+      }
+    }
+  ]
+}

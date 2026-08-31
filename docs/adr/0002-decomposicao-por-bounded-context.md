@@ -1,6 +1,6 @@
 # 0002 — Decomposição por bounded context
 
-- **Estado**: Aceite
+- **Estado**: Substituído por [0006](0006-backend-mozaops-substitui-esqueletos.md)
 - **Data**: 2026-08-25
 - **Decisores**: Dalton Chivambo
 

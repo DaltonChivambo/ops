@@ -1,0 +1,6 @@
+# Scripts que correm dentro de containers Linux (montados por bind mount, ex.
+# `infra/postgres/initdb/`) partem com CRLF: o shebang passa a apontar para um
+# interpretador que não existe (`/bin/sh\r`). Forçar LF independentemente da
+# plataforma onde se faz o checkout.
+* text=auto eol=lf
+*.sh text eol=lf

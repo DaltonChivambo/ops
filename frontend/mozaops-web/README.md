@@ -66,14 +66,12 @@ produção. O `ng serve` reencaminha, segundo `proxy.conf.json`:
 
 | Prefixo | Destino | |
 |---|---|---|
-| `/api/pos/validacao-credito-fecho` | `localhost:5000` | Flask do MozaOps v1 — **temporário** |
-| `/api/cases` | `localhost:8002` | serviço `cases` |
-| `/api` | `localhost:8001` | serviço `closing-reconciliation` |
+| `/api/pos/validacao-credito-fecho` | `localhost:8001` | serviço `closing-reconciliation` |
 
-Nenhum deles precisa de estar de pé para o frontend arrancar: a casca, a
-navegação e os ecrãs desenham-se à mesma, e os pedidos falham em silêncio no
-painel de rede. Sem o Flask v1 na 5000, o ecrã da automação de fechos aparece
-mas sem dados.
+O serviço levanta-se a partir da raiz do monorepo, com `make up` (ver o
+`README.md` da raiz). Não precisa de estar de pé para o frontend arrancar: a
+casca, a navegação e os ecrãs desenham-se à mesma, e o ecrã da automação de
+fechos aparece sem dados.
 
 ## Outros comandos
 

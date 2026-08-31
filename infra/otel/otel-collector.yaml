@@ -1,0 +1,46 @@
+# Colector OpenTelemetry — o ponto único para onde Traefik e serviços exportam.
+#
+# Existe para desacoplar: os serviços apontam para aqui e nunca para o Jaeger.
+# Trocar o backend de tracing (Jaeger → Tempo → Datadog) passa a ser mudar este
+# ficheiro, e não uma variável de ambiente em cada container.
+
+receivers:
+  otlp:
+    protocols:
+      grpc:
+        endpoint: 0.0.0.0:4317
+      http:
+        endpoint: 0.0.0.0:4318
+
+processors:
+  batch:
+    timeout: 5s
+    send_batch_size: 512
+  memory_limiter:
+    check_interval: 1s
+    limit_mib: 256
+    spike_limit_mib: 64
+
+exporters:
+  otlp/jaeger:
+    endpoint: jaeger:4317
+    tls:
+      insecure: true
+  # Em desenvolvimento é a rede de segurança: se o Jaeger estiver em baixo, o
+  # trace continua a aparecer nos logs do colector em vez de desaparecer.
+  debug:
+    verbosity: normal
+
+service:
+  pipelines:
+    traces:
+      receivers: [otlp]
+      processors: [memory_limiter, batch]
+      exporters: [otlp/jaeger, debug]
+    logs:
+      receivers: [otlp]
+      processors: [memory_limiter, batch]
+      exporters: [debug]
+  telemetry:
+    logs:
+      level: warn
