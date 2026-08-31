@@ -1,0 +1,39 @@
+{
+  "title": "OPS — visão geral",
+  "uid": "ops-overview",
+  "timezone": "browser",
+  "schemaVersion": 39,
+  "refresh": "30s",
+  "panels": [
+    {
+      "type": "stat",
+      "title": "Serviços de pé",
+      "gridPos": { "h": 4, "w": 6, "x": 0, "y": 0 },
+      "targets": [{ "expr": "sum(up{job=\"ops-services\"})", "refId": "A" }]
+    },
+    {
+      "type": "timeseries",
+      "title": "Pedidos por segundo, por serviço",
+      "gridPos": { "h": 8, "w": 12, "x": 6, "y": 0 },
+      "targets": [{ "expr": "sum by (service) (rate(http_requests_total[5m]))", "refId": "A" }]
+    },
+    {
+      "type": "timeseries",
+      "title": "Latência p95 (s)",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 8 },
+      "targets": [{
+        "expr": "histogram_quantile(0.95, sum by (le, service) (rate(http_request_duration_seconds_bucket[5m])))",
+        "refId": "A"
+      }]
+    },
+    {
+      "type": "timeseries",
+      "title": "Eventos publicados / consumidos",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 8 },
+      "targets": [
+        { "expr": "sum by (service) (rate(ops_events_published_total[5m]))", "refId": "A" },
+        { "expr": "sum by (service) (rate(ops_events_consumed_total[5m]))", "refId": "B" }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,20 @@
+# O que não entra no contexto de build.
+#
+# node_modules é o que mais pesa e o que nunca se deve copiar: as dependências
+# instalam-se dentro da imagem com `npm ci`, a partir do lock, para o Linux do
+# container — copiar as do host traria binários compilados para outra máquina.
+
+node_modules
+dist
+.angular
+
+# Dev-only: o proxy é do `ng serve`, e em produção quem encaminha é o Traefik.
+proxy.conf.json
+
+.git
+.gitignore
+.vscode
+.editorconfig
+README.md
+Dockerfile
+.dockerignore

@@ -1,0 +1,33 @@
+{
+  "_comment": [
+    "Em desenvolvimento o browser fala só com localhost:4200, tal como em produção",
+    "fala só com o Traefik. Assim não há CORS em lado nenhum, e o que se testa em",
+    "dev é a mesma topologia que corre em produção.",
+    "O prefixo mais específico vem primeiro: o Angular resolve por ordem."
+  ],
+
+  "_comment_v1": [
+    "O serviço v2 (`backend/services/closing-reconciliation/`) arrancou: mesmo",
+    "contrato de rotas do Flask v1 (segmentos em português), correndo agora na",
+    "porta 8001 em vez da 5000. Ver o plano da funcionalidade para o âmbito",
+    "reduzido (síncrono, sem Keycloak, `cases` embutido) e para quando isto",
+    "migra para `/api/pos/closing-credit-validation` com segmentos em inglês."
+  ],
+  "/api/pos/validacao-credito-fecho": {
+    "target": "http://localhost:8001",
+    "pathRewrite": { "^/api": "" },
+    "changeOrigin": true,
+    "secure": false
+  },
+
+  "/api/cases": {
+    "target": "http://localhost:8002",
+    "changeOrigin": true,
+    "secure": false
+  },
+  "/api": {
+    "target": "http://localhost:8001",
+    "changeOrigin": true,
+    "secure": false
+  }
+}

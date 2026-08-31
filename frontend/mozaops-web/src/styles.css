@@ -1,0 +1,77 @@
+@import 'tailwindcss';
+
+/* Tokens da marca Moza — portados tal e qual do MozaOps v1. Não são decoração:
+   a distinção entre o navy e o vermelho é uma regra de desenho, não um gosto. */
+@theme {
+  --font-sans: 'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif;
+
+  /* Moza navy — cor primária de marca, usada em toda a chrome estrutural
+     (navegação, ícones, ligações). */
+  --color-moza-50: #f4f5f7;
+  --color-moza-100: #e6e9ed;
+  --color-moza-200: #ccd1db;
+  --color-moza-300: #a8b0c1;
+  --color-moza-400: #7c8699;
+  --color-moza-500: #57617a;
+  --color-moza-600: #3d4759;
+  --color-moza-700: #252e3f;
+  --color-moza-800: #1c2330;
+  --color-moza-900: #141922;
+
+  /* Moza vermelho — a cor do logótipo. Serve dois papéis:
+     · assinalar o que está ACTIVO ou seleccionado — a barra do item activo na
+       navegação, o sublinhado do separador aberto;
+     · estados de alerta e de perigo.
+     Não é cor de fundo de botão de acção: aí a chrome é o navy `moza-*`. */
+  --color-alert-50: #fdecea;
+  --color-alert-100: #fbd5d0;
+  --color-alert-300: #f0897d;
+  --color-alert-500: #e8342a;
+  --color-alert-600: #d21f16;
+  --color-alert-700: #af1911;
+}
+
+/* Entrada do aviso flutuante — desliza a partir do topo. */
+@keyframes toast-in {
+  from { opacity: 0; transform: translateY(-0.75rem) scale(0.98); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+/* Barra de contagem decrescente do aviso flutuante. */
+@keyframes toast-progress {
+  from { transform: scaleX(1); }
+  to   { transform: scaleX(0); }
+}
+
+html,
+body {
+  height: 100%;
+}
+
+/* Scrollbar fina para áreas de navegação estreitas — o scrollbar nativo do
+   Windows/Chrome (~17px) dominava visualmente a barra lateral de 264px. */
+.thin-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-moza-200) transparent;
+}
+
+.thin-scrollbar::-webkit-scrollbar {
+  width: 6px;
+}
+
+.thin-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.thin-scrollbar::-webkit-scrollbar-thumb {
+  background-color: var(--color-moza-200);
+  border-radius: 9999px;
+}
+
+.thin-scrollbar::-webkit-scrollbar-thumb:hover {
+  background-color: var(--color-moza-300);
+}
+
+body {
+  @apply bg-moza-50 text-moza-800 antialiased;
+}
