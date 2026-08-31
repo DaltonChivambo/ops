@@ -35,7 +35,12 @@ interface Row {
       <div class="flex flex-col gap-2">
         <!-- Largura mínima: divergências são fracções de ponto percentual, senão a
              barra sai só verde. Apontar a um segmento acende a linha da tabela
-             que lhe corresponde, e a tabela faz o mesmo de volta. -->
+             que lhe corresponde, e a tabela faz o mesmo de volta.
+
+             Quem arredonda as pontas é este contentor, com overflow-hidden. Os
+             segmentos ficam rectos: a arredondar nos dois sítios, o último — que
+             tem 10px — levava um raio maior do que ele próprio e saía cortado
+             contra o canto do contentor. -->
         <div
           class="flex h-3 w-full gap-px overflow-hidden rounded-full bg-gray-100"
           (mouseleave)="active.set(null)"
@@ -44,12 +49,9 @@ interface Row {
             @let on = active() === row.key;
             <button
               type="button"
-              [class]="
-                row.barClass +
-                ' cursor-pointer transition-[opacity,transform] duration-200 first:rounded-l-full last:rounded-r-full'
-              "
+              [class]="row.barClass + ' cursor-pointer transition-opacity duration-200'"
               [style.width.%]="widthOf(row)"
-              [style.minWidth.rem]="0.5"
+              [style.minWidth.rem]="0.625"
               [style.opacity]="active() && !on ? 0.25 : 1"
               [attr.aria-label]="row.label + ': ' + mzn(row.simo) + ', ' + share(row)"
               (mouseenter)="active.set(row.key)"
