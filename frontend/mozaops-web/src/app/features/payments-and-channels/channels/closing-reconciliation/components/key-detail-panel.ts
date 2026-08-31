@@ -182,7 +182,7 @@ function creditedWhen(closingIso: string | undefined, creditIso: string | null):
                       {{ closing.operationNumber }}
                     </td>
                     <td class="py-2.5 pl-3 text-right">
-                      <span class="font-semibold tabular-nums text-gray-900">
+                      <span class="font-semibold whitespace-nowrap tabular-nums text-gray-900">
                         {{ amount(closing.simoClosingTotal) }}<span [class]="mzn">MZN</span>
                       </span>
                     </td>
@@ -196,7 +196,7 @@ function creditedWhen(closingIso: string | undefined, creditIso: string | null):
                     Total apurado
                   </td>
                   <td class="pt-2.5 pl-3 text-right">
-                    <span class="font-semibold tabular-nums text-gray-900">
+                    <span class="font-semibold whitespace-nowrap tabular-nums text-gray-900">
                       {{ amount(simoTotal()) }}<span [class]="mzn">MZN</span>
                     </span>
                   </td>
@@ -266,7 +266,7 @@ function creditedWhen(closingIso: string | undefined, creditIso: string | null):
                         </td>
                       }
                       <td class="py-2.5 pl-3 text-right">
-                        <span class="font-semibold tabular-nums text-gray-900">
+                        <span class="font-semibold whitespace-nowrap tabular-nums text-gray-900">
                           {{ amount(movement.amount) }}<span [class]="mzn">MZN</span>
                         </span>
                       </td>
@@ -282,7 +282,7 @@ function creditedWhen(closingIso: string | undefined, creditIso: string | null):
                       Total creditado
                     </td>
                     <td class="pt-2.5 pl-3 text-right">
-                      <span class="font-semibold tabular-nums text-gray-900">
+                      <span class="font-semibold whitespace-nowrap tabular-nums text-gray-900">
                         {{ amount(bankaTotal()) }}<span [class]="mzn">MZN</span>
                       </span>
                     </td>

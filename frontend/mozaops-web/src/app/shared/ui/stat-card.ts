@@ -46,21 +46,12 @@ export interface Stat {
     @let s = stat();
 
     <section appCard class="flex flex-col gap-3">
+      <!-- Rótulo e ícone na mesma linha, o valor sozinho por baixo. O valor
+           costumava partilhar a linha com o ícone e ficava com menos 52px —
+           num montante de doze dígitos era a diferença entre caber e ser
+           cortado. -->
       <div class="flex items-start justify-between gap-2">
-        <!-- min-w-0 para o valor poder encolher em vez de esticar o cartão: sem
-             ele um montante longo empurra o ícone para fora. -->
-        <div class="min-w-0">
-          <p class="mb-1.5 truncate text-base text-gray-600">{{ s.label }}</p>
-          <p
-            class="truncate font-display text-2xl leading-none font-bold tabular-nums"
-            [title]="displayValue() + (s.unit ? ' ' + s.unit : '')"
-          >
-            {{ displayValue()
-            }}@if (s.unit) {<span class="ml-1 text-[0.55em] font-normal text-gray-400">{{
-                s.unit
-              }}</span>}
-          </p>
-        </div>
+        <p class="min-w-0 truncate text-base text-gray-600">{{ s.label }}</p>
 
         <span
           class="inline-flex size-11 shrink-0 items-center justify-center rounded-xl bg-moza-100 text-moza-700"
@@ -81,6 +72,19 @@ export interface Stat {
           }
         </span>
       </div>
+
+      <!-- O corpo desce conforme o número cresce, em vez de o cortar. Cortar um
+           montante é pior do que mostrá-lo mais pequeno: "205 641 064,00…" lê-se
+           como duzentos milhões quando são duzentos mil milhões. -->
+      <p
+        [class]="valueClass()"
+        [title]="displayValue() + (s.unit ? ' ' + s.unit : '')"
+      >
+        {{ displayValue()
+        }}@if (s.unit) {<span class="ml-1 text-[0.55em] font-normal text-gray-400">{{
+            s.unit
+          }}</span>}
+      </p>
 
       <p class="flex items-center gap-1.5 text-sm">
         @if (s.changePercent !== undefined) {
@@ -110,5 +114,20 @@ export class StatCardComponent {
   protected readonly displayValue = computed(() => {
     const s = this.stat();
     return s.displayValue ?? numberFormatter.format(s.value);
+  });
+
+  /**
+   * O corpo do valor desce por degraus conforme o número cresce. Nunca se corta
+   * um montante: a 1 000 000 000 000,00 MZN (20 caracteres) ainda cabe inteiro
+   * num cartão de quatro por linha num portátil.
+   *
+   * As classes estão escritas por extenso porque o Tailwind lê o código-fonte —
+   * uma interpolação do género text-${n} não geraria utilitário nenhum.
+   */
+  protected readonly valueClass = computed(() => {
+    const chars = this.displayValue().length + (this.stat().unit?.length ?? 0);
+    const size =
+      chars <= 12 ? 'text-2xl' : chars <= 16 ? 'text-xl' : chars <= 21 ? 'text-lg' : 'text-base';
+    return `truncate font-display leading-none font-bold tabular-nums ${size}`;
   });
 }

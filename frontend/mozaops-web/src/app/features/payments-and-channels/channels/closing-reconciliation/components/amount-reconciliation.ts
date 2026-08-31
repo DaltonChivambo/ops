@@ -67,7 +67,7 @@ interface Row {
             <span class="size-2 shrink-0 rounded-full" [class]="row.dotClass"></span>
             <span class="font-semibold text-gray-900">{{ row.label }}</span>
             <span class="text-gray-400">{{ share(row) }} do apurado na SIMO</span>
-            <span class="ml-auto font-semibold tabular-nums text-gray-900">
+            <span class="ml-auto font-semibold whitespace-nowrap tabular-nums text-gray-900">
               {{ amount(row.simo) }} <span class="font-normal text-gray-400">MZN</span>
             </span>
           }
@@ -107,13 +107,13 @@ interface Row {
                     <span class="font-semibold text-gray-900">{{ row.label }}</span>
                   </span>
                 </td>
-                <td class="px-4 py-3 text-right tabular-nums">{{ count(row.count) }}</td>
-                <td class="px-4 py-3 text-right tabular-nums">{{ amount(row.simo) }}</td>
-                <td class="px-4 py-3 text-right tabular-nums">
+                <td class="px-4 py-3 text-right whitespace-nowrap tabular-nums">{{ count(row.count) }}</td>
+                <td class="px-4 py-3 text-right whitespace-nowrap tabular-nums">{{ amount(row.simo) }}</td>
+                <td class="px-4 py-3 text-right whitespace-nowrap tabular-nums">
                   {{ row.key === 'missing' ? '—' : amount(row.banka) }}
                 </td>
                 <td
-                  class="py-3 pr-1.5 pl-3 text-right tabular-nums"
+                  class="py-3 pr-1.5 pl-3 text-right whitespace-nowrap tabular-nums"
                   [class.font-semibold]="difference !== 0"
                   [class.text-alert-600]="difference !== 0"
                 >
@@ -124,10 +124,10 @@ interface Row {
 
             <tr class="font-semibold text-gray-900">
               <td class="py-3 pr-3 pl-1.5">Total</td>
-              <td class="px-4 py-3 text-right tabular-nums">{{ count(summary().processed) }}</td>
-              <td class="px-4 py-3 text-right tabular-nums">{{ amount(totalSimo()) }}</td>
-              <td class="px-4 py-3 text-right tabular-nums">{{ amount(totalBanka()) }}</td>
-              <td class="py-3 pr-1.5 pl-3 text-right tabular-nums text-alert-600">
+              <td class="px-4 py-3 text-right whitespace-nowrap tabular-nums">{{ count(summary().processed) }}</td>
+              <td class="px-4 py-3 text-right whitespace-nowrap tabular-nums">{{ amount(totalSimo()) }}</td>
+              <td class="px-4 py-3 text-right whitespace-nowrap tabular-nums">{{ amount(totalBanka()) }}</td>
+              <td class="py-3 pr-1.5 pl-3 text-right whitespace-nowrap tabular-nums text-alert-600">
                 {{ signedAmount(totalBanka() - totalSimo()) }}
               </td>
             </tr>
