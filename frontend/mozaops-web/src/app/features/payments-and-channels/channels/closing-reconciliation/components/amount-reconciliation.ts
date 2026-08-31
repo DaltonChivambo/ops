@@ -78,11 +78,11 @@ interface Row {
         <table class="w-full min-w-xl border-collapse text-sm">
           <thead>
             <tr class="border-b border-gray-100 text-gray-400">
-              <th scope="col" [class]="th + ' py-2 pr-3 text-left'">Estado</th>
+              <th scope="col" [class]="th + ' py-2 pr-3 pl-1.5 text-left'">Estado</th>
               <th scope="col" [class]="th + ' px-4 py-2 text-right'">Fechos</th>
               <th scope="col" [class]="th + ' px-4 py-2 text-right'">Montante SIMO</th>
               <th scope="col" [class]="th + ' px-4 py-2 text-right'">Montante Banka</th>
-              <th scope="col" [class]="th + ' py-2 pl-3 text-right'">Diferença</th>
+              <th scope="col" [class]="th + ' py-2 pr-1.5 pl-3 text-right'">Diferença</th>
             </tr>
           </thead>
           <tbody>
@@ -96,7 +96,7 @@ interface Row {
                 (mouseenter)="active.set(row.key)"
                 (mouseleave)="active.set(null)"
               >
-                <td class="py-3 pr-3">
+                <td class="py-3 pr-3 pl-1.5">
                   <span class="flex items-center gap-2">
                     <span
                       class="size-2 shrink-0 rounded-full transition-transform"
@@ -113,7 +113,7 @@ interface Row {
                   {{ row.key === 'missing' ? '—' : amount(row.banka) }}
                 </td>
                 <td
-                  class="py-3 pl-3 text-right tabular-nums"
+                  class="py-3 pr-1.5 pl-3 text-right tabular-nums"
                   [class.font-semibold]="difference !== 0"
                   [class.text-alert-600]="difference !== 0"
                 >
@@ -123,11 +123,11 @@ interface Row {
             }
 
             <tr class="font-semibold text-gray-900">
-              <td class="py-3 pr-3">Total</td>
+              <td class="py-3 pr-3 pl-1.5">Total</td>
               <td class="px-4 py-3 text-right tabular-nums">{{ count(summary().processed) }}</td>
               <td class="px-4 py-3 text-right tabular-nums">{{ amount(totalSimo()) }}</td>
               <td class="px-4 py-3 text-right tabular-nums">{{ amount(totalBanka()) }}</td>
-              <td class="py-3 pl-3 text-right tabular-nums text-alert-600">
+              <td class="py-3 pr-1.5 pl-3 text-right tabular-nums text-alert-600">
                 {{ signedAmount(totalBanka() - totalSimo()) }}
               </td>
             </tr>
