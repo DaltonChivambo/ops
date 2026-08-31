@@ -3,11 +3,12 @@
 /* Tokens da marca Moza — portados tal e qual do MozaOps v1. Não são decoração:
    a distinção entre o navy e o vermelho é uma regra de desenho, não um gosto. */
 @theme {
-  /* Red Hat Text no corpo, Red Hat Display nos títulos — a Display tem contadores
-     mais fechados e aguenta o peso a corpos grandes; a Text foi desenhada para
-     ler bem em 12–14px, que é onde esta interface vive. */
-  --font-sans: 'Red Hat Text', 'Segoe UI', system-ui, -apple-system, sans-serif;
-  --font-display: 'Red Hat Display', 'Red Hat Text', 'Segoe UI', system-ui, sans-serif;
+  /* Uma família só, com contraste feito por peso e não por mistura de fontes —
+     é o que se usa em sistemas densos, e é mais sóbrio do que duas famílias a
+     disputar atenção. O token `--font-display` fica para os números grandes;
+     aponta à mesma família, e é uma linha se um dia quiserem separá-los. */
+  --font-sans: 'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif;
+  --font-display: 'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif;
 
   /* O preflight do Tailwind v4 assenta o documento em `--default-font-family`, que
      por omissão é a stack do sistema — e NÃO em `--font-sans`. Sem esta linha, a
@@ -102,17 +103,16 @@ body {
   @apply bg-moza-50 text-base text-moza-800 antialiased;
 }
 
-/* Títulos em Red Hat Display, com o tracking ligeiramente fechado — é como a
-   Red Hat a usa, e é o que a distingue da Text a corpos parecidos. */
+/* A Inter é ligeiramente larga nos títulos; fechar o tracking evita que pareçam
+   esticados. Só nos títulos — em texto corrido a 13–14px prejudicava a leitura. */
 h1,
 h2,
 h3 {
-  font-family: var(--font-display);
-  letter-spacing: -0.011em;
+  letter-spacing: -0.014em;
 }
 
-/* Os números das tabelas alinham em coluna. A Red Hat Text tem algarismos
-   tabulares, mas não por omissão — pede-se. */
+/* Os números das tabelas alinham em coluna. A Inter tem algarismos tabulares,
+   mas não por omissão — pede-se. */
 table {
   font-variant-numeric: tabular-nums;
 }
