@@ -70,6 +70,13 @@
   to   { transform: scaleX(0); }
 }
 
+/* Entrada do anel: roda um oitavo e assenta. Curta e uma só vez — num ecrã que
+   se abre dezenas de vezes por dia, uma animação longa passa a estorvo. */
+@keyframes donut-in {
+  from { opacity: 0; transform: rotate(-45deg) scale(0.94); }
+  to   { opacity: 1; transform: rotate(0) scale(1); }
+}
+
 html,
 body {
   height: 100%;
