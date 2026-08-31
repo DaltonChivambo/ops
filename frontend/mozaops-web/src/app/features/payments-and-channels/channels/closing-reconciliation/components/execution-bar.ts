@@ -26,10 +26,10 @@ const dateTimeFormatter = new Intl.DateTimeFormat('pt-PT', {
           <b class="max-w-52 truncate font-semibold text-gray-900">{{ period() }}</b>
         </span>
 
-        <span [class]="chip" [title]="r.reportName">
-          Relatório
-          <b class="max-w-52 truncate font-semibold text-gray-900">{{ r.reportName }}</b>
-        </span>
+        <!-- Não há chip do relatório: o nome dele é FECHO_POS_DOP + período + ano,
+             ou seja, repetia o período que já está no chip ao lado — e só cabia
+             cortado a meio. O nome vai no title do botão que o descarrega, que é
+             onde interessa, e o browser mostra-o outra vez ao gravar. -->
 
         <!-- Os nomes dos três ficheiros vão no atributo title: são a
              proveniência do resultado, mas ocupavam a barra toda à vista. -->
@@ -53,6 +53,7 @@ const dateTimeFormatter = new Intl.DateTimeFormat('pt-PT', {
           type="button"
           (click)="download.emit()"
           [disabled]="downloading()"
+          [title]="r.reportName + '.xlsx'"
           class="inline-flex items-center gap-2 rounded-xl bg-moza-700 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-moza-800 disabled:cursor-not-allowed disabled:opacity-50"
         >
           @if (downloading()) {
