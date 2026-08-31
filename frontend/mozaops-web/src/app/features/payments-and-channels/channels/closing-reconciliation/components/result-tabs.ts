@@ -67,7 +67,7 @@ type TabId = 'cases' | 'closings';
           >
             {{ item.label }}
             <span
-              class="text-[0.72rem] font-semibold tabular-nums"
+              class="text-xs font-semibold tabular-nums"
               [class]="active ? 'text-gray-400' : 'text-gray-300'"
             >
               {{ item.badge }}

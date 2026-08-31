@@ -33,7 +33,7 @@ import { ALL_STATES, STATE_OPTIONS, type StateId } from '../data/state-options';
       (click)="open.set(!open())"
       aria-haspopup="true"
       [attr.aria-expanded]="open()"
-      class="inline-flex items-center gap-2 rounded-xl border px-3.5 py-2.5 text-[0.82rem] font-semibold transition-colors"
+      class="inline-flex items-center gap-2 rounded-xl border px-3.5 py-2.5 text-sm font-semibold transition-colors"
       [class]="
         allSelected()
           ? 'border-gray-100 bg-gray-50 text-gray-600 hover:text-gray-900'
@@ -45,7 +45,7 @@ import { ALL_STATES, STATE_OPTIONS, type StateId } from '../data/state-options';
 
       @if (!allSelected()) {
         <span
-          class="inline-flex size-4 items-center justify-center rounded-full bg-moza-700 text-[0.6rem] font-bold text-white tabular-nums"
+          class="inline-flex size-4 items-center justify-center rounded-full bg-moza-700 text-2xs font-bold text-white tabular-nums"
         >
           {{ n(selected().length) }}
         </span>
@@ -66,7 +66,7 @@ import { ALL_STATES, STATE_OPTIONS, type StateId } from '../data/state-options';
       >
         <!-- Caixa-mestra: traço quando só parte está marcada. -->
         <label
-          class="flex cursor-pointer items-center gap-2.5 px-3 py-2 text-[0.84rem] font-semibold text-gray-900 transition-colors hover:bg-gray-50"
+          class="flex cursor-pointer items-center gap-2.5 px-3 py-2 text-sm font-semibold text-gray-900 transition-colors hover:bg-gray-50"
         >
           <span
             class="inline-flex size-4 shrink-0 items-center justify-center rounded border transition-colors"
@@ -91,7 +91,7 @@ import { ALL_STATES, STATE_OPTIONS, type StateId } from '../data/state-options';
             class="sr-only"
           />
           <span class="flex-1">Todos os estados</span>
-          <span class="text-[0.75rem] font-medium text-gray-400 tabular-nums">
+          <span class="text-xs font-medium text-gray-400 tabular-nums">
             {{ n(counts().all) }}
           </span>
         </label>
@@ -102,7 +102,7 @@ import { ALL_STATES, STATE_OPTIONS, type StateId } from '../data/state-options';
           @let checked = selected().includes(option.id);
 
           <label
-            class="flex cursor-pointer items-center gap-2.5 px-3 py-2 text-[0.84rem] text-gray-600 transition-colors hover:bg-gray-50"
+            class="flex cursor-pointer items-center gap-2.5 px-3 py-2 text-sm text-gray-600 transition-colors hover:bg-gray-50"
           >
             <span
               class="inline-flex size-4 shrink-0 items-center justify-center rounded border transition-colors"
@@ -118,7 +118,7 @@ import { ALL_STATES, STATE_OPTIONS, type StateId } from '../data/state-options';
             <input type="checkbox" [checked]="checked" (change)="toggle(option.id)" class="sr-only" />
             <span class="size-2 shrink-0 rounded-[3px]" [class]="option.dot"></span>
             <span class="flex-1 font-medium">{{ option.label }}</span>
-            <span class="text-[0.75rem] text-gray-400 tabular-nums">
+            <span class="text-xs text-gray-400 tabular-nums">
               {{ n(option.count(counts())) }}
             </span>
           </label>

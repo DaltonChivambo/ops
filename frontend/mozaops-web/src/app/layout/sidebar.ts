@@ -161,7 +161,7 @@ const FOOTER_ITEMS: readonly NavItem[] = [
         } @else {
           <span class="min-w-0">
             <img src="mozaops_logo_sem_fundo.svg" alt="MozaOps" class="h-8 w-auto" />
-            <span class="mt-1.5 block truncate text-[0.6875rem] text-gray-400">
+            <span class="mt-1.5 block truncate text-2xs text-gray-400">
               Meios de Pagamentos e Canais
             </span>
           </span>
@@ -181,7 +181,7 @@ const FOOTER_ITEMS: readonly NavItem[] = [
           <div>
             @if (section.label && !collapsed()) {
               <p
-                class="mt-6 mb-2 px-3 text-[0.6875rem] font-semibold tracking-wider text-gray-400 uppercase"
+                class="mt-6 mb-2 px-3 text-2xs font-semibold tracking-wider text-gray-400 uppercase"
               >
                 {{ section.label }}
               </p>
@@ -235,7 +235,7 @@ const FOOTER_ITEMS: readonly NavItem[] = [
           [attr.aria-label]="item.label"
           [attr.title]="collapsed() ? item.label : null"
           (click)="onItemClick(item)"
-          class="relative flex w-full items-center gap-3 rounded-xl py-2.5 text-left text-[0.9375rem] transition-colors"
+          class="relative flex w-full items-center gap-3 rounded-xl py-2.5 text-left text-base transition-colors"
           [class]="collapsed() ? 'justify-center px-0' : 'px-3'"
           [class.bg-moza-100]="isActive(item)"
           [class.font-semibold]="isActive(item)"

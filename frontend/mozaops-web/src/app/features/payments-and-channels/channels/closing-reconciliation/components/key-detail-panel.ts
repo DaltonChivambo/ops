@@ -65,7 +65,7 @@ function creditedWhen(closingIso: string | undefined, creditIso: string | null):
           <div class="flex flex-wrap items-center gap-2">
             <h2 class="text-lg font-bold text-gray-900 tabular-nums">POS {{ d.posId }}</h2>
             <span
-              class="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[0.72rem] font-bold"
+              class="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-bold"
               [class]="chip()"
             >
               <span class="size-1.5 rounded-full" [class]="dot()"></span>
@@ -73,9 +73,9 @@ function creditedWhen(closingIso: string | undefined, creditIso: string | null):
             </span>
           </div>
 
-          <p class="mt-0.5 truncate text-[0.86rem] text-gray-500">{{ d.merchant }}</p>
+          <p class="mt-0.5 truncate text-sm text-gray-500">{{ d.merchant }}</p>
 
-          <div class="mt-2 flex flex-wrap items-baseline gap-x-4 gap-y-1 text-[0.78rem]">
+          <div class="mt-2 flex flex-wrap items-baseline gap-x-4 gap-y-1 text-xs">
             <span [class]="meta">
               <span class="text-gray-400">Conta</span>
               <span [class]="metaValue">{{ d.accountNumber }}</span>
@@ -107,19 +107,23 @@ function creditedWhen(closingIso: string | undefined, creditIso: string | null):
 
       <div class="flex-1 overflow-y-auto px-5 py-5">
         @if (error(); as message) {
-          <p class="rounded-xl bg-alert-50 px-4 py-3 text-[0.86rem] text-alert-700">{{ message }}</p>
+          <p class="rounded-xl bg-alert-50 px-4 py-3 text-sm text-alert-700">{{ message }}</p>
         }
 
         @if (!data() && !error()) {
-          <p class="mt-8 flex items-center justify-center gap-2 text-[0.86rem] text-gray-400">
+          <p class="mt-8 flex items-center justify-center gap-2 text-sm text-gray-400">
             <svg lucideLoaderCircle [size]="15" [strokeWidth]="2" class="animate-spin"></svg>
             A abrir o fecho…
           </p>
         }
 
         @if (data(); as breakdown) {
-          <!-- Apuramento à cabeça, é a conclusão; as listas por baixo são a demonstração. -->
-          <section class="grid grid-cols-3 gap-4 rounded-xl border border-gray-100 px-4 py-3.5">
+          <!-- Apuramento à cabeça, é a conclusão; as listas por baixo são a demonstração.
+               Empilha abaixo do sm: o painel ocupa a largura toda num ecrã
+               estreito, e três montantes lado a lado ficam ilegíveis. -->
+          <section
+            class="grid grid-cols-1 gap-4 rounded-xl border border-gray-100 px-4 py-3.5 sm:grid-cols-3"
+          >
             <div class="min-w-0">
               <p [class]="totalLabel">Apurado na SIMO</p>
               <p [class]="totalValue + ' text-gray-900'">
@@ -155,7 +159,10 @@ function creditedWhen(closingIso: string | undefined, creditIso: string | null):
               }}
             </h3>
 
-            <table class="mt-2.5 w-full border-collapse text-sm">
+            <!-- Scroll próprio em vez de espremer as colunas: o painel ocupa a
+                 largura toda num ecrã estreito, e um montante partido não se lê. -->
+            <div class="mt-2.5 overflow-x-auto">
+            <table class="w-full min-w-sm border-collapse text-sm">
               <thead>
                 <tr class="border-b border-gray-100 text-gray-400">
                   <th scope="col" [class]="th + ' py-2 pr-3 text-left'">Data Fecho</th>
@@ -185,7 +192,7 @@ function creditedWhen(closingIso: string | undefined, creditIso: string | null):
               <!-- A soma vive no pé da coluna que soma, alinhada para se conferir a conta. -->
               <tfoot>
                 <tr class="border-t border-gray-200">
-                  <td class="pt-2.5 pr-3 text-[0.78rem] text-gray-500" colspan="2">
+                  <td class="pt-2.5 pr-3 text-xs text-gray-500" colspan="2">
                     Total apurado
                   </td>
                   <td class="pt-2.5 pl-3 text-right">
@@ -196,6 +203,7 @@ function creditedWhen(closingIso: string | undefined, creditIso: string | null):
                 </tr>
               </tfoot>
             </table>
+            </div>
           </section>
 
           <section class="mt-4 rounded-xl bg-moza-50 px-4 py-3.5 ring-1 ring-moza-200">
@@ -211,11 +219,11 @@ function creditedWhen(closingIso: string | undefined, creditIso: string | null):
             </h3>
 
             @if (sharedDescription(); as shared) {
-              <p class="mt-1 truncate text-[0.78rem] text-gray-400">{{ shared }}</p>
+              <p class="mt-1 truncate text-xs text-gray-400">{{ shared }}</p>
             }
 
             @if (movements().length === 0) {
-              <p class="mt-2.5 rounded-xl bg-white/70 px-4 py-3 text-[0.84rem] text-gray-500">
+              <p class="mt-2.5 rounded-xl bg-white/70 px-4 py-3 text-sm text-gray-500">
                 Não há nenhum movimento do Banka com esta chave.
                 @if (d.bankaClosingTotal !== null) {
                   O crédito da chave está apurado em
@@ -225,7 +233,8 @@ function creditedWhen(closingIso: string | undefined, creditIso: string | null):
                 }
               </p>
             } @else {
-              <table class="mt-2.5 w-full border-collapse text-sm">
+              <div class="mt-2.5 overflow-x-auto">
+              <table class="w-full min-w-md border-collapse text-sm">
                 <thead>
                   <tr class="border-b border-moza-200 text-gray-400">
                     <th scope="col" [class]="th + ' py-2 pr-3 text-left'">Data Crédito</th>
@@ -251,7 +260,7 @@ function creditedWhen(closingIso: string | undefined, creditIso: string | null):
                       </td>
                       @if (!sharedDescription()) {
                         <td class="px-3 py-2.5">
-                          <span class="block max-w-64 truncate text-[0.82rem]">
+                          <span class="block max-w-64 truncate text-sm">
                             {{ movement.description || '—' }}
                           </span>
                         </td>
@@ -267,7 +276,7 @@ function creditedWhen(closingIso: string | undefined, creditIso: string | null):
                 <tfoot>
                   <tr class="border-t border-moza-200">
                     <td
-                      class="pt-2.5 pr-3 text-[0.78rem] text-gray-500"
+                      class="pt-2.5 pr-3 text-xs text-gray-500"
                       [attr.colspan]="sharedDescription() ? 2 : 3"
                     >
                       Total creditado
@@ -280,6 +289,7 @@ function creditedWhen(closingIso: string | undefined, creditIso: string | null):
                   </tr>
                 </tfoot>
               </table>
+              </div>
             }
           </section>
 
@@ -323,16 +333,16 @@ export class KeyDetailPanelComponent {
   protected readonly meta = 'inline-flex items-baseline gap-1.5 whitespace-nowrap';
   protected readonly metaValue = 'font-semibold text-gray-700 tabular-nums';
   protected readonly mzn = 'ml-1 text-[0.7em] font-normal text-gray-400';
-  protected readonly th = 'text-[0.66rem] font-bold tracking-wider uppercase';
+  protected readonly th = 'text-2xs font-bold tracking-wider uppercase';
   protected readonly sectionTitle =
-    'text-[0.7rem] font-bold tracking-wider text-gray-400 uppercase';
+    'text-2xs font-bold tracking-wider text-gray-400 uppercase';
   protected readonly totalLabel =
-    'text-[0.65rem] font-bold tracking-wider text-gray-400 uppercase';
-  protected readonly totalValue = 'mt-1 text-[0.95rem] font-bold tabular-nums';
+    'text-2xs font-bold tracking-wider text-gray-400 uppercase';
+  protected readonly totalValue = 'mt-1 text-base font-bold tabular-nums';
   protected readonly fieldLabel =
-    'text-[0.65rem] font-bold tracking-wider text-gray-400 uppercase';
+    'text-2xs font-bold tracking-wider text-gray-400 uppercase';
   protected readonly fieldValue =
-    'mt-0.5 truncate text-[0.86rem] font-semibold text-gray-900';
+    'mt-0.5 truncate text-sm font-semibold text-gray-900';
 
   protected readonly closings = computed(() => this.data()?.closings ?? []);
   protected readonly movements = computed(() => this.data()?.movements ?? []);

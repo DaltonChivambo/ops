@@ -36,13 +36,18 @@ interface Arc extends Segment {
   imports: [CardComponent],
   template: `
     <section appCard class="flex flex-col gap-4">
-      <h2 class="text-[1.0625rem] font-bold">Fechos por Tratar</h2>
+      <h2 class="text-lg font-bold">Fechos por Tratar</h2>
 
-      <div class="relative mx-auto size-50">
+      <!-- Abaixo do xl este cartão ocupa a largura toda, e o anel sozinho ao meio
+           deixava-o um caixote vazio. Aí anel e legenda ficam lado a lado; na
+           coluna estreita do xl voltam a empilhar. -->
+      <div
+        class="flex flex-col items-center gap-5 sm:flex-row sm:justify-center sm:gap-10 xl:flex-col xl:gap-4"
+      >
+      <div class="relative aspect-square w-full max-w-[13rem] min-w-[9rem] shrink-0">
         @if (segments().length > 0) {
           <svg
-            [attr.width]="size"
-            [attr.height]="size"
+            class="h-full w-full"
             [attr.viewBox]="'0 0 ' + size + ' ' + size"
             aria-hidden="true"
           >
@@ -73,14 +78,16 @@ interface Arc extends Segment {
         <div
           class="pointer-events-none absolute inset-0 flex flex-col items-center justify-center"
         >
-          <span class="text-3xl leading-tight font-bold">{{ count(total()) }}</span>
-          <span class="text-[0.6875rem] tracking-widest text-gray-600 uppercase">Fechos</span>
+          <span class="font-display text-3xl leading-tight font-bold tabular-nums">{{
+            count(total())
+          }}</span>
+          <span class="text-2xs tracking-widest text-gray-600 uppercase">Fechos</span>
         </div>
       </div>
 
-      <ul class="flex flex-col gap-2.5">
+      <ul class="flex w-full max-w-sm flex-col gap-2.5 xl:max-w-none">
         @for (segment of segments(); track segment.name) {
-          <li class="flex items-center gap-2 text-[0.8125rem]">
+          <li class="flex items-center gap-2 text-sm">
             <span
               class="size-2 shrink-0 rounded-full"
               [style.backgroundColor]="segment.color"
@@ -93,6 +100,7 @@ interface Arc extends Segment {
           <li class="text-center text-sm text-gray-400">Todos os fechos conferem.</li>
         }
       </ul>
+      </div>
     </section>
   `,
 })

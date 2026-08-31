@@ -106,7 +106,7 @@ const STRUCK_ROW =
           <button
             type="button"
             (click)="clearFilters()"
-            class="inline-flex shrink-0 items-center gap-1.5 rounded-xl px-2.5 py-2.5 text-[0.82rem] font-semibold text-gray-500 transition-colors hover:bg-gray-50 hover:text-gray-900"
+            class="inline-flex shrink-0 items-center gap-1.5 rounded-xl px-2.5 py-2.5 text-sm font-semibold text-gray-500 transition-colors hover:bg-gray-50 hover:text-gray-900"
           >
             <svg lucideX [size]="14" [strokeWidth]="2.4"></svg>
             Limpar filtros
@@ -128,7 +128,7 @@ const STRUCK_ROW =
         </label>
 
         <p
-          class="ml-auto shrink-0 text-[0.84rem] whitespace-nowrap text-gray-400 transition-opacity"
+          class="ml-auto shrink-0 text-sm whitespace-nowrap text-gray-400 transition-opacity"
           [class.opacity-40]="loading()"
         >
           <span class="font-bold text-gray-900 tabular-nums">{{ n(total()) }}</span
@@ -151,7 +151,7 @@ const STRUCK_ROW =
         <table class="w-full min-w-3xl border-collapse text-sm">
           <thead class="sticky top-0 z-10 bg-gray-50/95 backdrop-blur">
             <tr class="border-y border-gray-100 text-gray-400">
-              <th scope="col" [class]="th + ' py-2.5 pr-3 pl-5 text-left'">POS / Comerciante</th>
+              <th scope="col" [class]="th + ' w-[17rem] py-2.5 pr-3 pl-5 text-left'">POS / Comerciante</th>
               <th scope="col" [class]="th + ' px-3 py-2.5 text-right'">Período</th>
               <th scope="col" [class]="th + ' px-3 py-2.5 text-left'">Data Fecho</th>
               <th scope="col" [class]="th + ' px-3 py-2.5 text-right'">Total SIMO</th>
@@ -253,7 +253,7 @@ const STRUCK_ROW =
                     <span class="inline-flex items-center gap-1.5">
                       {{ detail.period }}
                       <span
-                        class="rounded-full bg-amber-500 px-1.5 py-0.5 text-[0.6rem] font-bold whitespace-nowrap text-white"
+                        class="rounded-full bg-amber-500 px-1.5 py-0.5 text-2xs font-bold whitespace-nowrap text-white"
                       >
                         {{ n(group.items.length) }} fechos
                       </span>
@@ -289,7 +289,7 @@ const STRUCK_ROW =
                         <button
                           type="button"
                           (click)="$event.stopPropagation(); opened.set(item)"
-                          class="inline-flex items-center gap-1.5 text-[0.76rem] font-semibold text-amber-700/80 underline-offset-2 transition-colors hover:text-amber-800 hover:underline focus-visible:underline"
+                          class="inline-flex items-center gap-1.5 text-xs font-semibold text-amber-700/80 underline-offset-2 transition-colors hover:text-amber-800 hover:underline focus-visible:underline"
                         >
                           <svg
                             lucideCornerDownRight
@@ -300,7 +300,7 @@ const STRUCK_ROW =
                           Fecho {{ n(position + 1) }}
                         </button>
                       </td>
-                      <td class="px-3 py-2.5 text-right text-[0.76rem] tabular-nums text-gray-300">
+                      <td class="px-3 py-2.5 text-right text-xs tabular-nums text-gray-300">
                         {{ item.period }}
                       </td>
                       <td class="px-3 py-2.5 tabular-nums text-gray-400">
@@ -316,7 +316,7 @@ const STRUCK_ROW =
                       <td class="px-3 py-2.5 text-right">
                         <span class="text-gray-300">—</span>
                       </td>
-                      <td class="px-3 py-2.5 text-[0.76rem] text-gray-400">
+                      <td class="px-3 py-2.5 text-xs text-gray-400">
                         Op. <span class="tabular-nums">{{ item.operationNumber }}</span>
                       </td>
                     </tr>
@@ -343,20 +343,20 @@ const STRUCK_ROW =
         <div #sentinel aria-hidden="true" class="h-px"></div>
 
         @if (loadingMore()) {
-          <p class="flex items-center justify-center gap-2 py-4 text-[0.82rem] text-gray-400">
+          <p class="flex items-center justify-center gap-2 py-4 text-sm text-gray-400">
             <svg lucideLoaderCircle [size]="15" [strokeWidth]="2" class="animate-spin"></svg>
             A carregar mais fechos…
           </p>
         }
         @if (!hasMore() && items().length > 0) {
-          <p class="py-4 text-center text-[0.8rem] text-gray-300">Fim da lista</p>
+          <p class="py-4 text-center text-sm text-gray-300">Fim da lista</p>
         }
       </div>
 
       <div
         class="flex flex-wrap items-center justify-between gap-3 border-t border-gray-100 px-4 py-3.5 sm:px-5"
       >
-        <p class="text-[0.82rem] text-gray-400">
+        <p class="text-sm text-gray-400">
           <span class="font-semibold text-gray-500 tabular-nums">{{ n(items().length) }}</span> de
           <span class="font-semibold text-gray-500 tabular-nums">{{ n(total()) }}</span> fechos
           carregados
@@ -367,7 +367,7 @@ const STRUCK_ROW =
           <button
             type="button"
             (click)="scrollToTop()"
-            class="inline-flex items-center gap-1.5 rounded-lg border border-gray-200 px-3 py-1.5 text-[0.78rem] font-semibold text-gray-500 transition-colors hover:bg-gray-50 hover:text-gray-900"
+            class="inline-flex items-center gap-1.5 rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-semibold text-gray-500 transition-colors hover:bg-gray-50 hover:text-gray-900"
           >
             <svg lucideArrowUp [size]="14" [strokeWidth]="2.2"></svg>
             Voltar ao topo
@@ -394,7 +394,7 @@ const STRUCK_ROW =
         {{ detail.posId }}
         <span class="sr-only"> — ver os dados da SIMO e do Banka</span>
       </button>
-      <div class="mt-0.5 max-w-56 truncate text-[0.8rem] text-gray-400">
+      <div class="mt-0.5 max-w-56 truncate text-sm text-gray-400">
         @if (detail.merchant === unregistered) {
           <span class="text-alert-600">— sem cadastro</span>
         } @else {
@@ -405,7 +405,7 @@ const STRUCK_ROW =
 
     <ng-template #stateChip let-detail>
       <span
-        class="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[0.72rem] font-bold"
+        class="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-bold"
         [class]="chip(detail)"
       >
         <span class="size-1.5 rounded-full" [class]="dot(detail)"></span>
@@ -427,7 +427,7 @@ export class ReconciliationTableComponent {
   protected readonly perPage = PER_PAGE;
   protected readonly unregistered = UNREGISTERED;
   protected readonly struckRow = STRUCK_ROW;
-  protected readonly th = 'text-[0.66rem] font-bold tracking-wider uppercase';
+  protected readonly th = 'text-2xs font-bold tracking-wider uppercase';
 
   protected readonly query = signal('');
   private readonly search = signal('');

@@ -79,13 +79,13 @@ export interface CasePatch {
               <button
                 type="button"
                 (click)="status.set(filter.id)"
-                class="inline-flex items-center gap-2 rounded-lg px-3 py-1.5 text-[0.8rem] font-semibold transition-colors"
+                class="inline-flex items-center gap-2 rounded-lg px-3 py-1.5 text-sm font-semibold transition-colors"
                 [class]="
                   active ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-900'
                 "
               >
                 {{ filter.label }}
-                <span class="text-[0.7rem] text-gray-400 tabular-nums">
+                <span class="text-2xs text-gray-400 tabular-nums">
                   {{ n(counts()[filter.id]) }}
                 </span>
               </button>
@@ -114,7 +114,7 @@ export interface CasePatch {
           <table class="w-full min-w-3xl border-collapse text-sm">
             <thead class="sticky top-0 z-10 bg-gray-50/95 backdrop-blur">
               <tr class="border-y border-gray-100 text-gray-400">
-                <th scope="col" [class]="th + ' py-2.5 pr-3 pl-5 text-left'">POS / Comerciante</th>
+                <th scope="col" [class]="th + ' w-[17rem] py-2.5 pr-3 pl-5 text-left'">POS / Comerciante</th>
                 <th scope="col" [class]="th + ' px-3 py-2.5 text-right'">Período</th>
                 <th scope="col" [class]="th + ' px-3 py-2.5 text-right'">Valor SIMO</th>
                 <th scope="col" [class]="th + ' px-3 py-2.5 text-right'">Valor Banka</th>
@@ -135,7 +135,7 @@ export interface CasePatch {
                 >
                   <td class="border-l-[3px] py-3.5 pr-3 pl-4" [class]="stripe(item)">
                     <div class="font-bold text-gray-900 tabular-nums">{{ item.posId }}</div>
-                    <div class="mt-0.5 max-w-48 truncate text-[0.8rem] text-gray-400">
+                    <div class="mt-0.5 max-w-48 truncate text-sm text-gray-400">
                       {{ item.merchant }}
                     </div>
                   </td>
@@ -150,7 +150,7 @@ export interface CasePatch {
                   </td>
                   <td class="px-3 py-3.5">
                     <span
-                      class="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[0.72rem] font-bold"
+                      class="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-bold"
                       [class]="chip(item)"
                     >
                       <span class="size-1.5 rounded-full" [class]="dot(item)"></span>
@@ -196,7 +196,7 @@ export interface CasePatch {
           </table>
         </div>
 
-        <p class="border-t border-gray-100 px-4 py-3.5 text-[0.82rem] text-gray-400 sm:px-5">
+        <p class="border-t border-gray-100 px-4 py-3.5 text-sm text-gray-400 sm:px-5">
           A mostrar
           <span class="font-semibold text-gray-500 tabular-nums">{{ n(visible().length) }}</span> de
           <span class="font-semibold text-gray-500 tabular-nums">{{ n(cases().length) }}</span> casos
@@ -216,7 +216,7 @@ export class PendingCasesTableComponent {
   readonly scrollAnchor = input<HTMLElement | undefined>(undefined);
   readonly updated = output<CasePatch>();
 
-  protected readonly th = 'text-[0.66rem] font-bold tracking-wider uppercase';
+  protected readonly th = 'text-2xs font-bold tracking-wider uppercase';
   protected readonly statusFilters = STATUS_FILTERS;
   protected readonly statusOptions = Object.entries(STATUS_LABELS).map(([value, label]) => ({
     value,

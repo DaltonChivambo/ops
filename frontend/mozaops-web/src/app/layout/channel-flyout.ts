@@ -101,7 +101,7 @@ import { type Feature, type NavModule } from '../core/navigation';
       @for (group of grouped(); track group.category; let groupIndex = $index) {
         <div [class]="groupIndex > 0 ? 'mt-5 border-t border-gray-100 pt-5' : ''">
           <p
-            class="mb-2 px-3 text-[0.6875rem] font-semibold tracking-wider text-gray-400 uppercase"
+            class="mb-2 px-3 text-2xs font-semibold tracking-wider text-gray-400 uppercase"
           >
             {{ group.category }}
           </p>

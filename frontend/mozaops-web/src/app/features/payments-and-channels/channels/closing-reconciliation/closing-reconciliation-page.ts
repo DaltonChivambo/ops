@@ -10,6 +10,7 @@ import { AmountReconciliationComponent } from './components/amount-reconciliatio
 import { DiscrepancySourceDonutComponent } from './components/discrepancy-source-donut';
 import { PageTitleComponent } from './components/page-title';
 import { type CasePatch } from './components/pending-cases-table';
+import { ResultStatsComponent } from './components/result-stats';
 import { ResultTabsComponent } from './components/result-tabs';
 import { UploadZoneComponent } from './components/upload-zone';
 import { ReconciliationApi } from './data/reconciliation-api.service';
@@ -29,6 +30,7 @@ import type { ProgressPhase, UploadSlotId, ValidationResult } from './data/model
     DiscrepancySourceDonutComponent,
     ExecutionBarComponent,
     PageTitleComponent,
+    ResultStatsComponent,
     ResultTabsComponent,
     ToastComponent,
     UploadZoneComponent,
@@ -77,11 +79,17 @@ import type { ProgressPhase, UploadSlotId, ValidationResult } from './data/model
           (newExecution)="startNewExecution()"
         />
 
+        <app-result-stats [result]="current" />
+
         <!-- O apuramento por estado — os fechos por tratar e os montantes dos dois
              lados — esteve num separador «Resumo por Estado». É leitura e não
-             navegação: fica à vista, antes das listas. -->
+             navegação: fica à vista, antes das listas.
+
+             Lado a lado só a partir do xl: a tabela dos montantes tem cinco
+             colunas e um mínimo de 36rem, e num portátil a 1024px a coluna que
+             lhe sobrava obrigava-a a scroll horizontal próprio. -->
         <div
-          class="grid grid-cols-1 gap-4 sm:gap-5 lg:grid-cols-[minmax(17rem,1fr)_minmax(0,2fr)]"
+          class="grid grid-cols-1 gap-4 sm:gap-5 xl:grid-cols-[minmax(18rem,1fr)_minmax(0,2fr)]"
         >
           <app-discrepancy-source-donut [summary]="current.summary" />
           <app-amount-reconciliation [summary]="current.summary" />

@@ -1,6 +1,11 @@
 import { ChangeDetectionStrategy, Component, computed, input } from '@angular/core';
 
-import { formatMzn, formatSignedMzn, numberFormatter } from '../../../../../shared/format';
+import {
+  formatAmount,
+  formatMzn,
+  formatSignedAmount,
+  numberFormatter,
+} from '../../../../../shared/format';
 import { CardComponent } from '../../../../../shared/ui/card';
 import type { ClosingSummary } from '../data/models';
 
@@ -22,8 +27,8 @@ interface Row {
   template: `
     <section appCard class="flex flex-col gap-5">
       <div class="flex flex-wrap items-baseline justify-between gap-2">
-        <h2 class="text-[1.0625rem] font-bold">Reconciliação de Montantes</h2>
-        <p class="text-xs text-gray-400">Apurado na SIMO vs creditado no Banka</p>
+        <h2 class="text-lg font-bold">Reconciliação de Montantes</h2>
+        <p class="text-xs text-gray-400">Apurado na SIMO vs creditado no Banka · MZN</p>
       </div>
 
       <!-- Largura mínima: divergências são fracções de ponto percentual, senão a barra sai só verde. -->
@@ -44,9 +49,9 @@ interface Row {
           <thead>
             <tr class="border-b border-gray-100 text-gray-400">
               <th scope="col" [class]="th + ' py-2 pr-3 text-left'">Estado</th>
-              <th scope="col" [class]="th + ' px-3 py-2 text-right'">Fechos</th>
-              <th scope="col" [class]="th + ' px-3 py-2 text-right'">Montante SIMO</th>
-              <th scope="col" [class]="th + ' px-3 py-2 text-right'">Montante Banka</th>
+              <th scope="col" [class]="th + ' px-4 py-2 text-right'">Fechos</th>
+              <th scope="col" [class]="th + ' px-4 py-2 text-right'">Montante SIMO</th>
+              <th scope="col" [class]="th + ' px-4 py-2 text-right'">Montante Banka</th>
               <th scope="col" [class]="th + ' py-2 pl-3 text-right'">Diferença</th>
             </tr>
           </thead>
@@ -65,28 +70,28 @@ interface Row {
                     <span class="font-semibold text-gray-900">{{ row.label }}</span>
                   </span>
                 </td>
-                <td class="px-3 py-3 text-right tabular-nums">{{ count(row.count) }}</td>
-                <td class="px-3 py-3 text-right tabular-nums">{{ mzn(row.simo) }}</td>
-                <td class="px-3 py-3 text-right tabular-nums">
-                  {{ row.key === 'missing' ? '—' : mzn(row.banka) }}
+                <td class="px-4 py-3 text-right tabular-nums">{{ count(row.count) }}</td>
+                <td class="px-4 py-3 text-right tabular-nums">{{ amount(row.simo) }}</td>
+                <td class="px-4 py-3 text-right tabular-nums">
+                  {{ row.key === 'missing' ? '—' : amount(row.banka) }}
                 </td>
                 <td
                   class="py-3 pl-3 text-right tabular-nums"
                   [class.font-semibold]="difference !== 0"
                   [class.text-alert-600]="difference !== 0"
                 >
-                  {{ difference === 0 ? '—' : signedMzn(difference) }}
+                  {{ difference === 0 ? '—' : signedAmount(difference) }}
                 </td>
               </tr>
             }
 
             <tr class="font-semibold text-gray-900">
               <td class="py-3 pr-3">Total</td>
-              <td class="px-3 py-3 text-right tabular-nums">{{ count(summary().processed) }}</td>
-              <td class="px-3 py-3 text-right tabular-nums">{{ mzn(totalSimo()) }}</td>
-              <td class="px-3 py-3 text-right tabular-nums">{{ mzn(totalBanka()) }}</td>
+              <td class="px-4 py-3 text-right tabular-nums">{{ count(summary().processed) }}</td>
+              <td class="px-4 py-3 text-right tabular-nums">{{ amount(totalSimo()) }}</td>
+              <td class="px-4 py-3 text-right tabular-nums">{{ amount(totalBanka()) }}</td>
               <td class="py-3 pl-3 text-right tabular-nums text-alert-600">
-                {{ signedMzn(totalBanka() - totalSimo()) }}
+                {{ signedAmount(totalBanka() - totalSimo()) }}
               </td>
             </tr>
           </tbody>
@@ -98,7 +103,7 @@ interface Row {
 export class AmountReconciliationComponent {
   readonly summary = input.required<ClosingSummary>();
 
-  protected readonly th = 'text-[0.6875rem] font-semibold tracking-wider uppercase';
+  protected readonly th = 'text-2xs font-semibold tracking-wider uppercase';
 
   protected readonly rows = computed<readonly Row[]>(() => {
     const s = this.summary();
@@ -157,6 +162,7 @@ export class AmountReconciliationComponent {
   }
 
   protected mzn = formatMzn;
-  protected signedMzn = formatSignedMzn;
+  protected amount = formatAmount;
+  protected signedAmount = formatSignedAmount;
   protected count = (value: number) => numberFormatter.format(value);
 }

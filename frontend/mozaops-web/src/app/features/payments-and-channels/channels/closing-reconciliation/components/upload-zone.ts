@@ -43,7 +43,7 @@ const PHASE_LABELS: Record<ProgressPhase, string> = {
     <section appCard class="flex flex-col gap-5">
       <div class="flex items-start justify-between gap-4">
         <div>
-          <h2 class="text-[1.0625rem] font-bold">Nova Validação</h2>
+          <h2 class="text-lg font-bold">Nova Validação</h2>
           <p class="mt-1 text-sm text-gray-500">
             Carregue os três ficheiros extraídos do SIMO e do Banka (MIS).
           </p>
@@ -98,7 +98,7 @@ const PHASE_LABELS: Record<ProgressPhase, string> = {
             <span class="max-w-full truncate text-xs text-gray-500">
               {{ picked ? picked.name : 'Selecionar ficheiro' }}
             </span>
-            <span class="text-[0.6875rem] tracking-wide text-gray-400 uppercase">
+            <span class="text-2xs tracking-wide text-gray-400 uppercase">
               {{ slot.hint }}
             </span>
           </label>

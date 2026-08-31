@@ -16,8 +16,14 @@ export interface Stat {
   readonly id: string;
   readonly label: string;
   readonly value: number;
-  /** Quando definido, substitui a formatação numérica (ex.: "95,8%", valores MZN). */
+  /** Quando definido, substitui a formatação numérica (ex.: "95,8%"). */
   readonly displayValue?: string;
+  /**
+   * Unidade em sufixo pequeno e cinzento, à maneira do `app-money`. Fora do
+   * número porque é ele que se lê: com "MZN" a negro e no mesmo corpo, o
+   * cartão do valor em divergência não cabe a quatro por linha num portátil.
+   */
+  readonly unit?: string;
   /** Variação vs. período anterior; omitir quando não há comparativo. */
   readonly changePercent?: number;
   readonly icon: 'file-check' | 'percent' | 'banknote' | 'alert-triangle';
@@ -41,13 +47,23 @@ export interface Stat {
 
     <section appCard class="flex flex-col gap-3">
       <div class="flex items-start justify-between gap-2">
-        <div>
-          <p class="mb-1.5 text-[0.9375rem] text-gray-600">{{ s.label }}</p>
-          <p class="text-[1.75rem] leading-none font-bold">{{ displayValue() }}</p>
+        <!-- min-w-0 para o valor poder encolher em vez de esticar o cartão: sem
+             ele um montante longo empurra o ícone para fora. -->
+        <div class="min-w-0">
+          <p class="mb-1.5 truncate text-base text-gray-600">{{ s.label }}</p>
+          <p
+            class="truncate font-display text-2xl leading-none font-bold tabular-nums"
+            [title]="displayValue() + (s.unit ? ' ' + s.unit : '')"
+          >
+            {{ displayValue()
+            }}@if (s.unit) {<span class="ml-1 text-[0.55em] font-normal text-gray-400">{{
+                s.unit
+              }}</span>}
+          </p>
         </div>
 
         <span
-          class="inline-flex size-11 items-center justify-center rounded-xl bg-moza-100 text-moza-700"
+          class="inline-flex size-11 shrink-0 items-center justify-center rounded-xl bg-moza-100 text-moza-700"
         >
           @switch (s.icon) {
             @case ('file-check') {
@@ -66,7 +82,7 @@ export interface Stat {
         </span>
       </div>
 
-      <p class="flex items-center gap-1.5 text-[0.8125rem]">
+      <p class="flex items-center gap-1.5 text-sm">
         @if (s.changePercent !== undefined) {
           <span
             class="inline-flex items-center gap-0.5 font-semibold"

@@ -74,7 +74,7 @@ export class ExecutionBarComponent {
   readonly newExecution = output<void>();
 
   protected readonly chip =
-    'inline-flex max-w-full items-center gap-1.5 rounded-full border border-gray-200 bg-white px-3 py-1.5 text-[0.78rem] text-gray-500 shadow-sm';
+    'inline-flex max-w-full items-center gap-1.5 rounded-full border border-gray-200 bg-white px-3 py-1.5 text-xs text-gray-500 shadow-sm';
 
   protected readonly period = computed(() =>
     formatInterval(this.result().periodStart, this.result().periodEnd),
