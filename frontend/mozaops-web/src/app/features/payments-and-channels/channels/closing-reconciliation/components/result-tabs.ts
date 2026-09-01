@@ -51,14 +51,16 @@ type TabId = 'cases' | 'closings';
            é a ele que o appPageFirstScroll pergunta quanto falta para assentar, e
            só ele sabe onde assenta. -->
       <div #tabList class="sticky top-[var(--app-header-h)] z-20 -mx-1 bg-[#f7f6fb] px-1 py-2">
-        <!-- Controlo segmentado, o mesmo que o filtro de estado da tabela de casos
-             já usa. O sublinhado anterior deixava os separadores inactivos com cara
-             de texto morto: não se percebia que eram para carregar. Aqui a moldura
-             diz que são opções e o fundo branco diz qual está escolhida. -->
+        <!-- Controlo segmentado. A pista tem de ser MAIS ESCURA do que a página,
+             senão não há controlo nenhum: estava em gray-50 sobre um fundo #f7f6fb,
+             dois pontos em 255, e a moldura gray-100 outro tanto. Via-se um separador
+             branco pousado no nada e o outro como texto morto — ninguém adivinha que
+             são duas vistas e que se troca entre elas. É a pista que diz «isto é um
+             interruptor»; a pastilha branca só diz qual das duas está aberta. -->
         <div
           role="tablist"
           aria-label="Vistas do resultado"
-          class="inline-flex max-w-full gap-1 overflow-x-auto rounded-xl border border-gray-100 bg-gray-50 p-1"
+          class="inline-flex max-w-full gap-1 overflow-x-auto rounded-xl bg-moza-100 p-1 ring-1 ring-moza-200/70"
         >
           @for (item of tabs(); track item.id) {
             @let active = tab() === item.id;
@@ -71,14 +73,14 @@ type TabId = 'cases' | 'closings';
               class="inline-flex shrink-0 cursor-pointer items-center gap-2 rounded-lg px-3.5 py-2 text-sm font-semibold transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-moza-400"
               [class]="
                 active
-                  ? 'bg-white text-gray-900 shadow-sm'
-                  : 'text-gray-500 hover:bg-white/70 hover:text-gray-900'
+                  ? 'bg-white text-moza-800 shadow-sm ring-1 ring-moza-900/5'
+                  : 'text-moza-600 hover:bg-white/60 hover:text-moza-800'
               "
             >
               {{ item.label }}
               <span
                 class="rounded-full px-1.5 py-0.5 text-2xs font-bold tabular-nums transition-colors"
-                [class]="active ? 'bg-moza-100 text-moza-700' : 'bg-gray-200 text-gray-500'"
+                [class]="active ? 'bg-moza-100 text-moza-700' : 'bg-moza-200 text-moza-600'"
               >
                 {{ item.badge }}
               </span>
