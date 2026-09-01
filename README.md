@@ -46,7 +46,7 @@ make migrate             # alembic upgrade head
 E o frontend, noutro terminal:
 
 ```bash
-cd frontend/mozaops-web && npm install && npm start   # http://localhost:4200
+cd frontend && npm install && npm start   # http://localhost:4200
 ```
 
 `*.localhost` resolve para 127.0.0.1 sem tocar no `/etc/hosts`:

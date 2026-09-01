@@ -4,7 +4,7 @@
 # fazer em produção. A imagem final leva o `dist/` e mais nada — não há
 # compilador, não há gestor de pacotes, não há código-fonte.
 #
-#   docker build -t mozaops-web frontend/mozaops-web
+#   docker build -t mozaops-web frontend
 
 # ─── Compilação ───────────────────────────────────────────────────────────────
 FROM node:24-alpine AS build

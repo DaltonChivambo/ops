@@ -118,7 +118,7 @@ ops/
 │   ├── libs/                  mozaops_libs — vazio até ao 2.º consumidor
 │   └── services/
 │       └── closing-reconciliation/
-├── frontend/mozaops-web/      SPA Angular (features por departamento → ilha)
+├── frontend/                 SPA Angular (features por departamento → ilha)
 ├── infra/
 │   ├── postgres/initdb/       cria base + role por serviço, com REVOKE cruzado
 │   ├── traefik/               configuração estática (as rotas são labels no compose)
@@ -198,7 +198,7 @@ make test                # testes do backend
 
 | | |
 |---|---|
-| Frontend (dev) | `cd frontend/mozaops-web && npm start` → http://localhost:4200 |
+| Frontend (dev) | `cd frontend && npm start` → http://localhost:4200 |
 | API (dev, direto) | http://localhost:8001 |
 | Keycloak | http://sso.mozaops.localhost |
 | Jaeger | http://jaeger.mozaops.localhost |

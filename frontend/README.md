@@ -17,7 +17,7 @@ escrever `ng ...` à mão, `npm i -g @angular/cli@22`.
 
 ## Arrancar
 
-A partir desta pasta (`frontend/mozaops-web/`):
+A partir desta pasta (`frontend/`):
 
 ```bash
 npm install

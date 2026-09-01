@@ -15,9 +15,9 @@ navegação que o operador vê.
 
 | Caminho | Departamento | Owner |
 |---|---|---|
-| `frontend/mozaops-web/src/app/features/payments-and-channels/` | Meios de Pagamentos e Canais | \<equipa\> |
-| `frontend/mozaops-web/src/app/features/customers-and-accounts/` | Clientes e Contas | \<equipa\> |
-| `frontend/mozaops-web/src/app/{core,layout,shared}/` | Plataforma | \<equipa\> |
+| `frontend/src/app/features/payments-and-channels/` | Meios de Pagamentos e Canais | \<equipa\> |
+| `frontend/src/app/features/customers-and-accounts/` | Clientes e Contas | \<equipa\> |
+| `frontend/src/app/{core,layout,shared}/` | Plataforma | \<equipa\> |
 
 ## Componentes partilhados
 

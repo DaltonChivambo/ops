@@ -47,5 +47,5 @@ docs/sample-reports-updated/
 *.swp
 
 # Angular
-frontend/mozaops-web/.angular/
-frontend/mozaops-web/dist/
+frontend/.angular/
+frontend/dist/
