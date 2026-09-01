@@ -161,7 +161,12 @@ const FOOTER_ITEMS: readonly NavItem[] = [
         } @else {
           <span class="min-w-0">
             <img src="mozaops_logo_sem_fundo.svg" alt="MozaOps" class="h-8 w-auto" />
-            <span class="mt-1.5 block truncate text-2xs text-gray-400">
+            <!-- Passa a duas linhas em vez de truncar. No drawer o botão de fechar
+                 rouba 44px a esta linha e sobravam ~164px para um texto que pede
+                 ~168 — cortava por uma unha, e "Meios de Pagamentos e Can…" não
+                 diz de que departamento se trata. Aqui não há nada a ganhar em
+                 esconder: são duas linhas curtas debaixo do logótipo. -->
+            <span class="mt-1.5 block text-2xs leading-snug text-gray-400">
               Meios de Pagamentos e Canais
             </span>
           </span>
