@@ -146,12 +146,12 @@ const FOOTER_ITEMS: readonly NavItem[] = [
         (click)="toggleCollapse()"
         [attr.aria-label]="collapsed() ? 'Expandir menu' : 'Encolher menu'"
         [attr.aria-expanded]="!collapsed()"
-        class="absolute top-8 -right-3 z-10 inline-flex size-6 items-center justify-center rounded-full border border-gray-200 bg-white text-gray-600 shadow-sm transition-colors hover:bg-moza-50 hover:text-moza-700"
+        class="absolute top-8 -right-3.5 z-10 hidden size-7 items-center justify-center rounded-full border border-gray-200 bg-white text-gray-500 shadow-md transition-colors hover:border-moza-200 hover:bg-moza-50 hover:text-moza-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-moza-400 lg:inline-flex"
       >
         @if (collapsed()) {
-          <svg lucideChevronsRight [size]="14" [strokeWidth]="2"></svg>
+          <svg lucideChevronsRight [size]="15" [strokeWidth]="2.2"></svg>
         } @else {
-          <svg lucideChevronsLeft [size]="14" [strokeWidth]="2"></svg>
+          <svg lucideChevronsLeft [size]="15" [strokeWidth]="2.2"></svg>
         }
       </button>
 
