@@ -1,4 +1,12 @@
-import { ChangeDetectionStrategy, Component, computed, inject, input, output } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  computed,
+  inject,
+  input,
+  linkedSignal,
+  output,
+} from '@angular/core';
 import { Router } from '@angular/router';
 import {
   LucideArrowLeft,
@@ -6,11 +14,24 @@ import {
   LucideLandmark,
   LucideLayoutGrid,
   LucideSmartphoneNfc,
+  LucideSearch,
   LucideStore,
   LucideX,
 } from '@lucide/angular';
 
 import { type Feature, type NavModule } from '../core/navigation';
+
+/**
+ * Sem acentos e em minúsculas, para a pesquisa comparar o que se lê e não o que
+ * se escreve: em português quem procura «validacao» tem de achar «Validação», e
+ * ninguém escreve cedilhas e tis numa caixa de filtro.
+ */
+function comparavel(texto: string): string {
+  return texto
+    .normalize('NFD')
+    .replace(/\p{Diacritic}/gu, '')
+    .toLowerCase();
+}
 
 /** O painel de funcionalidades de um canal, ao lado da barra — fecha ao clicar fora, no ✕, ou com Escape. */
 @Component({
@@ -21,6 +42,7 @@ import { type Feature, type NavModule } from '../core/navigation';
     LucideFileCheck2,
     LucideLandmark,
     LucideLayoutGrid,
+    LucideSearch,
     LucideSmartphoneNfc,
     LucideStore,
     LucideX,
@@ -102,6 +124,22 @@ import { type Feature, type NavModule } from '../core/navigation';
         Visão Geral
       </button>
 
+      <!-- type="search" como nas outras caixas da aplicação: dá o ✕ de limpar
+           que o browser já sabe desenhar. -->
+      <label
+        class="mt-2 flex items-center gap-2.5 rounded-xl border border-gray-100 bg-gray-50 px-3 py-2 transition-colors focus-within:border-moza-300 focus-within:bg-white"
+      >
+        <svg lucideSearch [size]="15" [strokeWidth]="1.8" class="shrink-0 text-gray-400"></svg>
+        <input
+          type="search"
+          placeholder="Pesquisar funcionalidade"
+          [attr.aria-label]="'Pesquisar funcionalidades de ' + mod.label"
+          [value]="query()"
+          (input)="query.set($any($event.target).value)"
+          class="w-full bg-transparent text-sm text-gray-900 outline-none placeholder:text-gray-400"
+        />
+      </label>
+
       <div class="my-4 border-t border-gray-100" aria-hidden="true"></div>
 
       @for (group of grouped(); track group.category; let groupIndex = $index) {
@@ -131,8 +169,15 @@ import { type Feature, type NavModule } from '../core/navigation';
           </ul>
         </div>
       } @empty {
+        <!-- Duas razões diferentes para a lista estar vazia, e dizer «ainda não há
+             automações» a quem escreveu um termo que não bate mandava-o embora
+             com a informação errada. -->
         <p class="px-3 py-1 text-sm text-gray-400">
-          Ainda não há automações construídas para este canal.
+          @if (mod.features.length === 0) {
+            Ainda não há automações construídas para este canal.
+          } @else {
+            Nenhuma funcionalidade corresponde a «{{ query().trim() }}».
+          }
         </p>
       }
     </div>
@@ -147,14 +192,34 @@ export class ChannelFlyoutComponent {
   readonly closed = output<void>();
   readonly selected = output<void>();
 
-  /** Agrupa por categoria preservando a ordem de declaração. */
+  /**
+   * Reposta ao trocar de canal. O painel é o mesmo componente para os três, e
+   * o termo ficava lá: escrever «fecho» no POS e abrir a ATM mostrava a ATM já
+   * filtrada por uma palavra que se escreveu noutro sítio.
+   */
+  protected readonly query = linkedSignal({
+    source: () => this.module().id,
+    computation: () => '',
+  });
+
+  /**
+   * Agrupa por categoria preservando a ordem de declaração, já filtrado.
+   *
+   * A pesquisa também olha para a categoria, não só para o título: procurar
+   * «fecho» deve trazer o que está debaixo dessa rubrica, que é como se pensa
+   * no trabalho antes de se saber o nome exacto da automação.
+   */
   protected readonly grouped = computed(() => {
+    const termo = comparavel(this.query().trim());
     const groups = new Map<string, Feature[]>();
+
     for (const feature of this.module().features) {
+      if (termo && !comparavel(`${feature.title} ${feature.category}`).includes(termo)) continue;
       const group = groups.get(feature.category);
       if (group) group.push(feature);
       else groups.set(feature.category, [feature]);
     }
+
     return [...groups.entries()].map(([category, features]) => ({ category, features }));
   });
 
