@@ -12,7 +12,7 @@ interface StatWithNote {
 
 /**
  * Os quatro indicadores da execução. O contexto (período, relatório, quando
- * correu) fica na `app-execution-bar`, acima — aqui é só o apuramento.
+ * correu) fica na `app-page-header`, acima — aqui é só o apuramento.
  */
 @Component({
   selector: 'app-result-stats',

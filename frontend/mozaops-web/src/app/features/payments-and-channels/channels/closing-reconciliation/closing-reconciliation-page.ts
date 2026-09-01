@@ -5,10 +5,9 @@ import { numberFormatter } from '../../../../shared/format';
 import { findModule } from '../../../../core/navigation';
 import { CardComponent } from '../../../../shared/ui/card';
 import { ToastComponent } from '../../../../shared/ui/toast';
-import { ExecutionBarComponent } from './components/execution-bar';
 import { AmountReconciliationComponent } from './components/amount-reconciliation';
 import { DiscrepancySourceDonutComponent } from './components/discrepancy-source-donut';
-import { PageTitleComponent } from './components/page-title';
+import { PageHeaderComponent } from './components/page-header';
 import { type CasePatch } from './components/pending-cases-table';
 import { ResultStatsComponent } from './components/result-stats';
 import { ResultTabsComponent } from './components/result-tabs';
@@ -28,8 +27,7 @@ import type { ProgressPhase, UploadSlotId, ValidationResult } from './data/model
     AmountReconciliationComponent,
     CardComponent,
     DiscrepancySourceDonutComponent,
-    ExecutionBarComponent,
-    PageTitleComponent,
+    PageHeaderComponent,
     ResultStatsComponent,
     ResultTabsComponent,
     ToastComponent,
@@ -39,7 +37,18 @@ import type { ProgressPhase, UploadSlotId, ValidationResult } from './data/model
   ],
   template: `
     <div class="flex flex-col gap-5">
-      <app-page-title [title]="title()" [description]="description()" />
+      <!-- As etiquetas e as acções da execução vivem aqui, no cabeçalho, e não
+           numa faixa própria: enquanto se carrega, ou enquanto se prepara outra
+           execução, não há execução de que falar e o cabeçalho fica só com o
+           título. -->
+      <app-page-header
+        [title]="title()"
+        [description]="description()"
+        [result]="uploading() ? null : result()"
+        [downloading]="downloading()"
+        (download)="download()"
+        (newExecution)="startNewExecution()"
+      />
 
       @if (loading()) {
         <section appCard class="flex items-center justify-center gap-3 py-16 text-sm text-gray-500">
@@ -72,13 +81,6 @@ import type { ProgressPhase, UploadSlotId, ValidationResult } from './data/model
           </section>
         }
       } @else if (result(); as current) {
-        <app-execution-bar
-          [result]="current"
-          [downloading]="downloading()"
-          (download)="download()"
-          (newExecution)="startNewExecution()"
-        />
-
         <app-result-stats [result]="current" />
 
         <!-- O apuramento por estado — os fechos por tratar e os montantes dos dois
