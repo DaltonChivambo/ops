@@ -9,7 +9,17 @@
   <base href="/">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="color-scheme" content="light">
-  <link rel="icon" type="image/x-icon" href="favicon.ico">
+  <!-- O alvo do logótipo OPS. Estava aqui o favicon.ico que vem com o Angular —
+       o escudo "A" rosa e roxo — ou seja, a aplicação mostrava no separador a
+       marca da framework em vez da do banco.
+
+       Só o alvo e não o logótipo inteiro: OPS é 2,66:1, e num ícone de 16px
+       sobravam-lhe seis pixéis de altura. O favicon.svg recorta pelo viewBox a
+       zona do alvo do mesmo desenho, sem tocar em path nenhum.
+
+       O PNG é para quem não desenha favicons vectoriais, e vem do mesmo SVG. -->
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
+  <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
 
   <!-- Inter — desenhada para interfaces em ecrã, legível a 12–14px e com
        algarismos tabulares a sério, que é o que alinha as colunas de montantes.
