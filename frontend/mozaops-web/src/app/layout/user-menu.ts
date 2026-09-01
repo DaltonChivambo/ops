@@ -18,6 +18,7 @@ import {
 
 import { ROLE_LABELS, type Role } from '../core/auth/roles';
 import { SessionStore } from '../core/auth/session.store';
+import { AVATAR_CLASS } from '../shared/ui/avatar';
 
 /**
  * Entradas por construir.
@@ -67,11 +68,7 @@ const SOON_ITEMS = [
       class="flex w-full items-center rounded-xl transition-colors hover:bg-moza-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-moza-400"
       [class]="collapsed() ? 'justify-center p-1.5' : 'gap-2.5 px-2 py-2'"
     >
-      <span
-        class="grid size-9 shrink-0 place-items-center rounded-full bg-moza-700 text-xs font-bold text-white"
-      >
-        {{ session.initials() }}
-      </span>
+      <span [class]="avatarClass">{{ session.initials() }}</span>
 
       @if (!collapsed()) {
         <span class="min-w-0 flex-1 text-left">
@@ -156,6 +153,7 @@ export class UserMenuComponent {
 
   protected readonly open = signal(false);
   protected readonly soonItems = SOON_ITEMS;
+  protected readonly avatarClass = AVATAR_CLASS;
 
   protected readonly name = computed(() => this.session.principal()?.name ?? 'Sem sessão');
 

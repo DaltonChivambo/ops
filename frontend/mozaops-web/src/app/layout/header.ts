@@ -2,6 +2,7 @@ import { ChangeDetectionStrategy, Component, inject, input } from '@angular/core
 
 import { ROLE_LABELS, type Role } from '../core/auth/roles';
 import { SessionStore } from '../core/auth/session.store';
+import { AVATAR_CLASS } from '../shared/ui/avatar';
 
 @Component({
   selector: 'app-header',
@@ -25,10 +26,7 @@ import { SessionStore } from '../core/auth/session.store';
           <p class="text-xs text-moza-500">{{ roleLabels() }}</p>
         </div>
 
-        <span
-          class="grid size-9 place-items-center rounded-full bg-moza-700 text-sm font-semibold text-white"
-          [attr.aria-label]="session.principal()?.name"
-        >
+        <span [class]="avatarClass" [attr.aria-label]="session.principal()?.name">
           {{ session.initials() }}
         </span>
 
@@ -45,6 +43,8 @@ import { SessionStore } from '../core/auth/session.store';
 })
 export class HeaderComponent {
   readonly session = inject(SessionStore);
+
+  protected readonly avatarClass = AVATAR_CLASS;
 
   readonly title = input.required<string>();
   readonly subtitle = input<string>('');
