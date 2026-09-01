@@ -2,7 +2,7 @@ import { ChangeDetectionStrategy, Component, computed, input, output, signal } f
 import { LucideCircleCheck, LucideSearch } from '@lucide/angular';
 
 import { formatAmount, formatDate, numberFormatter } from '../../../../../shared/format';
-import { PageFirstScrollDirective } from '../../../../../shared/page-first-scroll';
+import { DataTableComponent, TABLE_CLASS, THEAD_CLASS } from '../../../../../shared/ui/data-table';
 import type { CaseStatus, CaseType, PendingCase } from '../data/models';
 import { MoneyComponent } from './money';
 
@@ -48,7 +48,7 @@ export interface CasePatch {
 @Component({
   selector: 'app-pending-cases-table',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [MoneyComponent, PageFirstScrollDirective, LucideCircleCheck, LucideSearch],
+  imports: [DataTableComponent, MoneyComponent, LucideCircleCheck, LucideSearch],
   template: `
     @if (cases().length === 0) {
       <div
@@ -65,17 +65,8 @@ export interface CasePatch {
         </p>
       </div>
     } @else {
-      <!-- Sem overflow-hidden, como no cartão irmão dos fechos. Com ele, o cartão
-           passava a ser o contentor de scroll da barra de filtros colada, e o
-           desvio dela deixava de se contar a partir do topo do ecrã para se contar
-           a partir do topo do CARTÃO: a barra fixava-se 60px abaixo dele, por cima
-           da lista, e o cabeçalho da tabela tapava-a. Os cantos arredondados
-           aguentam-se sozinhos — nenhum filho tem fundo próprio nas pontas. -->
-      <div class="@container rounded-2xl border border-gray-100 bg-white shadow-sm">
-        <!-- z-20 acima do cabeçalho da tabela — ver a nota na app-reconciliation-table. -->
-        <div
-          class="sticky top-[calc(var(--app-header-h)+var(--tabs-h))] z-20 rounded-t-2xl border-b border-gray-100 bg-white flex flex-wrap items-center justify-between gap-3 px-4 py-3.5 sm:px-5"
-        >
+      <app-data-table [scrollAnchor]="scrollAnchor()">
+        <ng-container toolbar>
           <div class="inline-flex rounded-xl border border-gray-100 bg-gray-50 p-1">
             @for (filter of statusFilters; track filter.id) {
               @let active = status() === filter.id;
@@ -107,107 +98,101 @@ export interface CasePatch {
               class="w-full bg-transparent text-sm text-gray-900 outline-none placeholder:text-gray-400"
             />
           </label>
-        </div>
+        </ng-container>
 
-        <!-- relative: ver a nota em reconciliation-table.ts (bloco de contenção). -->
-        <div
-          [appPageFirstScroll]="scrollAnchor()"
-          class="relative max-h-[calc(100dvh-var(--app-header-h)-var(--tabs-h)-9.5rem)] min-h-[22rem] overflow-auto"
-        >
-          <table class="w-full min-w-3xl @4xl:min-w-4xl border-collapse text-sm">
-            <!-- Fundo nas células e opaco, e a régua de 3px repetida no cabeçalho —
+        <table [class]="tableClass + ' min-w-3xl @4xl:min-w-4xl'">
+          <!-- Fundo nas células e opaco, e a régua de 3px repetida no cabeçalho —
                  ver a nota igual na app-reconciliation-table. -->
-            <thead class="sticky top-0 z-10">
-              <tr class="border-b border-gray-100 text-gray-400">
-                <th scope="col" [class]="th + ' w-[17rem] py-2.5 pr-3 pl-5 text-left'">
-                  POS / Comerciante
-                </th>
-                <th scope="col" [class]="th + ' hidden px-3 py-2.5 text-right @2xl:table-cell'">
-                  Período
-                </th>
-                <th scope="col" [class]="th + ' px-3 py-2.5 text-right'">Valor SIMO</th>
-                <th scope="col" [class]="th + ' px-3 py-2.5 text-right'">Valor Banka</th>
-                <th scope="col" [class]="th + ' px-3 py-2.5 text-left'">Tipo</th>
-                <th scope="col" [class]="th + ' px-3 py-2.5 text-left'">e-Ticket</th>
-                <th scope="col" [class]="th + ' px-3 py-2.5 text-left'">Estado</th>
-                <th scope="col" [class]="th + ' hidden px-3 py-2.5 text-left @4xl:table-cell'">
-                  Data Reg.
-                </th>
-              </tr>
-            </thead>
+          <thead [class]="theadClass">
+            <tr class="border-b border-gray-100 text-gray-400">
+              <th scope="col" [class]="th + ' w-[17rem] py-2.5 pr-3 pl-5 text-left'">
+                POS / Comerciante
+              </th>
+              <th scope="col" [class]="th + ' hidden px-3 py-2.5 text-right @2xl:table-cell'">
+                Período
+              </th>
+              <th scope="col" [class]="th + ' px-3 py-2.5 text-right'">Valor SIMO</th>
+              <th scope="col" [class]="th + ' px-3 py-2.5 text-right'">Valor Banka</th>
+              <th scope="col" [class]="th + ' px-3 py-2.5 text-left'">Tipo</th>
+              <th scope="col" [class]="th + ' px-3 py-2.5 text-left'">e-Ticket</th>
+              <th scope="col" [class]="th + ' px-3 py-2.5 text-left'">Estado</th>
+              <th scope="col" [class]="th + ' hidden px-3 py-2.5 text-left @4xl:table-cell'">
+                Data Reg.
+              </th>
+            </tr>
+          </thead>
 
-            <tbody>
-              @for (item of visible(); track item.id) {
-                <tr
-                  class="border-b border-gray-50 text-gray-600 transition-colors last:border-b-0"
-                  [class]="item.status === 'resolved' ? 'bg-emerald-50/40' : 'hover:bg-gray-50/70'"
+          <tbody>
+            @for (item of visible(); track item.id) {
+              <tr
+                class="border-b border-gray-50 text-gray-600 transition-colors last:border-b-0"
+                [class]="item.status === 'resolved' ? 'bg-emerald-50/40' : 'hover:bg-gray-50/70'"
+              >
+                <td class="py-3.5 pr-3 pl-5" [class]="stripe(item)">
+                  <div class="font-bold text-gray-900 tabular-nums">{{ item.posId }}</div>
+                  <div class="mt-0.5 max-w-48 truncate text-sm text-gray-400">
+                    {{ item.merchant }}
+                  </div>
+                </td>
+                <td
+                  class="hidden px-3 py-3.5 text-right tabular-nums text-gray-400 @2xl:table-cell"
                 >
-                  <td class="py-3.5 pr-3 pl-5" [class]="stripe(item)">
-                    <div class="font-bold text-gray-900 tabular-nums">{{ item.posId }}</div>
-                    <div class="mt-0.5 max-w-48 truncate text-sm text-gray-400">
-                      {{ item.merchant }}
-                    </div>
-                  </td>
-                  <td
-                    class="hidden px-3 py-3.5 text-right tabular-nums text-gray-400 @2xl:table-cell"
+                  {{ item.period }}
+                </td>
+                <td class="px-3 py-3.5 text-right">
+                  <app-money [value]="item.simoAmount" />
+                </td>
+                <td class="px-3 py-3.5 text-right">
+                  <app-money [value]="item.type === 'missing' ? null : item.bankaAmount" />
+                </td>
+                <td class="px-3 py-3.5">
+                  <span
+                    class="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-bold whitespace-nowrap"
+                    [class]="chip(item)"
                   >
-                    {{ item.period }}
-                  </td>
-                  <td class="px-3 py-3.5 text-right">
-                    <app-money [value]="item.simoAmount" />
-                  </td>
-                  <td class="px-3 py-3.5 text-right">
-                    <app-money [value]="item.type === 'missing' ? null : item.bankaAmount" />
-                  </td>
-                  <td class="px-3 py-3.5">
-                    <span
-                      class="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-bold whitespace-nowrap"
-                      [class]="chip(item)"
-                    >
-                      <span class="size-1.5 rounded-full" [class]="dot(item)"></span>
-                      {{ typeLabel(item) }}
-                    </span>
-                  </td>
-                  <td class="px-3 py-3.5">
-                    <!-- Grava ao sair do campo, não a cada tecla: um PATCH por
+                    <span class="size-1.5 rounded-full" [class]="dot(item)"></span>
+                    {{ typeLabel(item) }}
+                  </span>
+                </td>
+                <td class="px-3 py-3.5">
+                  <!-- Grava ao sair do campo, não a cada tecla: um PATCH por
                          carácter era um pedido por tecla premida. -->
-                    <input
-                      type="text"
-                      [value]="item.eTicket ?? ''"
-                      placeholder="—"
-                      [attr.aria-label]="'e-Ticket do caso ' + item.posId"
-                      (blur)="onETicketBlur(item, $any($event.target).value)"
-                      class="w-28 rounded-lg border border-gray-200 bg-white px-2.5 py-1.5 text-xs font-medium text-gray-700 outline-none placeholder:text-gray-300 focus:border-moza-400 focus:ring-2 focus:ring-moza-100"
-                    />
-                  </td>
-                  <td class="px-3 py-3.5">
-                    <select
-                      [value]="item.status"
-                      [attr.aria-label]="'Estado do caso ' + item.posId"
-                      (change)="onStatusChange(item, $any($event.target).value)"
-                      class="rounded-lg border border-gray-200 bg-white px-2.5 py-1.5 text-xs font-semibold text-gray-700 outline-none focus:border-moza-400 focus:ring-2 focus:ring-moza-100"
-                    >
-                      @for (option of statusOptions; track option.value) {
-                        <option [value]="option.value">{{ option.label }}</option>
-                      }
-                    </select>
-                  </td>
-                  <td class="hidden px-3 py-3.5 tabular-nums text-gray-400 @4xl:table-cell">
-                    {{ item.resolvedAt ? date(item.resolvedAt) : '—' }}
-                  </td>
-                </tr>
-              } @empty {
-                <tr>
-                  <td colspan="8" class="px-4 py-10 text-center text-gray-400">
-                    Nenhum caso corresponde aos critérios seleccionados.
-                  </td>
-                </tr>
-              }
-            </tbody>
-          </table>
-        </div>
+                  <input
+                    type="text"
+                    [value]="item.eTicket ?? ''"
+                    placeholder="—"
+                    [attr.aria-label]="'e-Ticket do caso ' + item.posId"
+                    (blur)="onETicketBlur(item, $any($event.target).value)"
+                    class="w-28 rounded-lg border border-gray-200 bg-white px-2.5 py-1.5 text-xs font-medium text-gray-700 outline-none placeholder:text-gray-300 focus:border-moza-400 focus:ring-2 focus:ring-moza-100"
+                  />
+                </td>
+                <td class="px-3 py-3.5">
+                  <select
+                    [value]="item.status"
+                    [attr.aria-label]="'Estado do caso ' + item.posId"
+                    (change)="onStatusChange(item, $any($event.target).value)"
+                    class="rounded-lg border border-gray-200 bg-white px-2.5 py-1.5 text-xs font-semibold text-gray-700 outline-none focus:border-moza-400 focus:ring-2 focus:ring-moza-100"
+                  >
+                    @for (option of statusOptions; track option.value) {
+                      <option [value]="option.value">{{ option.label }}</option>
+                    }
+                  </select>
+                </td>
+                <td class="hidden px-3 py-3.5 tabular-nums text-gray-400 @4xl:table-cell">
+                  {{ item.resolvedAt ? date(item.resolvedAt) : '—' }}
+                </td>
+              </tr>
+            } @empty {
+              <tr>
+                <td colspan="8" class="px-4 py-10 text-center text-gray-400">
+                  Nenhum caso corresponde aos critérios seleccionados.
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
 
-        <p class="border-t border-gray-100 px-4 py-3.5 text-sm text-gray-400 sm:px-5">
+        <p footer class="text-sm text-gray-400">
           A mostrar
           <span class="font-semibold text-gray-500 tabular-nums">{{ n(visible().length) }}</span> de
           <span class="font-semibold text-gray-500 tabular-nums">{{ n(cases().length) }}</span>
@@ -217,7 +202,7 @@ export interface CasePatch {
           </span>
           por regularizar
         </p>
-      </div>
+      </app-data-table>
     }
   `,
 })
@@ -229,6 +214,8 @@ export class PendingCasesTableComponent {
 
   /** `bg-gray-50` aqui e não no `<thead>`: é a célula que pinta o fundo de forma fiável. */
   protected readonly th = 'bg-gray-50 text-2xs font-bold tracking-wider uppercase';
+  protected readonly tableClass = TABLE_CLASS;
+  protected readonly theadClass = THEAD_CLASS;
   protected readonly statusFilters = STATUS_FILTERS;
   protected readonly statusOptions = Object.entries(STATUS_LABELS).map(([value, label]) => ({
     value,
