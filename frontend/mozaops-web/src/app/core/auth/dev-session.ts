@@ -6,8 +6,8 @@ import type { Principal } from './session.store';
  */
 export const DEV_PRINCIPAL: Principal = {
   sub: '00000000-0000-0000-0000-000000000000',
-  username: 'dev',
-  name: 'Sessão de Desenvolvimento',
-  email: 'dev@mozaops.localhost',
+  username: 'dchivambo',
+  name: 'Dalton Chivambo',
+  email: 'daltonchivambo@gmail.com',
   roles: ['operator', 'supervisor'],
 };

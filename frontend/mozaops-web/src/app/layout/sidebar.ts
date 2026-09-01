@@ -1,11 +1,4 @@
-import {
-  ChangeDetectionStrategy,
-  Component,
-  computed,
-  inject,
-  model,
-  signal,
-} from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, model, signal } from '@angular/core';
 import { NgTemplateOutlet } from '@angular/common';
 import { Router } from '@angular/router';
 import {
@@ -14,27 +7,18 @@ import {
   LucideChevronRight,
   LucideChevronsLeft,
   LucideChevronsRight,
-  LucideCircleQuestionMark,
   LucideLayoutGrid,
-  LucideLogOut,
   LucideMonitorSmartphone,
-  LucideSettings,
   LucideShieldAlert,
   LucideX,
 } from '@lucide/angular';
 
 import { findModule } from '../core/navigation';
 import { ChannelFlyoutComponent } from './channel-flyout';
+import { UserMenuComponent } from './user-menu';
 
 /** Um dos ícones que a barra sabe desenhar. O `@switch` traduz para o componente. */
-type NavIcon =
-  | 'layout-grid'
-  | 'monitor-smartphone'
-  | 'banknote'
-  | 'shield-alert'
-  | 'settings'
-  | 'help-circle'
-  | 'log-out';
+type NavIcon = 'layout-grid' | 'monitor-smartphone' | 'banknote' | 'shield-alert';
 
 interface NavChild {
   readonly id: string;
@@ -100,12 +84,6 @@ const SECTIONS: readonly NavSection[] = [
   },
 ];
 
-const FOOTER_ITEMS: readonly NavItem[] = [
-  { id: 'settings', label: 'Definições', icon: 'settings' },
-  { id: 'support', label: 'Suporte', icon: 'help-circle' },
-  { id: 'logout', label: 'Sair', icon: 'log-out' },
-];
-
 /** O activo lê-se do URL (não de estado local) — é o que dá deep links e o botão «voltar». */
 @Component({
   selector: 'app-sidebar',
@@ -118,13 +96,11 @@ const FOOTER_ITEMS: readonly NavItem[] = [
     LucideChevronRight,
     LucideChevronsLeft,
     LucideChevronsRight,
-    LucideCircleQuestionMark,
     LucideLayoutGrid,
-    LucideLogOut,
     LucideMonitorSmartphone,
-    LucideSettings,
     LucideShieldAlert,
     LucideX,
+    UserMenuComponent,
   ],
   template: `
     @if (open()) {
@@ -207,16 +183,14 @@ const FOOTER_ITEMS: readonly NavItem[] = [
         }
       </nav>
 
-      <nav class="mt-4 border-t border-gray-100 pt-4" aria-label="Secundário">
-        <ul class="flex flex-col gap-1">
-          @for (item of footerItems; track item.id) {
-            <ng-container
-              [ngTemplateOutlet]="navItem"
-              [ngTemplateOutletContext]="{ $implicit: item }"
-            />
-          }
-        </ul>
-      </nav>
+      <!-- Estavam aqui três itens de navegação — Definições, Suporte e Sair —
+           que não navegavam para lado nenhum: o onItemClick só age se o item
+           tiver rota ou sublista, e nenhum tinha. Passam para o menu do
+           utilizador, onde as que ainda não têm destino aparecem desactivadas em
+           vez de mortas, e o Sair termina mesmo a sessão. -->
+      <div class="mt-4 border-t border-gray-100 pt-4">
+        <app-user-menu [collapsed]="collapsed()" />
+      </div>
     </aside>
 
     @if (flyoutModule(); as mod) {
@@ -228,9 +202,7 @@ const FOOTER_ITEMS: readonly NavItem[] = [
       />
     }
 
-    <!-- Um item da barra: o botão, e a sublista quando o grupo está aberto.
-         Está num template porque é usado duas vezes — na navegação principal e
-         no rodapé —, exactamente como o renderItem do v1. -->
+    <!-- Um item da barra: o botão, e a sublista quando o grupo está aberto. -->
     <ng-template #navItem let-item>
       <li>
         <button
@@ -272,15 +244,6 @@ const FOOTER_ITEMS: readonly NavItem[] = [
               }
               @case ('shield-alert') {
                 <svg lucideShieldAlert [size]="20" [strokeWidth]="1.8"></svg>
-              }
-              @case ('settings') {
-                <svg lucideSettings [size]="20" [strokeWidth]="1.8"></svg>
-              }
-              @case ('help-circle') {
-                <svg lucideCircleQuestionMark [size]="20" [strokeWidth]="1.8"></svg>
-              }
-              @case ('log-out') {
-                <svg lucideLogOut [size]="20" [strokeWidth]="1.8"></svg>
               }
             }
           </span>
@@ -352,7 +315,6 @@ export class SidebarComponent {
   readonly open = model(false);
 
   protected readonly sections = SECTIONS;
-  protected readonly footerItems = FOOTER_ITEMS;
 
   /** Canais aberto por omissão: é o único grupo com páginas construídas. */
   protected readonly expandedIds = signal<ReadonlySet<string>>(new Set(['canais']));
