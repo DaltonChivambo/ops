@@ -2,6 +2,7 @@ import type { Routes } from '@angular/router';
 
 import { canAccess } from './core/auth/role.guard';
 import { READERS } from './core/auth/roles';
+import { openSingleFeature } from './core/single-feature.guard';
 import { ShellComponent } from './layout/shell';
 
 /**
@@ -28,23 +29,28 @@ export const routes: Routes = [
       {
         // `moduleId` liga-se ao input do componente por
         // `withComponentInputBinding()` — sem ActivatedRoute, sem subscrição.
+        //
+        // A openSingleFeature encurta o caminho: um canal com automação pronta
+        // abre-a aqui mesmo, em vez de mostrar um catálogo com um cartão só. Só
+        // chega ao componente quem ainda não tem nada para abrir.
         path: ':moduleId',
-        canActivate: [canAccess(...READERS)],
+        canActivate: [canAccess(...READERS), openSingleFeature],
         loadComponent: () =>
-          import('./features/payments-and-channels/channels/channel-page').then(
-            (m) => m.ChannelPageComponent,
+          import('./features/payments-and-channels/channels/channel-placeholder').then(
+            (m) => m.ChannelPlaceholderComponent,
           ),
       },
 
       {
-        // A automação de um canal. Vem depois do catálogo por ser mais
-        // específica; o `moduleId` diz qual canal, e é o mesmo ecrã para os três.
+        // A automação de um canal, e o destino real de quase toda a navegação:
+        // é para aqui que a rota curta acima reencaminha. Vem depois dela por ser
+        // mais específica; o `moduleId` diz qual canal, e é o mesmo ecrã para os três.
         path: ':moduleId/:featureId',
         canActivate: [canAccess(...READERS)],
         loadComponent: () =>
-          import(
-            './features/payments-and-channels/channels/closing-reconciliation/closing-reconciliation-page'
-          ).then((m) => m.ClosingReconciliationPageComponent),
+          import('./features/payments-and-channels/channels/closing-reconciliation/closing-reconciliation-page').then(
+            (m) => m.ClosingReconciliationPageComponent,
+          ),
       },
     ],
   },

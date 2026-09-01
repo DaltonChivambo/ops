@@ -8,9 +8,13 @@ mesmo agrupamento que a barra lateral mostra (`layout/sidebar.ts`) e que
 
 Três, tal como na barra lateral (`layout/sidebar.ts`):
 
-- `channels/` — POS, ATM, Quiosques. Contém o catálogo genérico de canal
-  (`channel-page.ts`) e as automações que servem os três, como
-  `closing-reconciliation/`.
+- `channels/` — POS, ATM, Quiosques. Contém as automações que servem os três,
+  como `closing-reconciliation/`, e o aviso para os canais que ainda não têm
+  nenhuma (`channel-placeholder.ts`). Entrar num canal com automação pronta
+  abre-a directamente: quem trata disso é a `core/single-feature.guard.ts`.
+  Houve aqui um catálogo de canal, com um cartão por automação — deixou de
+  fazer sentido com uma automação por canal, e volta a fazer quando algum
+  tiver duas.
 - **Pagamentos** (`pagamentos` na barra lateral: Proc. de Salários, Cartões,
   Cheques) — ainda sem automação construída, por isso ainda sem pasta aqui.
 - **Suporte e Monitorização de Fraudes** (`suporte-fraudes` na barra lateral,
