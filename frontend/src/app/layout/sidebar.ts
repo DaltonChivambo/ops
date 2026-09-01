@@ -229,9 +229,19 @@ const SECTIONS: readonly NavSection[] = [
             ></span>
           }
 
-          <!-- Ícone a vermelho quando é o grupo que contém a página actual — dá a
-               pista mesmo com a barra encolhida, onde a sublista não se vê. -->
-          <span class="shrink-0" [class.text-alert-500]="!isActive(item) && hasActiveChild(item)">
+          <!-- Ícone a vermelho onde se está: tanto no item que É a página actual
+               como no grupo que a contém. Dá a pista mesmo com a barra encolhida,
+               onde nem a sublista nem os rótulos se vêem.
+
+               Só valia para o grupo, e o Dashboard — que tem rota própria e por
+               isso entra por isActive — ficava com o ícone a navy, marcado apenas
+               pela barra à esquerda. Duas formas de dizer a mesma coisa, conforme
+               o item tivesse ou não filhos.
+
+               A barra e o fundo ficam só no isActive, e é diferença que se
+               justifica: essa é a marca de «esta página está aberta», e um grupo
+               não é uma página. -->
+          <span class="shrink-0" [class.text-alert-500]="isActive(item) || hasActiveChild(item)">
             @switch (item.icon) {
               @case ('layout-grid') {
                 <svg lucideLayoutGrid [size]="20" [strokeWidth]="1.8"></svg>
