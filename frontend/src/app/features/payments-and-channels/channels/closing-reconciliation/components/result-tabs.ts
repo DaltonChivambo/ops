@@ -1,14 +1,16 @@
 import {
   ChangeDetectionStrategy,
   Component,
+  DestroyRef,
   computed,
+  inject,
   input,
   output,
   signal,
   viewChild,
   type ElementRef,
 } from '@angular/core';
-import { LucideTriangleAlert } from '@lucide/angular';
+import { LucideArrowUp, LucideTriangleAlert } from '@lucide/angular';
 
 import { numberFormatter } from '../../../../../shared/format';
 import type { ValidationResult } from '../data/models';
@@ -21,7 +23,12 @@ type TabId = 'cases' | 'closings';
 @Component({
   selector: 'app-result-tabs',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [PendingCasesTableComponent, ReconciliationTableComponent, LucideTriangleAlert],
+  imports: [
+    PendingCasesTableComponent,
+    ReconciliationTableComponent,
+    LucideArrowUp,
+    LucideTriangleAlert,
+  ],
   template: `
     @let r = result();
 
@@ -50,7 +57,10 @@ type TabId = 'cases' | 'closings';
       <!-- A referência fica AQUI, no elemento que cola, e não na pastilha lá dentro:
            é a ele que o appPageFirstScroll pergunta quanto falta para assentar, e
            só ele sabe onde assenta. -->
-      <div #tabList class="sticky top-[var(--app-header-h)] z-20 -mx-1 bg-[#f7f6fb] px-1 py-2">
+      <div
+        #tabList
+        class="sticky top-[var(--app-header-h)] z-20 -mx-1 flex items-center gap-3 bg-[#f7f6fb] px-1 py-2"
+      >
         <!-- Controlo segmentado. A pista tem de ser MAIS ESCURA do que a página,
              senão não há controlo nenhum: estava em gray-50 sobre um fundo #f7f6fb,
              dois pontos em 255, e a moldura gray-100 outro tanto. Via-se um separador
@@ -87,6 +97,26 @@ type TabId = 'cases' | 'closings';
             </button>
           }
         </div>
+
+        <!-- Só quando os separadores já estão colados, que é o mesmo que dizer
+             «estás na zona das tabelas»: mais acima a página tem o topo à vista e
+             o botão não teria para onde levar ninguém.
+
+             «Topo da página» e não «Voltar ao topo»: o rodapé da tabela já tem um
+             com esse nome, e faz outra coisa — rola a lista por dentro, sem mexer
+             na página. Dois botões com o mesmo rótulo e destinos diferentes era
+             pior do que não ter nenhum. -->
+        @if (stuck()) {
+          <button
+            type="button"
+            (click)="scrollPageToTop()"
+            class="ml-auto inline-flex shrink-0 cursor-pointer items-center gap-1.5 rounded-xl border border-gray-200 bg-white px-3 py-2 text-xs font-semibold text-gray-500 shadow-sm transition-colors hover:bg-gray-50 hover:text-gray-900 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-moza-400"
+          >
+            <svg lucideArrowUp [size]="14" [strokeWidth]="2.2" class="shrink-0"></svg>
+            <span class="hidden sm:inline">Topo da página</span>
+            <span class="sr-only sm:hidden">Topo da página</span>
+          </button>
+        }
       </div>
 
       @if (tab() === 'cases') {
@@ -110,6 +140,37 @@ export class ResultTabsComponent {
   protected readonly anchor = computed(() => this.tabList()?.nativeElement);
 
   protected readonly tab = signal<TabId>('closings');
+
+  /**
+   * Os separadores estão colados, ou seja: já se desceu até à zona das tabelas.
+   *
+   * Compara-se a posição deles com o desvio onde assentam, e não com zero — o
+   * `top` deles não é zero abaixo do lg, onde a barra do menu ocupa o cimo do
+   * ecrã. É a mesma conta do appPageFirstScroll, pela mesma razão.
+   */
+  protected readonly stuck = signal(false);
+
+  constructor() {
+    const rever = () => {
+      const el = this.tabList()?.nativeElement;
+      if (!el) return;
+      const assentaEm = parseFloat(getComputedStyle(el).top) || 0;
+      this.stuck.set(el.getBoundingClientRect().top <= assentaEm + 1);
+    };
+
+    // `passive`: só se lê a posição, nunca se trava o gesto — travá-lo aqui
+    // engasgava o scroll da página inteira.
+    window.addEventListener('scroll', rever, { passive: true });
+    window.addEventListener('resize', rever, { passive: true });
+    inject(DestroyRef).onDestroy(() => {
+      window.removeEventListener('scroll', rever);
+      window.removeEventListener('resize', rever);
+    });
+  }
+
+  protected scrollPageToTop(): void {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
 
   protected readonly dataQuality = computed(() => {
     const { keyCollisions, unregisteredPos } = this.result().summary;
