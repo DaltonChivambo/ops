@@ -54,7 +54,7 @@ function writeStored(key: string, open: boolean): void {
           type="button"
           (click)="toggle()"
           [attr.aria-expanded]="open()"
-          [attr.aria-label]="(open() ? 'Encolher' : 'Expandir') + ': ' + title()"
+          [attr.aria-label]="(open() ? 'Encolher' : 'Expandir') + ': ' + heading()"
           class="-m-1.5 flex items-center gap-2 rounded-lg p-1.5 transition-colors hover:bg-gray-50 focus-visible:bg-gray-50 focus-visible:outline-none"
         >
           <svg
@@ -64,7 +64,7 @@ function writeStored(key: string, open: boolean): void {
             class="shrink-0 text-gray-400 transition-transform duration-200"
             [class.-rotate-90]="!open()"
           ></svg>
-          <h2 class="text-lg font-bold">{{ title() }}</h2>
+          <h2 class="text-lg font-bold">{{ heading() }}</h2>
         </button>
 
         <!-- Fica à vista mesmo fechado: é o que diz o que o cartão contém. -->
@@ -78,7 +78,14 @@ function writeStored(key: string, open: boolean): void {
   `,
 })
 export class CollapsibleCardComponent {
-  readonly title = input.required<string>();
+  /**
+   * `heading` e não `title`: `title` é um atributo global do HTML, e quem usasse
+   * o componente com atributo estático — `<app-collapsible-card title="...">` —
+   * deixava-o no DOM além de o passar como input. O browser fazia dele tooltip
+   * do cartão inteiro, e passar o rato por um gráfico mostrava um balão a
+   * repetir o cabeçalho que já lá está escrito.
+   */
+  readonly heading = input.required<string>();
   /** Sufixo da chave em localStorage. Sem ele, o estado não sobrevive à navegação. */
   readonly storageKey = input.required<string>();
 

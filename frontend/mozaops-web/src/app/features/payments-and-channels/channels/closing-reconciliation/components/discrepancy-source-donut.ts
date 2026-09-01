@@ -47,7 +47,7 @@ interface Arc extends Segment {
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [CollapsibleCardComponent],
   template: `
-    <app-collapsible-card title="Fechos por Tratar" storageKey="fechos-por-tratar">
+    <app-collapsible-card heading="Fechos por Tratar" storageKey="fechos-por-tratar">
       <!-- Cartão estreito: anel e legenda empilham. Cartão largo: lado a lado,
            senão o anel sozinho ao meio deixava-o um caixote vazio. O que decide
            é a largura do cartão, não a da janela — o @container está no

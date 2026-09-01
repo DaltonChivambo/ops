@@ -75,16 +75,20 @@ export interface Stat {
 
       <!-- O corpo desce conforme o número cresce, em vez de o cortar. Cortar um
            montante é pior do que mostrá-lo mais pequeno: "205 641 064,00…" lê-se
-           como duzentos milhões quando são duzentos mil milhões. -->
-      <p
-        [class]="valueClass()"
-        [title]="displayValue() + (s.unit ? ' ' + s.unit : '')"
-      >
-        {{ displayValue()
-        }}@if (s.unit) {<span class="ml-1 text-[0.55em] font-normal text-gray-400">{{
-            s.unit
-          }}</span>}
-      </p>
+           como duzentos milhões quando são duzentos mil milhões.
+
+           Sem title: é justamente por o número nunca ser cortado que o tooltip não
+           tinha o que acrescentar — repetia à letra o que já está no ecrã, e
+           bastava passar o rato por cima de um cartão para o ver aparecer. -->
+      <!-- Tudo colado de propósito: aqui o espaço em branco do template é texto.
+           Reflowido, o valor ficava com um espaço à cabeça — que o empurra para a
+           direita e o desalinha do rótulo — e outro antes da unidade, a somar ao
+           ml-1 que já lhe dá o afastamento. O prettier-ignore tem de ficar
+           encostado ao elemento: aplica-se ao nó seguinte, e com um comentário
+           pelo meio era o comentário que ele ignorava. -->
+      <!-- prettier-ignore -->
+      <p [class]="valueClass()">{{ displayValue()
+      }}@if (s.unit) {<span class="ml-1 text-[0.55em] font-normal text-gray-400">{{ s.unit }}</span>}</p>
 
       <p class="flex items-center gap-1.5 text-sm">
         @if (s.changePercent !== undefined) {

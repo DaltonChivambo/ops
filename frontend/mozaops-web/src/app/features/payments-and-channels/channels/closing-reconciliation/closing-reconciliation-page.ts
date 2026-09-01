@@ -42,7 +42,7 @@ import type { ProgressPhase, UploadSlotId, ValidationResult } from './data/model
            execução, não há execução de que falar e o cabeçalho fica só com o
            título. -->
       <app-page-header
-        [title]="title()"
+        [heading]="title()"
         [description]="description()"
         [result]="uploading() ? null : result()"
         [downloading]="downloading()"

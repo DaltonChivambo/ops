@@ -25,7 +25,7 @@ interface Row {
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [CollapsibleCardComponent],
   template: `
-    <app-collapsible-card title="Reconciliação de Montantes" storageKey="reconciliacao-montantes">
+    <app-collapsible-card heading="Reconciliação de Montantes" storageKey="reconciliacao-montantes">
       <p cardAside class="text-xs text-gray-400">Apurado na SIMO vs creditado no Banka · MZN</p>
 
       <div class="flex flex-col gap-2">

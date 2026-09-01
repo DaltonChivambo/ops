@@ -46,7 +46,7 @@ const dateTimeFormatter = new Intl.DateTimeFormat('pt-PT', {
 
         <div class="flex min-w-0 flex-col gap-2">
           <div class="flex items-center gap-1.5">
-            <h1 class="text-xl leading-tight font-bold text-gray-900">{{ title() }}</h1>
+            <h1 class="text-xl leading-tight font-bold text-gray-900">{{ heading() }}</h1>
 
             <!-- A descrição é longa; fica arrumada num "i" e só aparece a pedido. -->
             <span class="group relative inline-flex">
@@ -79,9 +79,11 @@ const dateTimeFormatter = new Intl.DateTimeFormat('pt-PT', {
                    title do botão que o descarrega, que é onde interessa, e o
                    browser mostra-o outra vez ao gravar. -->
 
-              <!-- Os nomes dos três ficheiros vão no atributo title: são a
-                   proveniência do resultado, mas ocupavam a barra toda à vista. -->
-              <span [class]="chip" [title]="fileNames()">
+              <!-- Sem title com os nomes dos três ficheiros: era informação a mais
+                   escondida atrás do rato, num sítio onde ninguém a procura. A
+                   proveniência de uma execução merece sítio próprio se for para
+                   ficar, não um tooltip a saltar ao passar por cima da etiqueta. -->
+              <span [class]="chip">
                 Executado
                 <b class="max-w-52 truncate font-semibold text-gray-900">{{ executedAt() }}</b>
               </span>
@@ -121,7 +123,7 @@ const dateTimeFormatter = new Intl.DateTimeFormat('pt-PT', {
   `,
 })
 export class PageHeaderComponent {
-  readonly title = input.required<string>();
+  readonly heading = input.required<string>();
   readonly description = input.required<string>();
 
   /** Nulo enquanto não há execução, ou enquanto se está a criar outra. */
@@ -142,12 +144,5 @@ export class PageHeaderComponent {
   protected readonly executedAt = computed(() => {
     const r = this.result();
     return r ? dateTimeFormatter.format(new Date(r.executedAt)) : '';
-  });
-
-  protected readonly fileNames = computed(() => {
-    const r = this.result();
-    if (!r) return '';
-    const { posList, simoClosings, bankaCredits } = r.files;
-    return [posList, simoClosings, bankaCredits].join(' · ');
   });
 }

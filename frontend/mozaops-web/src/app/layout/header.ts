@@ -12,7 +12,7 @@ import { AVATAR_CLASS } from '../shared/ui/avatar';
       class="flex items-center justify-between gap-4 border-b border-moza-200 bg-white px-6 py-4"
     >
       <div class="min-w-0">
-        <h1 class="truncate text-lg font-semibold text-moza-800">{{ title() }}</h1>
+        <h1 class="truncate text-lg font-semibold text-moza-800">{{ heading() }}</h1>
         @if (subtitle()) {
           <p class="truncate text-sm text-moza-500">{{ subtitle() }}</p>
         }
@@ -46,7 +46,7 @@ export class HeaderComponent {
 
   protected readonly avatarClass = AVATAR_CLASS;
 
-  readonly title = input.required<string>();
+  readonly heading = input.required<string>();
   readonly subtitle = input<string>('');
 
   roleLabels(): string {

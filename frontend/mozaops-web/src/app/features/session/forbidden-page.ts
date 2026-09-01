@@ -16,11 +16,13 @@ import { HeaderComponent } from '../../layout/header';
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [HeaderComponent],
   template: `
-    <app-header title="Sem permissão" />
+    <app-header heading="Sem permissão" />
 
     <div class="grid grow place-items-center p-6">
       <div class="max-w-md rounded-lg border border-alert-100 bg-white p-8 text-center">
-        <span class="grid size-11 place-items-center rounded-full bg-alert-50 text-xl text-alert-600 mx-auto">
+        <span
+          class="grid size-11 place-items-center rounded-full bg-alert-50 text-xl text-alert-600 mx-auto"
+        >
           !
         </span>
         <h2 class="mt-4 font-semibold text-moza-800">Não tem acesso a esta área</h2>
