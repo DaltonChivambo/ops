@@ -153,15 +153,26 @@ const STRUCK_ROW =
         </p>
       </div>
 
-      <!-- max-h medido, não estimado. E min-h para a caixa não desabar quando um
-           filtro deixa três linhas: a página encurtava, o scroll era puxado para
-           cima e perdia-se o sítio onde se estava.
+      <!-- O limite de altura conta com o que divide o ecrã com a lista, e não é um
+           número à parte: se o cartão for mais alto do que o que sobra, no fim do
+           scroll da página o cartão passa por baixo da barra de filtros colada e
+           ela come o topo do cabeçalho da tabela — que fica a parecer mais uma
+           faixa da lista. Media-se 27px de 37 nos últimos 10px de scroll.
+
+           Daí subtrair, além do que a barra de filtros ocupa (~70px), do rodapé
+           do cartão (~60px) e da margem inferior da página (~13px), também os
+           desvios onde ela própria cola: a barra do menu e os separadores. Assim
+           a conta continua certa abaixo do lg, onde a barra do menu existe e o
+           desvio quase duplica.
+
+           E min-h para a caixa não desabar quando um filtro deixa três linhas: a
+           página encurtava, o scroll era puxado para cima e perdia-se o sítio.
            relative é bloco de contenção — sem ele um descendente absolute escapa
            ao recorte e estica a altura da PÁGINA à da tabela. -->
       <div
         #scrollBox
         [appPageFirstScroll]="scrollAnchor()"
-        class="relative max-h-[calc(100dvh-12rem)] min-h-[22rem] overflow-auto transition-opacity"
+        class="relative max-h-[calc(100dvh-var(--app-header-h)-var(--tabs-h)-9.5rem)] min-h-[22rem] overflow-auto transition-opacity"
         [class.opacity-50]="loading()"
       >
         <table class="w-full min-w-2xl border-collapse text-sm">

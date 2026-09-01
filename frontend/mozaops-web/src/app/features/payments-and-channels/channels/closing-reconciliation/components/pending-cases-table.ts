@@ -112,7 +112,7 @@ export interface CasePatch {
         <!-- relative: ver a nota em reconciliation-table.ts (bloco de contenção). -->
         <div
           [appPageFirstScroll]="scrollAnchor()"
-          class="relative max-h-[calc(100dvh-12rem)] min-h-[22rem] overflow-auto"
+          class="relative max-h-[calc(100dvh-var(--app-header-h)-var(--tabs-h)-9.5rem)] min-h-[22rem] overflow-auto"
         >
           <table class="w-full min-w-3xl @4xl:min-w-4xl border-collapse text-sm">
             <!-- Fundo nas células e opaco, e a régua de 3px repetida no cabeçalho —
