@@ -52,9 +52,7 @@ interface Arc extends Segment {
            senão o anel sozinho ao meio deixava-o um caixote vazio. O que decide
            é a largura do cartão, não a da janela — o @container está no
            app-collapsible-card. -->
-      <div
-        class="flex flex-1 flex-col items-center justify-center gap-6 @md:flex-row @md:gap-10"
-      >
+      <div class="flex flex-1 flex-col items-center justify-center gap-6 @md:flex-row @md:gap-10">
         <div class="relative aspect-square w-full max-w-[13rem] min-w-[9rem] shrink-0">
           @if (arcs().length > 0) {
             <svg

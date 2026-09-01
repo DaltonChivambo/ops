@@ -126,13 +126,9 @@ const PHASE_LABELS: Record<ProgressPhase, string> = {
       <!-- A excepção de negócio do PDD: é conteúdo para o operador ler, e por
            isso fica no fluxo da página em vez de num aviso que se desvanece. -->
       @if (error() && !processing()) {
-        <div
-          class="flex items-start gap-3 rounded-xl bg-alert-50 px-4 py-3 text-sm text-alert-700"
-        >
+        <div class="flex items-start gap-3 rounded-xl bg-alert-50 px-4 py-3 text-sm text-alert-700">
           <svg lucideTriangleAlert [size]="18" [strokeWidth]="1.8" class="mt-0.5 shrink-0"></svg>
-          <span>
-            <span class="font-semibold">Exceção de negócio: </span>{{ error() }}
-          </span>
+          <span> <span class="font-semibold">Exceção de negócio: </span>{{ error() }} </span>
         </div>
       }
     </section>

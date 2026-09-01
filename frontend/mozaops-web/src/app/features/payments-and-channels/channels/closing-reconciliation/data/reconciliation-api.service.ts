@@ -60,9 +60,7 @@ export class ReconciliationApi {
 
   /** `null` quando ainda não correu nenhuma validação (204 do servidor). */
   getLatestResult(): Promise<ValidationResult | null> {
-    return firstValueFrom(
-      this.http.get<ValidationResult | null>(`${this.base}/execucoes/ultima`),
-    );
+    return firstValueFrom(this.http.get<ValidationResult | null>(`${this.base}/execucoes/ultima`));
   }
 
   async listDetails(executionId: string, query: DetailsQuery = {}): Promise<DetailsPage> {

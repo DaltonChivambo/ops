@@ -1,11 +1,4 @@
-import {
-  ChangeDetectionStrategy,
-  Component,
-  computed,
-  input,
-  output,
-  signal,
-} from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, input, output, signal } from '@angular/core';
 import { LucideCircleCheck, LucideSearch } from '@lucide/angular';
 
 import { formatAmount, formatDate, numberFormatter } from '../../../../../shared/format';
@@ -116,14 +109,20 @@ export interface CasePatch {
           <table class="w-full min-w-3xl @4xl:min-w-4xl border-collapse text-sm">
             <thead class="sticky top-0 z-10 bg-gray-50/95 backdrop-blur">
               <tr class="border-y border-gray-100 text-gray-400">
-                <th scope="col" [class]="th + ' w-[17rem] py-2.5 pr-3 pl-5 text-left'">POS / Comerciante</th>
-                <th scope="col" [class]="th + ' hidden px-3 py-2.5 text-right @2xl:table-cell'">Período</th>
+                <th scope="col" [class]="th + ' w-[17rem] py-2.5 pr-3 pl-5 text-left'">
+                  POS / Comerciante
+                </th>
+                <th scope="col" [class]="th + ' hidden px-3 py-2.5 text-right @2xl:table-cell'">
+                  Período
+                </th>
                 <th scope="col" [class]="th + ' px-3 py-2.5 text-right'">Valor SIMO</th>
                 <th scope="col" [class]="th + ' px-3 py-2.5 text-right'">Valor Banka</th>
                 <th scope="col" [class]="th + ' px-3 py-2.5 text-left'">Tipo</th>
                 <th scope="col" [class]="th + ' px-3 py-2.5 text-left'">e-Ticket</th>
                 <th scope="col" [class]="th + ' px-3 py-2.5 text-left'">Estado</th>
-                <th scope="col" [class]="th + ' hidden px-3 py-2.5 text-left @4xl:table-cell'">Data Reg.</th>
+                <th scope="col" [class]="th + ' hidden px-3 py-2.5 text-left @4xl:table-cell'">
+                  Data Reg.
+                </th>
               </tr>
             </thead>
 
@@ -131,9 +130,7 @@ export interface CasePatch {
               @for (item of visible(); track item.id) {
                 <tr
                   class="border-b border-gray-50 text-gray-600 transition-colors last:border-b-0"
-                  [class]="
-                    item.status === 'resolved' ? 'bg-emerald-50/40' : 'hover:bg-gray-50/70'
-                  "
+                  [class]="item.status === 'resolved' ? 'bg-emerald-50/40' : 'hover:bg-gray-50/70'"
                 >
                   <td class="border-l-[3px] py-3.5 pr-3 pl-4" [class]="stripe(item)">
                     <div class="font-bold text-gray-900 tabular-nums">{{ item.posId }}</div>
@@ -141,7 +138,9 @@ export interface CasePatch {
                       {{ item.merchant }}
                     </div>
                   </td>
-                  <td class="hidden px-3 py-3.5 text-right tabular-nums text-gray-400 @2xl:table-cell">
+                  <td
+                    class="hidden px-3 py-3.5 text-right tabular-nums text-gray-400 @2xl:table-cell"
+                  >
                     {{ item.period }}
                   </td>
                   <td class="px-3 py-3.5 text-right">
@@ -201,8 +200,8 @@ export interface CasePatch {
         <p class="border-t border-gray-100 px-4 py-3.5 text-sm text-gray-400 sm:px-5">
           A mostrar
           <span class="font-semibold text-gray-500 tabular-nums">{{ n(visible().length) }}</span> de
-          <span class="font-semibold text-gray-500 tabular-nums">{{ n(cases().length) }}</span> casos
-          ·
+          <span class="font-semibold text-gray-500 tabular-nums">{{ n(cases().length) }}</span>
+          casos ·
           <span class="font-semibold text-gray-600 tabular-nums">
             {{ amount(pendingAmount()) }} MZN
           </span>

@@ -135,10 +135,10 @@ const STRUCK_ROW =
           class="ml-auto shrink-0 text-sm whitespace-nowrap text-gray-400 transition-opacity"
           [class.opacity-40]="loading()"
         >
-          <span class="font-bold text-gray-900 tabular-nums">{{ n(total()) }}</span
-          >@if (total() !== counts().all) {<span class="tabular-nums">
-              de {{ n(counts().all) }}</span
-            >}
+          <span class="font-bold text-gray-900 tabular-nums">{{ n(total()) }}</span>
+          @if (total() !== counts().all) {
+            <span class="tabular-nums"> de {{ n(counts().all) }}</span>
+          }
           {{ total() === 1 ? 'fecho' : 'fechos' }}
         </p>
       </div>
@@ -157,9 +157,13 @@ const STRUCK_ROW =
         <table class="w-full min-w-2xl border-collapse text-sm">
           <thead class="sticky top-0 z-10 bg-gray-50/95 backdrop-blur">
             <tr class="border-y border-gray-100 text-gray-400">
-              <th scope="col" [class]="th + ' w-[17rem] py-2.5 pr-3 pl-5 text-left'">POS / Comerciante</th>
+              <th scope="col" [class]="th + ' w-[17rem] py-2.5 pr-3 pl-5 text-left'">
+                POS / Comerciante
+              </th>
               <th scope="col" [class]="th + ' px-3 py-2.5 text-right'">Período</th>
-              <th scope="col" [class]="th + ' hidden px-3 py-2.5 text-left @5xl:table-cell'">Data Fecho</th>
+              <th scope="col" [class]="th + ' hidden px-3 py-2.5 text-left @5xl:table-cell'">
+                Data Fecho
+              </th>
               <th scope="col" [class]="th + ' px-3 py-2.5 text-right'">Total SIMO</th>
               <th scope="col" [class]="th + ' px-3 py-2.5 text-right'">Total Banka</th>
               <th scope="col" [class]="th + ' px-3 py-2.5 text-right'">Diferença</th>
@@ -380,7 +384,6 @@ const STRUCK_ROW =
           </button>
         }
       </div>
-
     </div>
 
     <!-- Fora do cartão de propósito: o cartão é @container, e container-type faz

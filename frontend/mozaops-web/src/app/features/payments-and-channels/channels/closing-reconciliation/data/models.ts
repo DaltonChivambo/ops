@@ -159,5 +159,4 @@ export interface DetailsQuery {
 export type ProgressPhase = 'upload' | 'reconciliation';
 
 export type ExecutionOutcome =
-  | { ok: true; result: ValidationResult }
-  | { ok: false; message: string }; // exceção de negócio do PDD
+  { ok: true; result: ValidationResult } | { ok: false; message: string }; // exceção de negócio do PDD

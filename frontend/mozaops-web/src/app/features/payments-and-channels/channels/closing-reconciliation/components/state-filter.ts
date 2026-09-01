@@ -115,7 +115,12 @@ import { ALL_STATES, STATE_OPTIONS, type StateId } from '../data/state-options';
               }
             </span>
 
-            <input type="checkbox" [checked]="checked" (change)="toggle(option.id)" class="sr-only" />
+            <input
+              type="checkbox"
+              [checked]="checked"
+              (change)="toggle(option.id)"
+              class="sr-only"
+            />
             <span class="size-2 shrink-0 rounded-[3px]" [class]="option.dot"></span>
             <span class="flex-1 font-medium">{{ option.label }}</span>
             <span class="text-xs text-gray-400 tabular-nums">

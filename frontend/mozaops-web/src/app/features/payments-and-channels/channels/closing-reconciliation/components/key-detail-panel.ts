@@ -11,7 +11,12 @@ import {
 } from '@angular/core';
 import { LucideLoaderCircle, LucideX } from '@lucide/angular';
 
-import { formatAmount, formatDate, formatSignedAmount, numberFormatter } from '../../../../../shared/format';
+import {
+  formatAmount,
+  formatDate,
+  formatSignedAmount,
+  numberFormatter,
+} from '../../../../../shared/format';
 import { ReconciliationApi } from '../data/reconciliation-api.service';
 import { STATE_CHIP, STATE_DOT, STATE_LABEL } from '../data/state-options';
 import type { ClosingDetail, KeyBreakdown } from '../data/models';
@@ -162,47 +167,45 @@ function creditedWhen(closingIso: string | undefined, creditIso: string | null):
             <!-- Scroll próprio em vez de espremer as colunas: o painel ocupa a
                  largura toda num ecrã estreito, e um montante partido não se lê. -->
             <div class="mt-2.5 overflow-x-auto">
-            <table class="w-full min-w-sm border-collapse text-sm">
-              <thead>
-                <tr class="border-b border-gray-100 text-gray-400">
-                  <th scope="col" [class]="th + ' py-2 pr-3 text-left'">Data Fecho</th>
-                  <th scope="col" [class]="th + ' px-3 py-2 text-right'">Nº Operaç.</th>
-                  <th scope="col" [class]="th + ' py-2 pl-3 text-right'">Total do fecho</th>
-                </tr>
-              </thead>
-              <tbody>
-                @for (closing of closings(); track closing.id) {
-                  <!-- O fecho clicado assinala-se pelo fundo branco, sem marca à frente da data. -->
-                  <tr
-                    class="border-b border-gray-100/80 last:border-b-0"
-                    [class]="closing.id === d.id ? 'bg-white text-gray-900' : 'text-gray-600'"
-                  >
-                    <td class="py-2.5 pr-3 tabular-nums">{{ date(closing.simoClosingDate) }}</td>
-                    <td class="px-3 py-2.5 text-right tabular-nums text-gray-400">
-                      {{ closing.operationNumber }}
-                    </td>
-                    <td class="py-2.5 pl-3 text-right">
+              <table class="w-full min-w-sm border-collapse text-sm">
+                <thead>
+                  <tr class="border-b border-gray-100 text-gray-400">
+                    <th scope="col" [class]="th + ' py-2 pr-3 text-left'">Data Fecho</th>
+                    <th scope="col" [class]="th + ' px-3 py-2 text-right'">Nº Operaç.</th>
+                    <th scope="col" [class]="th + ' py-2 pl-3 text-right'">Total do fecho</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (closing of closings(); track closing.id) {
+                    <!-- O fecho clicado assinala-se pelo fundo branco, sem marca à frente da data. -->
+                    <tr
+                      class="border-b border-gray-100/80 last:border-b-0"
+                      [class]="closing.id === d.id ? 'bg-white text-gray-900' : 'text-gray-600'"
+                    >
+                      <td class="py-2.5 pr-3 tabular-nums">{{ date(closing.simoClosingDate) }}</td>
+                      <td class="px-3 py-2.5 text-right tabular-nums text-gray-400">
+                        {{ closing.operationNumber }}
+                      </td>
+                      <td class="py-2.5 pl-3 text-right">
+                        <span class="font-semibold whitespace-nowrap tabular-nums text-gray-900">
+                          {{ amount(closing.simoClosingTotal) }}<span [class]="mzn">MZN</span>
+                        </span>
+                      </td>
+                    </tr>
+                  }
+                </tbody>
+                <!-- A soma vive no pé da coluna que soma, alinhada para se conferir a conta. -->
+                <tfoot>
+                  <tr class="border-t border-gray-200">
+                    <td class="pt-2.5 pr-3 text-xs text-gray-500" colspan="2">Total apurado</td>
+                    <td class="pt-2.5 pl-3 text-right">
                       <span class="font-semibold whitespace-nowrap tabular-nums text-gray-900">
-                        {{ amount(closing.simoClosingTotal) }}<span [class]="mzn">MZN</span>
+                        {{ amount(simoTotal()) }}<span [class]="mzn">MZN</span>
                       </span>
                     </td>
                   </tr>
-                }
-              </tbody>
-              <!-- A soma vive no pé da coluna que soma, alinhada para se conferir a conta. -->
-              <tfoot>
-                <tr class="border-t border-gray-200">
-                  <td class="pt-2.5 pr-3 text-xs text-gray-500" colspan="2">
-                    Total apurado
-                  </td>
-                  <td class="pt-2.5 pl-3 text-right">
-                    <span class="font-semibold whitespace-nowrap tabular-nums text-gray-900">
-                      {{ amount(simoTotal()) }}<span [class]="mzn">MZN</span>
-                    </span>
-                  </td>
-                </tr>
-              </tfoot>
-            </table>
+                </tfoot>
+              </table>
             </div>
           </section>
 
@@ -227,68 +230,68 @@ function creditedWhen(closingIso: string | undefined, creditIso: string | null):
                 Não há nenhum movimento do Banka com esta chave.
                 @if (d.bankaClosingTotal !== null) {
                   O crédito da chave está apurado em
-                  <b class="text-gray-900">{{ amount(d.bankaClosingTotal) }} MZN</b>, mas as parcelas
-                  não foram guardadas — é uma execução anterior à versão que as passou a registar.
-                  Volte a correr a validação para as ver.
+                  <b class="text-gray-900">{{ amount(d.bankaClosingTotal) }} MZN</b>, mas as
+                  parcelas não foram guardadas — é uma execução anterior à versão que as passou a
+                  registar. Volte a correr a validação para as ver.
                 }
               </p>
             } @else {
               <div class="mt-2.5 overflow-x-auto">
-              <table class="w-full min-w-md border-collapse text-sm">
-                <thead>
-                  <tr class="border-b border-moza-200 text-gray-400">
-                    <th scope="col" [class]="th + ' py-2 pr-3 text-left'">Data Crédito</th>
-                    <th scope="col" [class]="th + ' px-3 py-2 text-left'">Creditado</th>
-                    @if (!sharedDescription()) {
-                      <th scope="col" [class]="th + ' px-3 py-2 text-left'">Descritivo</th>
-                    }
-                    <th scope="col" [class]="th + ' py-2 pl-3 text-right'">Valor</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  @for (movement of movements(); track movement.id) {
-                    <tr class="border-b border-moza-100 text-gray-600 last:border-b-0">
-                      <td class="py-2.5 pr-3 tabular-nums">
-                        {{ movement.date ? date(movement.date) : '—' }}
-                      </td>
-                      <td class="px-3 py-2.5 whitespace-nowrap">
-                        @if (whenCredited(movement.date); as when) {
-                          {{ when }}
-                        } @else {
-                          <span class="text-gray-300">—</span>
-                        }
-                      </td>
+                <table class="w-full min-w-md border-collapse text-sm">
+                  <thead>
+                    <tr class="border-b border-moza-200 text-gray-400">
+                      <th scope="col" [class]="th + ' py-2 pr-3 text-left'">Data Crédito</th>
+                      <th scope="col" [class]="th + ' px-3 py-2 text-left'">Creditado</th>
                       @if (!sharedDescription()) {
-                        <td class="px-3 py-2.5">
-                          <span class="block max-w-64 truncate text-sm">
-                            {{ movement.description || '—' }}
+                        <th scope="col" [class]="th + ' px-3 py-2 text-left'">Descritivo</th>
+                      }
+                      <th scope="col" [class]="th + ' py-2 pl-3 text-right'">Valor</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    @for (movement of movements(); track movement.id) {
+                      <tr class="border-b border-moza-100 text-gray-600 last:border-b-0">
+                        <td class="py-2.5 pr-3 tabular-nums">
+                          {{ movement.date ? date(movement.date) : '—' }}
+                        </td>
+                        <td class="px-3 py-2.5 whitespace-nowrap">
+                          @if (whenCredited(movement.date); as when) {
+                            {{ when }}
+                          } @else {
+                            <span class="text-gray-300">—</span>
+                          }
+                        </td>
+                        @if (!sharedDescription()) {
+                          <td class="px-3 py-2.5">
+                            <span class="block max-w-64 truncate text-sm">
+                              {{ movement.description || '—' }}
+                            </span>
+                          </td>
+                        }
+                        <td class="py-2.5 pl-3 text-right">
+                          <span class="font-semibold whitespace-nowrap tabular-nums text-gray-900">
+                            {{ amount(movement.amount) }}<span [class]="mzn">MZN</span>
                           </span>
                         </td>
-                      }
-                      <td class="py-2.5 pl-3 text-right">
+                      </tr>
+                    }
+                  </tbody>
+                  <tfoot>
+                    <tr class="border-t border-moza-200">
+                      <td
+                        class="pt-2.5 pr-3 text-xs text-gray-500"
+                        [attr.colspan]="sharedDescription() ? 2 : 3"
+                      >
+                        Total creditado
+                      </td>
+                      <td class="pt-2.5 pl-3 text-right">
                         <span class="font-semibold whitespace-nowrap tabular-nums text-gray-900">
-                          {{ amount(movement.amount) }}<span [class]="mzn">MZN</span>
+                          {{ amount(bankaTotal()) }}<span [class]="mzn">MZN</span>
                         </span>
                       </td>
                     </tr>
-                  }
-                </tbody>
-                <tfoot>
-                  <tr class="border-t border-moza-200">
-                    <td
-                      class="pt-2.5 pr-3 text-xs text-gray-500"
-                      [attr.colspan]="sharedDescription() ? 2 : 3"
-                    >
-                      Total creditado
-                    </td>
-                    <td class="pt-2.5 pl-3 text-right">
-                      <span class="font-semibold whitespace-nowrap tabular-nums text-gray-900">
-                        {{ amount(bankaTotal()) }}<span [class]="mzn">MZN</span>
-                      </span>
-                    </td>
-                  </tr>
-                </tfoot>
-              </table>
+                  </tfoot>
+                </table>
               </div>
             }
           </section>
@@ -334,15 +337,11 @@ export class KeyDetailPanelComponent {
   protected readonly metaValue = 'font-semibold text-gray-700 tabular-nums';
   protected readonly mzn = 'ml-1 text-[0.7em] font-normal text-gray-400';
   protected readonly th = 'text-2xs font-bold tracking-wider uppercase';
-  protected readonly sectionTitle =
-    'text-2xs font-bold tracking-wider text-gray-400 uppercase';
-  protected readonly totalLabel =
-    'text-2xs font-bold tracking-wider text-gray-400 uppercase';
+  protected readonly sectionTitle = 'text-2xs font-bold tracking-wider text-gray-400 uppercase';
+  protected readonly totalLabel = 'text-2xs font-bold tracking-wider text-gray-400 uppercase';
   protected readonly totalValue = 'mt-1 text-base font-bold tabular-nums';
-  protected readonly fieldLabel =
-    'text-2xs font-bold tracking-wider text-gray-400 uppercase';
-  protected readonly fieldValue =
-    'mt-0.5 truncate text-sm font-semibold text-gray-900';
+  protected readonly fieldLabel = 'text-2xs font-bold tracking-wider text-gray-400 uppercase';
+  protected readonly fieldValue = 'mt-0.5 truncate text-sm font-semibold text-gray-900';
 
   protected readonly closings = computed(() => this.data()?.closings ?? []);
   protected readonly movements = computed(() => this.data()?.movements ?? []);
@@ -365,7 +364,7 @@ export class KeyDetailPanelComponent {
   /** Igual em todos os movimentos: mostra-se uma vez no topo e a coluna desaparece. */
   protected readonly sharedDescription = computed(() => {
     const descriptions = new Set(this.movements().map((movement) => movement.description ?? ''));
-    return descriptions.size === 1 ? ([...descriptions][0] || null) : null;
+    return descriptions.size === 1 ? [...descriptions][0] || null : null;
   });
 
   /** Só se pode datar o prazo com um único fecho na chave — com vários, não se sabe qual é qual. */

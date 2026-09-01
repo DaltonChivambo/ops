@@ -25,10 +25,7 @@ interface Row {
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [CollapsibleCardComponent],
   template: `
-    <app-collapsible-card
-      title="Reconciliação de Montantes"
-      storageKey="reconciliacao-montantes"
-    >
+    <app-collapsible-card title="Reconciliação de Montantes" storageKey="reconciliacao-montantes">
       <p cardAside class="text-xs text-gray-400">Apurado na SIMO vs creditado no Banka · MZN</p>
 
       <div class="flex flex-col gap-2">
@@ -106,8 +103,12 @@ interface Row {
                     <span class="font-semibold text-gray-900">{{ row.label }}</span>
                   </span>
                 </td>
-                <td class="px-4 py-3 text-right whitespace-nowrap tabular-nums">{{ count(row.count) }}</td>
-                <td class="px-4 py-3 text-right whitespace-nowrap tabular-nums">{{ amount(row.simo) }}</td>
+                <td class="px-4 py-3 text-right whitespace-nowrap tabular-nums">
+                  {{ count(row.count) }}
+                </td>
+                <td class="px-4 py-3 text-right whitespace-nowrap tabular-nums">
+                  {{ amount(row.simo) }}
+                </td>
                 <td class="px-4 py-3 text-right whitespace-nowrap tabular-nums">
                   {{ row.key === 'missing' ? '—' : amount(row.banka) }}
                 </td>
@@ -123,9 +124,15 @@ interface Row {
 
             <tr class="font-semibold text-gray-900">
               <td class="py-3 pr-3 pl-1.5">Total</td>
-              <td class="px-4 py-3 text-right whitespace-nowrap tabular-nums">{{ count(summary().processed) }}</td>
-              <td class="px-4 py-3 text-right whitespace-nowrap tabular-nums">{{ amount(totalSimo()) }}</td>
-              <td class="px-4 py-3 text-right whitespace-nowrap tabular-nums">{{ amount(totalBanka()) }}</td>
+              <td class="px-4 py-3 text-right whitespace-nowrap tabular-nums">
+                {{ count(summary().processed) }}
+              </td>
+              <td class="px-4 py-3 text-right whitespace-nowrap tabular-nums">
+                {{ amount(totalSimo()) }}
+              </td>
+              <td class="px-4 py-3 text-right whitespace-nowrap tabular-nums">
+                {{ amount(totalBanka()) }}
+              </td>
               <td class="py-3 pr-1.5 pl-3 text-right whitespace-nowrap tabular-nums text-alert-600">
                 {{ signedAmount(totalBanka() - totalSimo()) }}
               </td>
