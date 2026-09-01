@@ -1,6 +1,16 @@
-import { ChangeDetectionStrategy, Component, computed, inject, model, signal } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  computed,
+  inject,
+  model,
+  signal,
+  type Signal,
+} from '@angular/core';
 import { NgTemplateOutlet } from '@angular/common';
-import { Router } from '@angular/router';
+// `isActive` com outro nome: a classe também tem um método isActive, e dentro
+// do construtor os dois cruzavam-se à vista de quem lê.
+import { isActive as routeIsActive, Router } from '@angular/router';
 import {
   LucideBanknote,
   LucideChevronDown,
@@ -339,12 +349,41 @@ export class SidebarComponent {
     return this.expandedIds().has(id);
   }
 
+  /**
+   * Um sinal por rota, construído uma vez — as rotas da barra são estáticas.
+   *
+   * Lia-se `router.url` directamente, e isso é uma propriedade, não um sinal:
+   * com OnPush e sem zone.js, mudar de página não avisava a barra de que tinha
+   * de redesenhar. O ecrã trocava e o item continuava por marcar até algo mais
+   * forçar uma passagem — na prática, o clique seguinte. Daí ser preciso clicar
+   * duas vezes para o ícone acender.
+   *
+   * O `isActive` do router devolve `Signal<boolean>` e compara por segmentos,
+   * com `paths: 'subset'` por omissão — a mesma leitura do `startsWith` que
+   * aqui estava, mas sem o apanhar `/pos-antigo` a partir de `/pos`.
+   */
+  private readonly activeByRoute = new Map<string, Signal<boolean>>();
+
+  constructor() {
+    const registar = (route?: string) => {
+      if (route && !this.activeByRoute.has(route)) {
+        this.activeByRoute.set(route, routeIsActive(route, this.router));
+      }
+    };
+    for (const section of SECTIONS) {
+      for (const item of section.items) {
+        registar(item.route);
+        for (const child of item.children ?? []) registar(child.route);
+      }
+    }
+  }
+
   protected isActive(item: NavItem): boolean {
-    return item.route !== undefined && this.router.url.startsWith(item.route);
+    return this.activeByRoute.get(item.route ?? '')?.() ?? false;
   }
 
   protected isChildActive(child: NavChild): boolean {
-    return child.route !== undefined && this.router.url.startsWith(child.route);
+    return this.activeByRoute.get(child.route ?? '')?.() ?? false;
   }
 
   protected hasActiveChild(item: NavItem): boolean {
