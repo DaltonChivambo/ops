@@ -155,7 +155,11 @@ const STRUCK_ROW =
         [class.opacity-50]="loading()"
       >
         <table class="w-full min-w-2xl border-collapse text-sm">
-          <thead class="sticky top-0 z-10 bg-gray-50/95 backdrop-blur">
+          <!-- O fundo vai nas células, não aqui: num grupo de linhas, e com bordas
+               colapsadas, não se pode contar com ele. E opaco — estava a 95% com
+               backdrop-blur, feito para se ver através, e via-se mesmo: as réguas
+               de estado e os fundos âmbar das chaves passavam por trás da faixa. -->
+          <thead class="sticky top-0 z-10">
             <tr class="border-y border-gray-100 text-gray-400">
               <th scope="col" [class]="th + ' w-[17rem] py-2.5 pr-3 pl-5 text-left'">
                 POS / Comerciante
@@ -186,7 +190,7 @@ const STRUCK_ROW =
                     detail.validation === 'zero' ? 'text-gray-400 ' + struckRow : 'text-gray-600'
                   "
                 >
-                  <td class="border-l-[3px] py-3.5 pr-3 pl-4" [class]="stripe(detail)">
+                  <td class="py-3.5 pr-3 pl-5" [class]="stripe(detail)">
                     <ng-container
                       [ngTemplateOutlet]="identity"
                       [ngTemplateOutletContext]="{ $implicit: detail }"
@@ -226,7 +230,7 @@ const STRUCK_ROW =
                   (click)="opened.set(detail)"
                   class="cursor-pointer border-b border-gray-50 bg-amber-50/40 text-gray-600 transition-colors last:border-b-0 hover:bg-amber-50/70"
                 >
-                  <td class="border-l-[3px] py-3.5 pr-3 pl-4" [class]="stripe(detail)">
+                  <td class="py-3.5 pr-3 pl-5" [class]="stripe(detail)">
                     <div class="flex items-start gap-2">
                       <button
                         type="button"
@@ -295,7 +299,7 @@ const STRUCK_ROW =
                       (click)="opened.set(item)"
                       class="cursor-pointer border-b border-gray-50 bg-amber-50/20 text-gray-500 transition-colors last:border-b-0 hover:bg-amber-50/50"
                     >
-                      <td class="border-l-[3px] border-l-amber-200 py-2.5 pr-3 pl-6">
+                      <td class="py-2.5 pr-3 pl-6 shadow-[inset_3px_0_0_var(--color-amber-200)]">
                         <button
                           type="button"
                           (click)="$event.stopPropagation(); opened.set(item)"
@@ -440,7 +444,8 @@ export class ReconciliationTableComponent {
   protected readonly perPage = PER_PAGE;
   protected readonly unregistered = UNREGISTERED;
   protected readonly struckRow = STRUCK_ROW;
-  protected readonly th = 'text-2xs font-bold tracking-wider uppercase';
+  /** `bg-gray-50` aqui e não no `<thead>`: é a célula que pinta o fundo de forma fiável. */
+  protected readonly th = 'bg-gray-50 text-2xs font-bold tracking-wider uppercase';
 
   protected readonly query = signal('');
   private readonly search = signal('');

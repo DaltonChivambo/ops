@@ -18,9 +18,10 @@ const TYPE_LABEL: Record<CaseType, string> = {
   missing: 'Não creditado',
   mismatch: 'Incorrecto',
 };
+/** Sombra interior e não `border-l` — ver a nota em STATE_STRIPE, no state-options. */
 const TYPE_STRIPE: Record<CaseType, string> = {
-  missing: 'border-l-moza-400',
-  mismatch: 'border-l-alert-500',
+  missing: 'shadow-[inset_3px_0_0_var(--color-moza-400)]',
+  mismatch: 'shadow-[inset_3px_0_0_var(--color-alert-500)]',
 };
 
 const STATUS_LABELS: Record<CaseStatus, string> = {
@@ -64,7 +65,13 @@ export interface CasePatch {
         </p>
       </div>
     } @else {
-      <div class="@container overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-sm">
+      <!-- Sem overflow-hidden, como no cartão irmão dos fechos. Com ele, o cartão
+           passava a ser o contentor de scroll da barra de filtros colada, e o
+           desvio dela deixava de se contar a partir do topo do ecrã para se contar
+           a partir do topo do CARTÃO: a barra fixava-se 60px abaixo dele, por cima
+           da lista, e o cabeçalho da tabela tapava-a. Os cantos arredondados
+           aguentam-se sozinhos — nenhum filho tem fundo próprio nas pontas. -->
+      <div class="@container rounded-2xl border border-gray-100 bg-white shadow-sm">
         <div
           class="sticky top-[calc(var(--app-header-h)+var(--tabs-h))] z-10 rounded-t-2xl border-b border-gray-100 bg-white flex flex-wrap items-center justify-between gap-3 px-4 py-3.5 sm:px-5"
         >
@@ -107,7 +114,9 @@ export interface CasePatch {
           class="relative max-h-[calc(100dvh-12rem)] min-h-[22rem] overflow-auto"
         >
           <table class="w-full min-w-3xl @4xl:min-w-4xl border-collapse text-sm">
-            <thead class="sticky top-0 z-10 bg-gray-50/95 backdrop-blur">
+            <!-- Fundo nas células e opaco, e a régua de 3px repetida no cabeçalho —
+                 ver a nota igual na app-reconciliation-table. -->
+            <thead class="sticky top-0 z-10">
               <tr class="border-y border-gray-100 text-gray-400">
                 <th scope="col" [class]="th + ' w-[17rem] py-2.5 pr-3 pl-5 text-left'">
                   POS / Comerciante
@@ -132,7 +141,7 @@ export interface CasePatch {
                   class="border-b border-gray-50 text-gray-600 transition-colors last:border-b-0"
                   [class]="item.status === 'resolved' ? 'bg-emerald-50/40' : 'hover:bg-gray-50/70'"
                 >
-                  <td class="border-l-[3px] py-3.5 pr-3 pl-4" [class]="stripe(item)">
+                  <td class="py-3.5 pr-3 pl-5" [class]="stripe(item)">
                     <div class="font-bold text-gray-900 tabular-nums">{{ item.posId }}</div>
                     <div class="mt-0.5 max-w-48 truncate text-sm text-gray-400">
                       {{ item.merchant }}
@@ -217,7 +226,8 @@ export class PendingCasesTableComponent {
   readonly scrollAnchor = input<HTMLElement | undefined>(undefined);
   readonly updated = output<CasePatch>();
 
-  protected readonly th = 'text-2xs font-bold tracking-wider uppercase';
+  /** `bg-gray-50` aqui e não no `<thead>`: é a célula que pinta o fundo de forma fiável. */
+  protected readonly th = 'bg-gray-50 text-2xs font-bold tracking-wider uppercase';
   protected readonly statusFilters = STATUS_FILTERS;
   protected readonly statusOptions = Object.entries(STATUS_LABELS).map(([value, label]) => ({
     value,

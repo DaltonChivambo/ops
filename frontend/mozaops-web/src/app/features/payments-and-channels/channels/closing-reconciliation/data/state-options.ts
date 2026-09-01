@@ -79,13 +79,22 @@ export const STATE_CHIP: Record<Validation, string> = {
   duplicated: 'bg-amber-50 text-amber-700',
 };
 
-/** Régua à esquerda da linha, em todas — sem marca lê-se como "por classificar", não como "em ordem". */
+/**
+ * Régua à esquerda da linha, em todas — sem marca lê-se como "por classificar", não
+ * como "em ordem".
+ *
+ * Sombra interior e não `border-l`: com `border-collapse` as bordas deixam de ser
+ * pintadas por cada célula e passam a ser pintadas pela TABELA, numa camada que o
+ * cabeçalho colado não tapa. A régua da linha assomava ao lado do cabeçalho, e
+ * ganhava até à borda cinzenta que lá se pôs para a cobrir. A sombra é pintada pela
+ * própria célula, como o fundo — e o fundo o cabeçalho já tapava bem.
+ */
 export const STATE_STRIPE: Record<Validation, string> = {
-  match: 'border-l-emerald-500',
-  mismatch: 'border-l-alert-500',
-  missing: 'border-l-moza-400',
-  zero: 'border-l-gray-300',
-  duplicated: 'border-l-amber-500',
+  match: 'shadow-[inset_3px_0_0_var(--color-emerald-500)]',
+  mismatch: 'shadow-[inset_3px_0_0_var(--color-alert-500)]',
+  missing: 'shadow-[inset_3px_0_0_var(--color-moza-400)]',
+  zero: 'shadow-[inset_3px_0_0_var(--color-gray-300)]',
+  duplicated: 'shadow-[inset_3px_0_0_var(--color-amber-500)]',
 };
 
 /** `null` = todos (sem filtro na query); lista vazia = nenhum. */
