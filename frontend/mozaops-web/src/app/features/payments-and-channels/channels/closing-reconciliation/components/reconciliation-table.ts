@@ -139,13 +139,15 @@ const STRUCK_ROW =
         </p>
       </div>
 
-      <!-- max-h (não h) e medido, não estimado: encolhe ao conteúdo filtrado.
+      <!-- max-h medido, não estimado. E min-h para a caixa não desabar quando um
+           filtro deixa três linhas: a página encurtava, o scroll era puxado para
+           cima e perdia-se o sítio onde se estava.
            relative é bloco de contenção — sem ele um descendente absolute escapa
            ao recorte e estica a altura da PÁGINA à da tabela. -->
       <div
         #scrollBox
         [appPageFirstScroll]="scrollAnchor()"
-        class="relative max-h-[calc(100dvh-12rem)] overflow-auto transition-opacity"
+        class="relative max-h-[calc(100dvh-12rem)] min-h-[22rem] overflow-auto transition-opacity"
         [class.opacity-50]="loading()"
       >
         <table class="w-full min-w-3xl border-collapse text-sm">
@@ -441,10 +443,16 @@ export class ReconciliationTableComponent {
   });
 
   private readonly page = linkedSignal({ source: this.queryKey, computation: () => 1 });
-  protected readonly items = linkedSignal<string, readonly ClosingDetail[]>({
-    source: this.queryKey,
-    computation: () => [],
-  });
+
+  /**
+   * NÃO se esvazia ao mudar de consulta, ao contrário do resto que deriva dela.
+   * Esvaziar encolhia a tabela de cinquenta linhas para zero durante o pedido; a
+   * página ficava mais curta do que a posição do scroll e o browser era obrigado
+   * a puxá-la para cima, de volta aos gráficos. As linhas antigas ficam à vista,
+   * esbatidas, até as novas chegarem e as substituírem — é para isso que serve o
+   * `opacity-50` na caixa.
+   */
+  protected readonly items = signal<readonly ClosingDetail[]>([]);
   protected readonly expanded = linkedSignal<string, ReadonlySet<string>>({
     source: this.queryKey,
     computation: () => new Set<string>(),

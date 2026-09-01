@@ -66,9 +66,11 @@ type TabId = 'cases' | 'closings';
             "
           >
             {{ item.label }}
+            <!-- Pastilha em vez de número solto: a contagem é do separador, não
+                 uma segunda palavra do rótulo. -->
             <span
-              class="text-xs font-semibold tabular-nums"
-              [class]="active ? 'text-gray-400' : 'text-gray-300'"
+              class="rounded-full px-1.5 py-0.5 text-2xs font-semibold tabular-nums transition-colors"
+              [class]="active ? 'bg-moza-100 text-moza-700' : 'bg-gray-100 text-gray-400'"
             >
               {{ item.badge }}
             </span>

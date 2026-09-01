@@ -109,7 +109,7 @@ export interface CasePatch {
         <!-- relative: ver a nota em reconciliation-table.ts (bloco de contenção). -->
         <div
           [appPageFirstScroll]="scrollAnchor()"
-          class="relative max-h-[calc(100dvh-12rem)] overflow-auto"
+          class="relative max-h-[calc(100dvh-12rem)] min-h-[22rem] overflow-auto"
         >
           <table class="w-full min-w-3xl border-collapse text-sm">
             <thead class="sticky top-0 z-10 bg-gray-50/95 backdrop-blur">
