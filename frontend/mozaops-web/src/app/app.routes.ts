@@ -44,7 +44,8 @@ export const routes: Routes = [
       {
         // A automação de um canal, e o destino real de quase toda a navegação:
         // é para aqui que a rota curta acima reencaminha. Vem depois dela por ser
-        // mais específica; o `moduleId` diz qual canal, e é o mesmo ecrã para os três.
+        // mais específica. Hoje só o POS lá chega: a validação de fechos é dele,
+        // e o serviço que a serve expõe apenas /pos/validacao-credito-fecho.
         path: ':moduleId/:featureId',
         canActivate: [canAccess(...READERS)],
         loadComponent: () =>

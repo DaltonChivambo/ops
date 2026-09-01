@@ -71,8 +71,14 @@ import { type Feature, type NavModule } from '../core/navigation';
 
         <div class="min-w-0 flex-1">
           <p class="truncate text-base font-bold text-gray-900">{{ mod.label }}</p>
+          <!-- «0 funcionalidades» é uma contagem a fingir que informa; para um
+               canal sem nada construído, diz-se isso mesmo. -->
           <p class="truncate text-xs text-gray-400">
-            {{ mod.features.length }} funcionalidade{{ mod.features.length === 1 ? '' : 's' }}
+            @if (mod.features.length === 0) {
+              Sem automações
+            } @else {
+              {{ mod.features.length }} funcionalidade{{ mod.features.length === 1 ? '' : 's' }}
+            }
           </p>
         </div>
 
@@ -100,9 +106,7 @@ import { type Feature, type NavModule } from '../core/navigation';
 
       @for (group of grouped(); track group.category; let groupIndex = $index) {
         <div [class]="groupIndex > 0 ? 'mt-5 border-t border-gray-100 pt-5' : ''">
-          <p
-            class="mb-2 px-3 text-2xs font-semibold tracking-wider text-gray-400 uppercase"
-          >
+          <p class="mb-2 px-3 text-2xs font-semibold tracking-wider text-gray-400 uppercase">
             {{ group.category }}
           </p>
           <ul class="flex flex-col gap-1">
@@ -126,6 +130,10 @@ import { type Feature, type NavModule } from '../core/navigation';
             }
           </ul>
         </div>
+      } @empty {
+        <p class="px-3 py-1 text-sm text-gray-400">
+          Ainda não há automações construídas para este canal.
+        </p>
       }
     </div>
   `,

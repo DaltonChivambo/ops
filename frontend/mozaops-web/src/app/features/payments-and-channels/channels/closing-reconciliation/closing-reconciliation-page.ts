@@ -128,7 +128,7 @@ export class ClosingReconciliationPageComponent {
   );
 
   protected readonly title = computed(
-    () => this.feature()?.title ?? 'Validação de Crédito de Valores de Fecho',
+    () => this.feature()?.title ?? 'Validação de Crédito de Valores de Fecho de POS',
   );
   protected readonly description = computed(() => this.feature()?.description ?? '');
 

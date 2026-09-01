@@ -47,19 +47,25 @@ export interface NavModule {
 }
 
 /**
- * A mesma automação serve os três canais — muda o ficheiro de entrada, não a
- * regra. Por isso é uma fábrica, e não três definições copiadas.
+ * A automação é do canal POS, e só dele.
+ *
+ * Era uma fábrica, e a ATM e os Quiosques anunciavam-na cada um com a sua
+ * versão, marcada como por construir. Não era só «ainda não»: o serviço que a
+ * serve expõe /pos/validacao-credito-fecho e mais nada, e o ficheiro de entrada,
+ * as regras de reconciliação e o relatório são os do POS. Os outros dois canais
+ * prometiam um caminho que nunca existiu — ficam sem funcionalidades até terem
+ * a sua, que será outra automação e não esta.
  */
-const closingValidation = (channel: string, available: boolean): Feature => ({
+const CLOSING_VALIDATION: Feature = {
   id: 'closing-credit-validation',
-  title: 'Validação de Crédito de Valores de Fecho',
+  title: 'Validação de Crédito de Valores de Fecho de POS',
   description:
-    `Confirma que os valores de fecho dos ${channel} apurados no Portal SIMO foram ` +
+    'Confirma que os valores de fecho dos POS apurados no Portal SIMO foram ' +
     'efectivamente creditados nas contas à ordem dos comerciantes no Banka, ' +
     'classifica as divergências e gera o relatório do departamento.',
   category: 'Fecho',
-  available,
-});
+  available: true,
+};
 
 export const MODULES: readonly NavModule[] = [
   {
@@ -76,7 +82,7 @@ export const MODULES: readonly NavModule[] = [
     department: 'payments-and-channels',
     section: 'Canais',
     icon: 'smartphone-nfc',
-    features: [closingValidation('POS', true)],
+    features: [CLOSING_VALIDATION],
   },
   {
     id: 'atm',
@@ -84,7 +90,7 @@ export const MODULES: readonly NavModule[] = [
     department: 'payments-and-channels',
     section: 'Canais',
     icon: 'landmark',
-    features: [closingValidation('ATM', false)],
+    features: [],
   },
   {
     id: 'kiosks',
@@ -92,7 +98,7 @@ export const MODULES: readonly NavModule[] = [
     department: 'payments-and-channels',
     section: 'Canais',
     icon: 'store',
-    features: [closingValidation('quiosques', false)],
+    features: [],
   },
 ];
 

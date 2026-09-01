@@ -1,5 +1,5 @@
 /**
- * Tipos do módulo "Validação de Crédito de Valores de Fecho" (PDD 1.1, Moza Banco / DOP).
+ * Tipos do módulo "Validação de Crédito de Valores de Fecho de POS" (PDD 1.1, Moza Banco / DOP).
  * Espelham 1:1 o JSON da API. Identificadores em inglês; o português fica no conteúdo e nas rotas.
  * Glossário face ao PDD:
  *   fecho / fechos SIMO ............. closing / simoClosings
