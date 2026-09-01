@@ -13,7 +13,7 @@
 
 O repositório tinha duas metades que não se encontravam.
 
-De um lado, `frontend/mozaops-web`: o SPA do **MozaOps**, as automações do
+De um lado, `frontend/`: o SPA do **MozaOps**, as automações do
 Departamento de Meios de Pagamento e Canais, com a validação de crédito de
 valores de fecho já construída para POS.
 
@@ -92,3 +92,14 @@ direcção que não está a ser seguida.
 **Gatilho para reconsiderar**: quando existir procura real por gestão de
 tickets, inventário ou aprovações genéricas dentro do MozaOps. Aí voltam como
 contextos próprios — e o `git log` tem o desenho pronto.
+
+## Nota sobre o caminho do frontend
+
+Quando esta decisão foi tomada, o SPA vivia em `frontend/mozaops-web/`. Em
+2026-09-01 subiu um nível, para `frontend/`: havia um nível de pasta a não
+separar nada, porque dentro de `frontend/` só existia esse projecto. O texto
+acima está com o caminho actual.
+
+O nome `mozaops-web` não desapareceu — continua a ser o do projecto no
+`angular.json`, o do pacote npm, o da imagem Docker e o do `clientId` no realm
+do Keycloak. O que mudou foi só a pasta.
