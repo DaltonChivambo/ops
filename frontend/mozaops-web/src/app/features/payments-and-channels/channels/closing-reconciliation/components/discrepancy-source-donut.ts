@@ -51,14 +51,17 @@ interface Arc extends Segment {
   // cartão e o dos montantes com alturas diferentes.
   host: { class: 'block h-full' },
   template: `
-    <section appCard class="flex h-full flex-col gap-4">
+    <!-- @container: o que decide aqui é a largura DESTE cartão, não a da janela.
+         Ele tanto vive numa coluna estreita ao lado dos montantes como ocupa a
+         linha toda quando empilham — e o segundo caso depende da barra lateral,
+         que um media query não vê. -->
+    <section appCard class="@container flex h-full flex-col gap-4">
       <h2 class="text-lg font-bold">Fechos por Tratar</h2>
 
-      <!-- Abaixo do xl este cartão ocupa a largura toda, e o anel sozinho ao meio
-           deixava-o um caixote vazio. Aí anel e legenda ficam lado a lado; na
-           coluna estreita do xl voltam a empilhar. -->
+      <!-- Cartão estreito: anel e legenda empilham. Cartão largo: lado a lado,
+           senão o anel sozinho ao meio deixava-o um caixote vazio. -->
       <div
-        class="flex flex-1 flex-col items-center justify-center gap-5 sm:flex-row sm:gap-10 xl:flex-col xl:gap-6"
+        class="flex flex-1 flex-col items-center justify-center gap-6 @md:flex-row @md:gap-10"
       >
         <div class="relative aspect-square w-full max-w-[13rem] min-w-[9rem] shrink-0">
           @if (arcs().length > 0) {
@@ -136,7 +139,7 @@ interface Arc extends Segment {
           </div>
         </div>
 
-        <ul class="flex w-full max-w-sm flex-col gap-1 xl:max-w-none">
+        <ul class="flex w-full max-w-sm flex-col gap-1">
           @for (arc of arcs(); track arc.name) {
             @let on = active() === arc.name;
             <li>

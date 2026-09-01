@@ -19,11 +19,16 @@ interface StatWithNote {
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [StatCardComponent],
   template: `
-    <!-- Quatro por linha só a partir do xl. A 1024px, quatro cartões deixavam
-         ~110px para o valor e truncavam tudo — "Fechos Process…", "1 028 20…".
-         A dois nessa largura o rótulo cabe inteiro; a quatro só do xl para cima,
-         onde há 285px por cartão. -->
-    <div class="grid grid-cols-2 gap-4 xl:grid-cols-4">
+    <!-- Quatro por linha só quando sobram ~1024px de conteúdo, que é onde cada
+         cartão fica com uns 240px e o rótulo deixa de truncar. Esses 1024px
+         chegam a janelas diferentes conforme a barra lateral:
+           encolhida  -> largura - 76 - 64  = precisa de 1170px de janela
+           aberta     -> largura - 264 - 64 = precisa de 1360px
+         Daí as duas regras. Sem a segunda, abrir a barra a 1280px espremia os
+         quatro cartões para 226px e voltava a cortar os montantes. -->
+    <div
+      class="grid grid-cols-2 gap-4 min-[1360px]:grid-cols-4 min-[1170px]:group-data-[sidebar=collapsed]/shell:grid-cols-4"
+    >
       @for (item of stats(); track item.stat.id) {
         <app-stat-card [stat]="item.stat" [periodLabel]="item.note" />
       }

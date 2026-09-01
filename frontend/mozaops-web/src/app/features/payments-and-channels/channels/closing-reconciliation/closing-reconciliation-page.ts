@@ -85,11 +85,13 @@ import type { ProgressPhase, UploadSlotId, ValidationResult } from './data/model
              lados — esteve num separador «Resumo por Estado». É leitura e não
              navegação: fica à vista, antes das listas.
 
-             Lado a lado só a partir do xl: a tabela dos montantes tem cinco
-             colunas e um mínimo de 36rem, e num portátil a 1024px a coluna que
-             lhe sobrava obrigava-a a scroll horizontal próprio. -->
+             Lado a lado só quando sobram ~1024px de conteúdo: a tabela dos
+             montantes tem cinco colunas e um mínimo de 36rem, e com menos do que
+             isso a coluna que lhe sobrava obrigava-a a scroll horizontal
+             próprio. O limiar depende da barra lateral estar aberta ou não —
+             ver a nota no result-stats. -->
         <div
-          class="grid grid-cols-1 gap-4 sm:gap-5 xl:grid-cols-[minmax(18rem,1fr)_minmax(0,2fr)]"
+          class="grid grid-cols-1 gap-4 sm:gap-5 min-[1360px]:grid-cols-[minmax(18rem,1fr)_minmax(0,2fr)] min-[1170px]:group-data-[sidebar=collapsed]/shell:grid-cols-[minmax(18rem,1fr)_minmax(0,2fr)]"
         >
           <app-discrepancy-source-donut [summary]="current.summary" />
           <app-amount-reconciliation [summary]="current.summary" />
