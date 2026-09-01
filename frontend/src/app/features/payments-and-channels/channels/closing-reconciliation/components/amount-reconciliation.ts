@@ -7,6 +7,7 @@ import {
   numberFormatter,
 } from '../../../../../shared/format';
 import { CollapsibleCardComponent } from '../../../../../shared/ui/collapsible-card';
+import { StackedBarComponent, type BarSegment } from '../../../../../shared/ui/stacked-bar';
 import type { ClosingSummary } from '../data/models';
 
 interface Row {
@@ -23,39 +24,13 @@ interface Row {
 @Component({
   selector: 'app-amount-reconciliation',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [CollapsibleCardComponent],
+  imports: [CollapsibleCardComponent, StackedBarComponent],
   template: `
     <app-collapsible-card heading="Reconciliação de Montantes" storageKey="reconciliacao-montantes">
       <p cardAside class="text-xs text-gray-400">Apurado na SIMO vs creditado no Banka · MZN</p>
 
       <div class="flex flex-col gap-2">
-        <!-- Largura mínima: divergências são fracções de ponto percentual, senão a
-             barra sai só verde. Apontar a um segmento acende a linha da tabela
-             que lhe corresponde, e a tabela faz o mesmo de volta.
-
-             Quem arredonda as pontas é este contentor, com overflow-hidden. Os
-             segmentos ficam rectos: a arredondar nos dois sítios, o último — que
-             tem 10px — levava um raio maior do que ele próprio e saía cortado
-             contra o canto do contentor. -->
-        <div
-          class="flex h-3 w-full gap-px overflow-hidden rounded-full bg-gray-100"
-          (mouseleave)="active.set(null)"
-        >
-          @for (row of barRows(); track row.key) {
-            @let on = active() === row.key;
-            <button
-              type="button"
-              [class]="row.barClass + ' cursor-pointer transition-opacity duration-200'"
-              [style.width.%]="widthOf(row)"
-              [style.minWidth.rem]="0.625"
-              [style.opacity]="active() && !on ? 0.25 : 1"
-              [attr.aria-label]="row.label + ': ' + mzn(row.simo) + ', ' + share(row)"
-              (mouseenter)="active.set(row.key)"
-              (focus)="active.set(row.key)"
-              (blur)="active.set(null)"
-            ></button>
-          }
-        </div>
+        <app-stacked-bar [segments]="barSegments()" [(active)]="active" />
 
         <!-- Reserva a altura sempre, para a barra não saltar quando isto aparece. -->
         <p class="flex min-h-4 items-center gap-2 text-xs">
@@ -194,7 +169,22 @@ export class AmountReconciliationComponent {
     ];
   });
 
-  protected readonly barRows = computed(() => this.rows().filter((row) => row.simo > 0));
+  /**
+   * Os segmentos para a barra. O rótulo acessível é montado aqui e não no
+   * gráfico: é deste lado que se sabe que os valores são meticais e que a quota
+   * é sobre o apurado na SIMO.
+   */
+  protected readonly barSegments = computed<readonly BarSegment[]>(() =>
+    this.rows()
+      .filter((row) => row.simo > 0)
+      .map((row) => ({
+        key: row.key,
+        label: row.label,
+        value: row.simo,
+        className: row.barClass,
+        ariaLabel: `${row.label}: ${this.mzn(row.simo)}, ${this.share(row)}`,
+      })),
+  );
 
   protected readonly activeRow = computed(
     () => this.rows().find((row) => row.key === this.active()) ?? null,
