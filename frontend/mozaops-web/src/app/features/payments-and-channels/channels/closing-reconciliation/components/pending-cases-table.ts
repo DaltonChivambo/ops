@@ -118,7 +118,7 @@ export interface CasePatch {
             <!-- Fundo nas células e opaco, e a régua de 3px repetida no cabeçalho —
                  ver a nota igual na app-reconciliation-table. -->
             <thead class="sticky top-0 z-10">
-              <tr class="border-y border-gray-100 text-gray-400">
+              <tr class="border-b border-gray-100 text-gray-400">
                 <th scope="col" [class]="th + ' w-[17rem] py-2.5 pr-3 pl-5 text-left'">
                   POS / Comerciante
                 </th>

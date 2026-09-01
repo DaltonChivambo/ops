@@ -181,7 +181,11 @@ const STRUCK_ROW =
                backdrop-blur, feito para se ver através, e via-se mesmo: as réguas
                de estado e os fundos âmbar das chaves passavam por trás da faixa. -->
           <thead class="sticky top-0 z-10">
-            <tr class="border-y border-gray-100 text-gray-400">
+            <!-- Só border-b. Com border-y havia duas riscas de 1px encostadas — a
+                 de baixo da barra de filtros e a de cima desta linha, da mesma cor
+                 — e duas riscas juntas lêem-se como um sulco entre as duas divs.
+                 As outras tabelas do módulo já eram só border-b. -->
+            <tr class="border-b border-gray-100 text-gray-400">
               <th scope="col" [class]="th + ' w-[17rem] py-2.5 pr-3 pl-5 text-left'">
                 POS / Comerciante
               </th>
