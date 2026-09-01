@@ -65,7 +65,7 @@ function creditedWhen(closingIso: string | undefined, creditIso: string | null):
           <div class="flex flex-wrap items-center gap-2">
             <h2 class="text-lg font-bold text-gray-900 tabular-nums">POS {{ d.posId }}</h2>
             <span
-              class="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-bold"
+              class="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-bold whitespace-nowrap"
               [class]="chip()"
             >
               <span class="size-1.5 rounded-full" [class]="dot()"></span>

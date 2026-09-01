@@ -43,34 +43,35 @@ type TabId = 'cases' | 'closings';
         </div>
       }
 
+      <!-- Controlo segmentado, o mesmo que o filtro de estado da tabela de casos
+           já usa. O sublinhado anterior deixava os separadores inactivos com cara
+           de texto morto: não se percebia que eram para carregar. Aqui a moldura
+           diz que são opções e o fundo branco diz qual está escolhida. -->
       <div
         #tabList
         role="tablist"
         aria-label="Vistas do resultado"
-        class="flex max-w-full items-center gap-7 overflow-x-auto border-b border-gray-200"
+        class="inline-flex max-w-full gap-1 self-start overflow-x-auto rounded-xl border border-gray-100 bg-gray-50 p-1"
       >
         @for (item of tabs(); track item.id) {
           @let active = tab() === item.id;
 
-          <!-- Vermelho só na barra: aponta o separador aberto, o rótulo fica preto. -->
           <button
             type="button"
             role="tab"
             [attr.aria-selected]="active"
             (click)="tab.set(item.id)"
-            class="-mb-px inline-flex shrink-0 items-center gap-2 border-b-2 px-1 py-3 text-sm font-semibold transition-colors"
+            class="inline-flex shrink-0 cursor-pointer items-center gap-2 rounded-lg px-3.5 py-2 text-sm font-semibold transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-moza-400"
             [class]="
               active
-                ? 'border-alert-500 text-gray-900'
-                : 'border-transparent text-gray-400 hover:text-gray-700'
+                ? 'bg-white text-gray-900 shadow-sm'
+                : 'text-gray-500 hover:bg-white/70 hover:text-gray-900'
             "
           >
             {{ item.label }}
-            <!-- Pastilha em vez de número solto: a contagem é do separador, não
-                 uma segunda palavra do rótulo. -->
             <span
-              class="rounded-full px-1.5 py-0.5 text-2xs font-semibold tabular-nums transition-colors"
-              [class]="active ? 'bg-moza-100 text-moza-700' : 'bg-gray-100 text-gray-400'"
+              class="rounded-full px-1.5 py-0.5 text-2xs font-bold tabular-nums transition-colors"
+              [class]="active ? 'bg-moza-100 text-moza-700' : 'bg-gray-200 text-gray-500'"
             >
               {{ item.badge }}
             </span>

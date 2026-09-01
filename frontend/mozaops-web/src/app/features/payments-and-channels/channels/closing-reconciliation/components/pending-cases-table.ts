@@ -71,7 +71,7 @@ export interface CasePatch {
         </p>
       </div>
     } @else {
-      <div class="overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-sm">
+      <div class="@container overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-sm">
         <div class="flex flex-wrap items-center justify-between gap-3 px-4 py-3.5 sm:px-5">
           <div class="inline-flex rounded-xl border border-gray-100 bg-gray-50 p-1">
             @for (filter of statusFilters; track filter.id) {
@@ -111,17 +111,17 @@ export interface CasePatch {
           [appPageFirstScroll]="scrollAnchor()"
           class="relative max-h-[calc(100dvh-12rem)] min-h-[22rem] overflow-auto"
         >
-          <table class="w-full min-w-3xl border-collapse text-sm">
+          <table class="w-full min-w-3xl @4xl:min-w-4xl border-collapse text-sm">
             <thead class="sticky top-0 z-10 bg-gray-50/95 backdrop-blur">
               <tr class="border-y border-gray-100 text-gray-400">
                 <th scope="col" [class]="th + ' w-[17rem] py-2.5 pr-3 pl-5 text-left'">POS / Comerciante</th>
-                <th scope="col" [class]="th + ' px-3 py-2.5 text-right'">Período</th>
+                <th scope="col" [class]="th + ' hidden px-3 py-2.5 text-right @2xl:table-cell'">Período</th>
                 <th scope="col" [class]="th + ' px-3 py-2.5 text-right'">Valor SIMO</th>
                 <th scope="col" [class]="th + ' px-3 py-2.5 text-right'">Valor Banka</th>
                 <th scope="col" [class]="th + ' px-3 py-2.5 text-left'">Tipo</th>
                 <th scope="col" [class]="th + ' px-3 py-2.5 text-left'">e-Ticket</th>
                 <th scope="col" [class]="th + ' px-3 py-2.5 text-left'">Estado</th>
-                <th scope="col" [class]="th + ' px-3 py-2.5 text-left'">Data Reg.</th>
+                <th scope="col" [class]="th + ' hidden px-3 py-2.5 text-left @4xl:table-cell'">Data Reg.</th>
               </tr>
             </thead>
 
@@ -139,7 +139,7 @@ export interface CasePatch {
                       {{ item.merchant }}
                     </div>
                   </td>
-                  <td class="px-3 py-3.5 text-right tabular-nums text-gray-400">
+                  <td class="hidden px-3 py-3.5 text-right tabular-nums text-gray-400 @2xl:table-cell">
                     {{ item.period }}
                   </td>
                   <td class="px-3 py-3.5 text-right">
@@ -150,7 +150,7 @@ export interface CasePatch {
                   </td>
                   <td class="px-3 py-3.5">
                     <span
-                      class="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-bold"
+                      class="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-bold whitespace-nowrap"
                       [class]="chip(item)"
                     >
                       <span class="size-1.5 rounded-full" [class]="dot(item)"></span>
@@ -181,7 +181,7 @@ export interface CasePatch {
                       }
                     </select>
                   </td>
-                  <td class="px-3 py-3.5 tabular-nums text-gray-400">
+                  <td class="hidden px-3 py-3.5 tabular-nums text-gray-400 @4xl:table-cell">
                     {{ item.resolvedAt ? date(item.resolvedAt) : '—' }}
                   </td>
                 </tr>

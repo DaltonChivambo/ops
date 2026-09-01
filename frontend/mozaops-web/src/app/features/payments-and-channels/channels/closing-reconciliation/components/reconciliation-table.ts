@@ -94,7 +94,7 @@ const STRUCK_ROW =
   ],
   template: `
     <!-- Sem overflow-hidden: cortaria o painel do filtro quando a tabela é curta. -->
-    <div class="rounded-2xl border border-gray-100 bg-white shadow-sm">
+    <div class="@container rounded-2xl border border-gray-100 bg-white shadow-sm">
       <div class="flex flex-wrap items-center gap-2.5 px-4 py-3.5 sm:px-5">
         <app-state-filter
           [counts]="counts()"
@@ -150,12 +150,12 @@ const STRUCK_ROW =
         class="relative max-h-[calc(100dvh-12rem)] min-h-[22rem] overflow-auto transition-opacity"
         [class.opacity-50]="loading()"
       >
-        <table class="w-full min-w-3xl border-collapse text-sm">
+        <table class="w-full min-w-2xl border-collapse text-sm">
           <thead class="sticky top-0 z-10 bg-gray-50/95 backdrop-blur">
             <tr class="border-y border-gray-100 text-gray-400">
               <th scope="col" [class]="th + ' w-[17rem] py-2.5 pr-3 pl-5 text-left'">POS / Comerciante</th>
               <th scope="col" [class]="th + ' px-3 py-2.5 text-right'">Período</th>
-              <th scope="col" [class]="th + ' px-3 py-2.5 text-left'">Data Fecho</th>
+              <th scope="col" [class]="th + ' hidden px-3 py-2.5 text-left @5xl:table-cell'">Data Fecho</th>
               <th scope="col" [class]="th + ' px-3 py-2.5 text-right'">Total SIMO</th>
               <th scope="col" [class]="th + ' px-3 py-2.5 text-right'">Total Banka</th>
               <th scope="col" [class]="th + ' px-3 py-2.5 text-right'">Diferença</th>
@@ -187,7 +187,7 @@ const STRUCK_ROW =
                   <td class="px-3 py-3.5 text-right tabular-nums text-gray-400">
                     {{ detail.period }}
                   </td>
-                  <td class="px-3 py-3.5 tabular-nums text-gray-400">
+                  <td class="hidden px-3 py-3.5 tabular-nums text-gray-400 @5xl:table-cell">
                     {{ date(detail.simoClosingDate) }}
                   </td>
                   <td class="px-3 py-3.5 text-right">
@@ -261,7 +261,7 @@ const STRUCK_ROW =
                       </span>
                     </span>
                   </td>
-                  <td class="px-3 py-3.5 text-gray-300">—</td>
+                  <td class="hidden px-3 py-3.5 text-gray-300 @5xl:table-cell">—</td>
                   <td class="px-3 py-3.5 text-right">
                     <app-money [value]="detail.simoKeyTotal" />
                   </td>
@@ -305,7 +305,7 @@ const STRUCK_ROW =
                       <td class="px-3 py-2.5 text-right text-xs tabular-nums text-gray-300">
                         {{ item.period }}
                       </td>
-                      <td class="px-3 py-2.5 tabular-nums text-gray-400">
+                      <td class="hidden px-3 py-2.5 tabular-nums text-gray-400 @5xl:table-cell">
                         {{ date(item.simoClosingDate) }}
                       </td>
                       <td class="px-3 py-2.5 text-right">
@@ -377,14 +377,18 @@ const STRUCK_ROW =
         }
       </div>
 
-      @if (opened(); as detail) {
-        <app-key-detail-panel
-          [executionId]="executionId()"
-          [detail]="detail"
-          (closed)="opened.set(null)"
-        />
-      }
     </div>
+
+    <!-- Fora do cartão de propósito: o cartão é @container, e container-type faz
+         dele bloco de contenção para descendentes fixed. Lá dentro, este painel
+         deixava de se medir pela janela e passava a medir-se pela tabela. -->
+    @if (opened(); as detail) {
+      <app-key-detail-panel
+        [executionId]="executionId()"
+        [detail]="detail"
+        (closed)="opened.set(null)"
+      />
+    }
 
     <!-- O POS ID é um botão focável; um tr não é, e role="button" destruiria a semântica. -->
     <ng-template #identity let-detail>
@@ -407,7 +411,7 @@ const STRUCK_ROW =
 
     <ng-template #stateChip let-detail>
       <span
-        class="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-bold"
+        class="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-bold whitespace-nowrap"
         [class]="chip(detail)"
       >
         <span class="size-1.5 rounded-full" [class]="dot(detail)"></span>
