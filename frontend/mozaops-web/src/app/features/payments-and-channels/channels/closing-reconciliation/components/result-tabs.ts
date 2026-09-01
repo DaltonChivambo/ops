@@ -47,42 +47,42 @@ type TabId = 'cases' | 'closings';
            saíam do ecrã e ficava-se sem forma de trocar de vista sem voltar
            atrás. O appPageFirstScroll já tentava segurá-los, mas só trata da
            roda do rato — num tablet o gesto é toque e passava-lhes ao lado. -->
-      <div
-        class="sticky top-[var(--app-header-h)] z-20 -mx-1 bg-[#f7f6fb] px-1 py-2"
-      >
+      <!-- A referência fica AQUI, no elemento que cola, e não na pastilha lá dentro:
+           é a ele que o appPageFirstScroll pergunta quanto falta para assentar, e
+           só ele sabe onde assenta. -->
+      <div #tabList class="sticky top-[var(--app-header-h)] z-20 -mx-1 bg-[#f7f6fb] px-1 py-2">
         <!-- Controlo segmentado, o mesmo que o filtro de estado da tabela de casos
              já usa. O sublinhado anterior deixava os separadores inactivos com cara
              de texto morto: não se percebia que eram para carregar. Aqui a moldura
              diz que são opções e o fundo branco diz qual está escolhida. -->
         <div
-          #tabList
           role="tablist"
           aria-label="Vistas do resultado"
           class="inline-flex max-w-full gap-1 overflow-x-auto rounded-xl border border-gray-100 bg-gray-50 p-1"
         >
-        @for (item of tabs(); track item.id) {
-          @let active = tab() === item.id;
+          @for (item of tabs(); track item.id) {
+            @let active = tab() === item.id;
 
-          <button
-            type="button"
-            role="tab"
-            [attr.aria-selected]="active"
-            (click)="tab.set(item.id)"
-            class="inline-flex shrink-0 cursor-pointer items-center gap-2 rounded-lg px-3.5 py-2 text-sm font-semibold transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-moza-400"
-            [class]="
-              active
-                ? 'bg-white text-gray-900 shadow-sm'
-                : 'text-gray-500 hover:bg-white/70 hover:text-gray-900'
-            "
-          >
-            {{ item.label }}
-            <span
-              class="rounded-full px-1.5 py-0.5 text-2xs font-bold tabular-nums transition-colors"
-              [class]="active ? 'bg-moza-100 text-moza-700' : 'bg-gray-200 text-gray-500'"
+            <button
+              type="button"
+              role="tab"
+              [attr.aria-selected]="active"
+              (click)="tab.set(item.id)"
+              class="inline-flex shrink-0 cursor-pointer items-center gap-2 rounded-lg px-3.5 py-2 text-sm font-semibold transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-moza-400"
+              [class]="
+                active
+                  ? 'bg-white text-gray-900 shadow-sm'
+                  : 'text-gray-500 hover:bg-white/70 hover:text-gray-900'
+              "
             >
-              {{ item.badge }}
-            </span>
-          </button>
+              {{ item.label }}
+              <span
+                class="rounded-full px-1.5 py-0.5 text-2xs font-bold tabular-nums transition-colors"
+                [class]="active ? 'bg-moza-100 text-moza-700' : 'bg-gray-200 text-gray-500'"
+              >
+                {{ item.badge }}
+              </span>
+            </button>
           }
         </div>
       </div>

@@ -28,17 +28,36 @@ export class PageFirstScrollDirective {
   /** O que tem de encostar ao topo do ecrã antes de a lista começar a correr. */
   readonly anchor = input.required<HTMLElement | undefined>({ alias: 'appPageFirstScroll' });
 
+  /**
+   * Quanto falta à âncora para assentar.
+   *
+   * Uma âncora `sticky` não chega ao topo do ecrã: pára no seu próprio `top`, que
+   * pode nem ser zero — abaixo do lg fica por baixo da barra do menu. Medir a
+   * distância contra zero fazia a conta nunca fechar, e o gesto ficava preso a
+   * empurrar a página uns pixéis de cada vez em vez de correr a lista. Era esta
+   * a razão de o scroll na tabela «às vezes não funcionar».
+   */
+  private pendingDistance(anchor: HTMLElement): number {
+    const style = getComputedStyle(anchor);
+    const restsAt = style.position === 'sticky' ? parseFloat(style.top) || 0 : 0;
+    return anchor.getBoundingClientRect().top - restsAt;
+  }
+
   constructor() {
     const box = inject<ElementRef<HTMLElement>>(ElementRef).nativeElement;
 
     const onWheel = (event: WheelEvent) => {
       const delta = pixelsOf(event);
-      const distanceToTop = this.anchor()?.getBoundingClientRect().top ?? 0;
+      const anchor = this.anchor();
+      const distanceToTop = anchor ? this.pendingDistance(anchor) : 0;
       // Sem isto, chegar ao fim da página com a âncora a 1-2px do topo desviava o
       // gesto para uma página que já não anda, e a lista nunca começava a correr.
       const pageRoom = document.documentElement.scrollHeight - innerHeight - window.scrollY;
 
-      if (delta > 0 && distanceToTop > 0 && pageRoom > 0) {
+      // Margem de 1px: assente, a conta dá zero mas o arredondamento sub-pixel
+      // deixa lá umas décimas, e o gesto ficava a empurrar a página meio pixel de
+      // cada vez sem nunca deixar a lista arrancar.
+      if (delta > 0 && distanceToTop > 1 && pageRoom > 0) {
         event.preventDefault();
         window.scrollBy(0, Math.min(delta, distanceToTop, pageRoom));
         return;
