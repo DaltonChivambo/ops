@@ -72,8 +72,9 @@ export interface CasePatch {
            da lista, e o cabeçalho da tabela tapava-a. Os cantos arredondados
            aguentam-se sozinhos — nenhum filho tem fundo próprio nas pontas. -->
       <div class="@container rounded-2xl border border-gray-100 bg-white shadow-sm">
+        <!-- z-20 acima do cabeçalho da tabela — ver a nota na app-reconciliation-table. -->
         <div
-          class="sticky top-[calc(var(--app-header-h)+var(--tabs-h))] z-10 rounded-t-2xl border-b border-gray-100 bg-white flex flex-wrap items-center justify-between gap-3 px-4 py-3.5 sm:px-5"
+          class="sticky top-[calc(var(--app-header-h)+var(--tabs-h))] z-20 rounded-t-2xl border-b border-gray-100 bg-white flex flex-wrap items-center justify-between gap-3 px-4 py-3.5 sm:px-5"
         >
           <div class="inline-flex rounded-xl border border-gray-100 bg-gray-50 p-1">
             @for (filter of statusFilters; track filter.id) {

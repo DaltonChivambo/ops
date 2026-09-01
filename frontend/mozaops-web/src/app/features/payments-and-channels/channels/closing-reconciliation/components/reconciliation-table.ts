@@ -96,9 +96,19 @@ const STRUCK_ROW =
     <!-- Sem overflow-hidden: cortaria o painel do filtro quando a tabela é curta. -->
     <div class="@container rounded-2xl border border-gray-100 bg-white shadow-sm">
       <!-- Cola por baixo dos separadores: o filtro e a pesquisa são o que mais se
-           mexe enquanto se percorre a lista, e saíam do ecrã logo à primeira. -->
+           mexe enquanto se percorre a lista, e saíam do ecrã logo à primeira.
+
+           z-20 e não z-10: a barra cria contexto de empilhamento, portanto tudo o
+           que está dentro dela — o painel do filtro incluído — fica travado neste
+           nível, por muito alto que lá dentro se peça. Empatada a 10 com o
+           cabeçalho da tabela, decidia a ordem no DOM e o cabeçalho ganhava: a
+           linha «Todos os estados» do painel ficava tapada por ele, e com ela a
+           única forma de marcar ou desmarcar tudo de uma vez.
+
+           Não colide com os separadores, que também são z-20: a barra cola-se
+           exactamente onde eles acabam (--tabs-h), nunca chegam a sobrepor-se. -->
       <div
-        class="sticky top-[calc(var(--app-header-h)+var(--tabs-h))] z-10 rounded-t-2xl border-b border-gray-100 bg-white flex flex-wrap items-center gap-2.5 px-4 py-3.5 sm:px-5"
+        class="sticky top-[calc(var(--app-header-h)+var(--tabs-h))] z-20 rounded-t-2xl border-b border-gray-100 bg-white flex flex-wrap items-center gap-2.5 px-4 py-3.5 sm:px-5"
       >
         <app-state-filter
           [counts]="counts()"

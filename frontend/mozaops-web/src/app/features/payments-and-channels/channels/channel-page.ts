@@ -29,9 +29,6 @@ import { HeaderComponent } from '../../../layout/header';
       } @else if (mod.features.length === 0) {
         <div class="rounded-lg border border-moza-200 bg-white p-8 text-center">
           <p class="font-medium text-moza-800">Este módulo ainda não foi construído.</p>
-          <p class="mt-1 text-sm text-moza-500">
-            Só está aqui o que existe — prometer o que não há gasta a confiança de quem usa.
-          </p>
         </div>
       } @else {
         <div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
