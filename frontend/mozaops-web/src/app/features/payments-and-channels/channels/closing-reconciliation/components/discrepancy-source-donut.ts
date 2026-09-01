@@ -1,7 +1,7 @@
 import { ChangeDetectionStrategy, Component, computed, input, signal } from '@angular/core';
 
 import { numberFormatter } from '../../../../../shared/format';
-import { CardComponent } from '../../../../../shared/ui/card';
+import { CollapsibleCardComponent } from '../../../../../shared/ui/collapsible-card';
 import type { ClosingSummary } from '../data/models';
 
 /**
@@ -45,21 +45,13 @@ interface Arc extends Segment {
 @Component({
   selector: 'app-discrepancy-source-donut',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [CardComponent],
-  // O anfitrião estica na grelha (os itens de grid esticam por omissão), mas o
-  // section lá dentro ficava na altura do conteúdo — era isso que deixava este
-  // cartão e o dos montantes com alturas diferentes.
-  host: { class: 'block h-full' },
+  imports: [CollapsibleCardComponent],
   template: `
-    <!-- @container: o que decide aqui é a largura DESTE cartão, não a da janela.
-         Ele tanto vive numa coluna estreita ao lado dos montantes como ocupa a
-         linha toda quando empilham — e o segundo caso depende da barra lateral,
-         que um media query não vê. -->
-    <section appCard class="@container flex h-full flex-col gap-4">
-      <h2 class="text-lg font-bold">Fechos por Tratar</h2>
-
+    <app-collapsible-card title="Fechos por Tratar" storageKey="fechos-por-tratar">
       <!-- Cartão estreito: anel e legenda empilham. Cartão largo: lado a lado,
-           senão o anel sozinho ao meio deixava-o um caixote vazio. -->
+           senão o anel sozinho ao meio deixava-o um caixote vazio. O que decide
+           é a largura do cartão, não a da janela — o @container está no
+           app-collapsible-card. -->
       <div
         class="flex flex-1 flex-col items-center justify-center gap-6 @md:flex-row @md:gap-10"
       >
@@ -173,7 +165,7 @@ interface Arc extends Segment {
           }
         </ul>
       </div>
-    </section>
+    </app-collapsible-card>
   `,
 })
 export class DiscrepancySourceDonutComponent {

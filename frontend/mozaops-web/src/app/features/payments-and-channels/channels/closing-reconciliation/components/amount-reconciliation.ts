@@ -6,7 +6,7 @@ import {
   formatSignedAmount,
   numberFormatter,
 } from '../../../../../shared/format';
-import { CardComponent } from '../../../../../shared/ui/card';
+import { CollapsibleCardComponent } from '../../../../../shared/ui/collapsible-card';
 import type { ClosingSummary } from '../data/models';
 
 interface Row {
@@ -23,14 +23,13 @@ interface Row {
 @Component({
   selector: 'app-amount-reconciliation',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [CardComponent],
-  host: { class: 'block h-full' },
+  imports: [CollapsibleCardComponent],
   template: `
-    <section appCard class="flex h-full flex-col gap-5">
-      <div class="flex flex-wrap items-baseline justify-between gap-2">
-        <h2 class="text-lg font-bold">Reconciliação de Montantes</h2>
-        <p class="text-xs text-gray-400">Apurado na SIMO vs creditado no Banka · MZN</p>
-      </div>
+    <app-collapsible-card
+      title="Reconciliação de Montantes"
+      storageKey="reconciliacao-montantes"
+    >
+      <p cardAside class="text-xs text-gray-400">Apurado na SIMO vs creditado no Banka · MZN</p>
 
       <div class="flex flex-col gap-2">
         <!-- Largura mínima: divergências são fracções de ponto percentual, senão a
@@ -134,7 +133,7 @@ interface Row {
           </tbody>
         </table>
       </div>
-    </section>
+    </app-collapsible-card>
   `,
 })
 export class AmountReconciliationComponent {
