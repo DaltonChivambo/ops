@@ -105,14 +105,20 @@ type TabId = 'cases' | 'closings';
              «Topo da página» e não «Voltar ao topo»: o rodapé da tabela já tem um
              com esse nome, e faz outra coisa — rola a lista por dentro, sem mexer
              na página. Dois botões com o mesmo rótulo e destinos diferentes era
-             pior do que não ter nenhum. -->
+             pior do que não ter nenhum.
+
+             Cheio e no corpo dos separadores, não uma moldura discreta: branco
+             com borda cinzenta clara sobre um fundo #f7f6fb quase não se via, e a
+             text-xs ficava mais pequeno do que as pastilhas ao lado, com ar de
+             acessório. Aparece raramente e só quando faz falta — nessa altura tem
+             de se dar a ver, não de se esconder. -->
         @if (stuck()) {
           <button
             type="button"
             (click)="scrollPageToTop()"
-            class="ml-auto inline-flex shrink-0 cursor-pointer items-center gap-1.5 rounded-xl border border-gray-200 bg-white px-3 py-2 text-xs font-semibold text-gray-500 shadow-sm transition-colors hover:bg-gray-50 hover:text-gray-900 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-moza-400"
+            class="ml-auto inline-flex shrink-0 cursor-pointer items-center gap-2 rounded-xl bg-moza-700 px-3.5 py-2 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-moza-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-moza-400"
           >
-            <svg lucideArrowUp [size]="14" [strokeWidth]="2.2" class="shrink-0"></svg>
+            <svg lucideArrowUp [size]="15" [strokeWidth]="2.2" class="shrink-0"></svg>
             <span class="hidden sm:inline">Topo da página</span>
             <span class="sr-only sm:hidden">Topo da página</span>
           </button>
