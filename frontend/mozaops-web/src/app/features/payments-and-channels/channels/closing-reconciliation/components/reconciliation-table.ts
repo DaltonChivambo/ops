@@ -95,7 +95,11 @@ const STRUCK_ROW =
   template: `
     <!-- Sem overflow-hidden: cortaria o painel do filtro quando a tabela é curta. -->
     <div class="@container rounded-2xl border border-gray-100 bg-white shadow-sm">
-      <div class="flex flex-wrap items-center gap-2.5 px-4 py-3.5 sm:px-5">
+      <!-- Cola por baixo dos separadores: o filtro e a pesquisa são o que mais se
+           mexe enquanto se percorre a lista, e saíam do ecrã logo à primeira. -->
+      <div
+        class="sticky top-[calc(var(--app-header-h)+var(--tabs-h))] z-10 rounded-t-2xl border-b border-gray-100 bg-white flex flex-wrap items-center gap-2.5 px-4 py-3.5 sm:px-5"
+      >
         <app-state-filter
           [counts]="counts()"
           [selected]="selected()"

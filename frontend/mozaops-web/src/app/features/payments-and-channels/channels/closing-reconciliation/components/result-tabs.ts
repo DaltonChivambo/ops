@@ -43,16 +43,23 @@ type TabId = 'cases' | 'closings';
         </div>
       }
 
-      <!-- Controlo segmentado, o mesmo que o filtro de estado da tabela de casos
-           já usa. O sublinhado anterior deixava os separadores inactivos com cara
-           de texto morto: não se percebia que eram para carregar. Aqui a moldura
-           diz que são opções e o fundo branco diz qual está escolhida. -->
+      <!-- Colado ao topo enquanto se percorre a lista: sem isto os separadores
+           saíam do ecrã e ficava-se sem forma de trocar de vista sem voltar
+           atrás. O appPageFirstScroll já tentava segurá-los, mas só trata da
+           roda do rato — num tablet o gesto é toque e passava-lhes ao lado. -->
       <div
-        #tabList
-        role="tablist"
-        aria-label="Vistas do resultado"
-        class="inline-flex max-w-full gap-1 self-start overflow-x-auto rounded-xl border border-gray-100 bg-gray-50 p-1"
+        class="sticky top-[var(--app-header-h)] z-20 -mx-1 bg-[#f7f6fb] px-1 py-2"
       >
+        <!-- Controlo segmentado, o mesmo que o filtro de estado da tabela de casos
+             já usa. O sublinhado anterior deixava os separadores inactivos com cara
+             de texto morto: não se percebia que eram para carregar. Aqui a moldura
+             diz que são opções e o fundo branco diz qual está escolhida. -->
+        <div
+          #tabList
+          role="tablist"
+          aria-label="Vistas do resultado"
+          class="inline-flex max-w-full gap-1 overflow-x-auto rounded-xl border border-gray-100 bg-gray-50 p-1"
+        >
         @for (item of tabs(); track item.id) {
           @let active = tab() === item.id;
 
@@ -76,7 +83,8 @@ type TabId = 'cases' | 'closings';
               {{ item.badge }}
             </span>
           </button>
-        }
+          }
+        </div>
       </div>
 
       @if (tab() === 'cases') {

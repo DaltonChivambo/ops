@@ -82,6 +82,24 @@ body {
   height: 100%;
 }
 
+/* Alturas dos elementos que ficam fixos ao topo, num sítio só.
+ *
+ * Os separadores e a barra de filtros da tabela colam-se ao topo enquanto se
+ * trabalha na lista — sem isto saíam do ecrã e perdia-se o acesso a eles. Como
+ * se empilham, cada um precisa de saber a altura do que está por cima, e essas
+ * alturas mudam com o ecrã: a barra de topo com o menu só existe abaixo do lg.
+ */
+:root {
+  --app-header-h: 0px;
+  --tabs-h: 3.75rem;
+}
+
+@media (max-width: 1023.98px) {
+  :root {
+    --app-header-h: 3.5rem;
+  }
+}
+
 /* Scrollbar fina para áreas de navegação estreitas — o scrollbar nativo do
    Windows/Chrome (~17px) dominava visualmente a barra lateral de 264px. */
 .thin-scrollbar {
