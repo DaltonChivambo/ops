@@ -5,6 +5,7 @@ import {
   formatMzn,
   formatSignedAmount,
   numberFormatter,
+  percentageShares,
 } from '../../../../../shared/format';
 import { CollapsibleCardComponent } from '../../../../../shared/ui/collapsible-card';
 import { StackedBarComponent, type BarSegment } from '../../../../../shared/ui/stacked-bar';
@@ -196,13 +197,21 @@ export class AmountReconciliationComponent {
     this.rows().reduce((total, row) => total + row.banka, 0),
   );
 
-  /** Quota deste estado no total apurado na SIMO — é o que a barra desenha. */
+  /**
+   * Quota de cada estado no total apurado na SIMO — o que a barra desenha.
+   *
+   * Calculadas todas de uma vez, e não uma a uma: arredondadas isoladamente não
+   * fechariam 100%. Aqui só se mostra uma de cada vez, na legenda por baixo da
+   * barra, mas quem soma os quatro segmentos com os olhos tem de chegar ao todo.
+   */
+  private readonly sharesByKey = computed(() => {
+    const rows = this.rows();
+    const shares = percentageShares(rows.map((row) => row.simo));
+    return new Map(rows.map((row, index) => [row.key, shares[index]]));
+  });
+
   protected share(row: Row): string {
-    const percent = this.widthOf(row);
-    return `${percent.toLocaleString('pt-PT', {
-      minimumFractionDigits: percent < 10 ? 1 : 0,
-      maximumFractionDigits: percent < 10 ? 1 : 0,
-    })}%`;
+    return this.sharesByKey().get(row.key) ?? '0%';
   }
 
   protected widthOf(row: Row): number {

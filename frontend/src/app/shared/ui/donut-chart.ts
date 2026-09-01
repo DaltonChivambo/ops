@@ -1,6 +1,6 @@
 import { ChangeDetectionStrategy, Component, computed, input, signal } from '@angular/core';
 
-import { numberFormatter } from '../format';
+import { numberFormatter, percentageShares } from '../format';
 
 /**
  * Geometria do anel. Traço fino de propósito: quase 90% deste anel é uma cor só,
@@ -18,19 +18,6 @@ const GAP = (4 / 360) * CIRCUMFERENCE;
 /** Uma fatia de 0,7% não pode desaparecer: abaixo disto lê-se como um traço. */
 const MIN_DASH = 3;
 
-interface Segment {
-  readonly name: string;
-  readonly short: string;
-  readonly count: number;
-  readonly color: string;
-}
-
-interface Arc extends Segment {
-  readonly dash: number;
-  readonly offset: number;
-  readonly share: number;
-}
-
 /** Uma fatia do anel: o rótulo por extenso, o curto para o centro, e a contagem. */
 export interface DonutSlice {
   /** Nome por extenso, para a legenda. */
@@ -45,7 +32,8 @@ export interface DonutSlice {
 interface Arc extends DonutSlice {
   readonly dash: number;
   readonly offset: number;
-  readonly share: number;
+  /** Já formatada, e calculada com as outras: sozinha não fecharia 100%. */
+  readonly share: string;
 }
 
 /**
@@ -131,7 +119,7 @@ interface Arc extends DonutSlice {
               class="mt-1.5 rounded-full px-2 py-0.5 text-2xs font-bold tabular-nums text-white"
               [style.backgroundColor]="focus.color"
             >
-              {{ share(focus.share) }}
+              {{ focus.share }}
             </span>
             <span class="mt-1 text-2xs leading-tight text-gray-500">{{ focus.short }}</span>
           } @else {
@@ -164,7 +152,7 @@ interface Arc extends DonutSlice {
                 {{ arc.name }}
               </span>
               <span class="shrink-0 text-2xs tabular-nums text-gray-400">
-                {{ share(arc.share) }}
+                {{ arc.share }}
               </span>
               <span class="w-10 shrink-0 text-right font-semibold tabular-nums">
                 {{ count(arc.count) }}
@@ -210,15 +198,17 @@ export class DonutChartComponent {
     // Uma fatia sozinha não tem vizinha de quem se separar: sem isto ficava com
     // um golpe de 3° a meio de um anel que devia ser contínuo.
     const gap = segments.length > 1 ? GAP : 0;
+    // Em conjunto, porque a soma tem de fechar — ver percentageShares.
+    const shares = percentageShares(segments.map((segment) => segment.count));
 
     let cursor = 0;
-    return segments.map((segment) => {
+    return segments.map((segment, index) => {
       const arcLength = (segment.count / total) * CIRCUMFERENCE;
       // A ponta redonda acrescenta metade da espessura de cada lado.
       const dash = Math.max(arcLength - gap - STROKE, MIN_DASH);
       const offset = -(cursor + gap / 2 + STROKE / 2);
       cursor += arcLength;
-      return { ...segment, dash, offset, share: segment.count / total };
+      return { ...segment, dash, offset, share: shares[index] };
     });
   });
 
@@ -228,20 +218,9 @@ export class DonutChartComponent {
 
   /** O anel é uma imagem para quem não o vê; o texto tem de valer por ele. */
   protected readonly ariaSummary = computed(() => {
-    const parts = this.arcs().map(
-      (arc) => `${arc.name}: ${this.count(arc.count)} (${this.share(arc.share)})`,
-    );
+    const parts = this.arcs().map((arc) => `${arc.name}: ${this.count(arc.count)} (${arc.share})`);
     return `${this.ariaPrefix()}, ${this.count(this.total())} no total. ${parts.join('. ')}.`;
   });
 
   protected count = (value: number) => numberFormatter.format(value);
-
-  /** Sem casas decimais até 10%, uma abaixo disso: "1" e "0,7" dizem coisas diferentes. */
-  protected share(value: number): string {
-    const percent = value * 100;
-    return `${percent.toLocaleString('pt-PT', {
-      minimumFractionDigits: percent < 10 ? 1 : 0,
-      maximumFractionDigits: percent < 10 ? 1 : 0,
-    })}%`;
-  }
 }
