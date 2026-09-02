@@ -5,7 +5,7 @@ requires-python = ">=3.12"
 [manifest]
 members = [
     "mozaops-backend",
-    "mozaops-closing-reconciliation",
+    "mozaops-closing-credit-validation",
     "mozaops-libs",
 ]
 
@@ -400,9 +400,9 @@ version = "0.0.0"
 source = { virtual = "." }
 
 [[package]]
-name = "mozaops-closing-reconciliation"
+name = "mozaops-closing-credit-validation"
 version = "0.0.0"
-source = { editable = "services/closing-reconciliation" }
+source = { editable = "services/reconciliation/closing-credit-validation" }
 dependencies = [
     { name = "alembic" },
     { name = "asyncpg" },

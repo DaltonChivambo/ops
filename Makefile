@@ -14,12 +14,13 @@ up:  ## Sobe a infraestrutura e os serviços
 	$(COMPOSE) up -d --build
 
 migrate:  ## Aplica as migrações Alembic de cada serviço
-	$(COMPOSE) run --rm closing-reconciliation alembic upgrade head
+	$(COMPOSE) run --rm closing-credit-validation alembic upgrade head
 
 test:  ## Testes do backend (estágio `test` da imagem — a de execução não traz pytest)
-	docker build --target test --build-arg SERVICE=closing-reconciliation \
-		-t mozaops-closing-reconciliation:test ./backend
-	docker run --rm mozaops-closing-reconciliation:test
+	docker build --target test \
+		--build-arg CATEGORY=reconciliation --build-arg SERVICE=closing-credit-validation \
+		-t mozaops-closing-credit-validation:test ./backend
+	docker run --rm mozaops-closing-credit-validation:test
 
 down:  ## Pára tudo, mantendo os dados
 	$(COMPOSE) down

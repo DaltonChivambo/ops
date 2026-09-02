@@ -41,15 +41,16 @@ services:
   # ─── Serviços de negócio ──────────────────────────────────────────────────
   # Validação de crédito de valores de fecho — POS hoje, ATM e Quiosques a
   # seguir (é a mesma automação, muda o ficheiro de entrada).
-  closing-reconciliation:
+  closing-credit-validation:
     build:
       # Contexto em `backend/` e não na pasta do serviço: o workspace uv resolve
       # `libs/` por caminho, e um contexto mais estreito não lá chegava.
       context: ./backend
       args:
-        SERVICE: closing-reconciliation
-    image: mozaops-closing-reconciliation
-    container_name: mozaops-closing-reconciliation
+        CATEGORY: reconciliation
+        SERVICE: closing-credit-validation
+    image: mozaops-closing-credit-validation
+    container_name: mozaops-closing-credit-validation
     restart: unless-stopped
     environment:
       DATABASE_URL: postgresql+asyncpg://${DB_RECONCILIATION_USER}:${DB_RECONCILIATION_PASSWORD}@postgres:5432/mozaops_closing_reconciliation
@@ -65,11 +66,11 @@ services:
       # da API, não parte do caminho. O stripprefix faz aqui o que o
       # `pathRewrite` do proxy.conf.json faz em dev — mesma topologia dos dois
       # lados, que é o ponto de haver um proxy à frente.
-      - traefik.http.routers.closing-reconciliation.rule=Host(`${DOMAIN}`) && PathPrefix(`/api/pos/validacao-credito-fecho`)
-      - traefik.http.routers.closing-reconciliation.entrypoints=web
+      - traefik.http.routers.closing-credit-validation.rule=Host(`${DOMAIN}`) && PathPrefix(`/api/pos/validacao-credito-fecho`)
+      - traefik.http.routers.closing-credit-validation.entrypoints=web
       - traefik.http.middlewares.api-strip.stripprefix.prefixes=/api
-      - traefik.http.routers.closing-reconciliation.middlewares=api-strip
-      - traefik.http.services.closing-reconciliation.loadbalancer.server.port=8000
+      - traefik.http.routers.closing-credit-validation.middlewares=api-strip
+      - traefik.http.services.closing-credit-validation.loadbalancer.server.port=8000
 
   # ─── Base de dados ────────────────────────────────────────────────────────
   # Um servidor, uma base e um role por serviço, com as ligações cruzadas

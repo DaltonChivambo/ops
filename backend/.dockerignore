@@ -16,4 +16,8 @@
 .dockerignore
 Dockerfile
 **/CHANGELOG.md
-**/tests
+
+# `tests/` NAO entra aqui: o estagio `test` da imagem precisa deles, e o
+# .dockerignore vale para o contexto inteiro — excluí-los aqui deixava o
+# `make test` a construir uma imagem sem testes e a nao correr nenhum.
+# Quem os tira da imagem de execucao e o proprio Dockerfile, no estagio runtime.

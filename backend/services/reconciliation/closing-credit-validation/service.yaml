@@ -1,0 +1,32 @@
+# Contrato do serviço, legível por máquina. Alimenta o OWNERS.md.
+#
+# `departments` é METADADO, não estrutura de pastas: os departamentos mudam mais
+# depressa que o código, e a mesma automação serve mais do que um. A pasta diz a
+# CATEGORIA do processo (reconciliação), que muda devagar; quem se organiza por
+# departamento é o frontend, porque é a navegação que o operador vê.
+name: closing-credit-validation
+category: reconciliation
+context: Validação de crédito de valores de fecho
+port: 8001
+departments: [Meios de Pagamentos e Canais]
+channels: [POS]
+routes: [/api/pos/validacao-credito-fecho]
+
+# ─── Quem responde por isto ──────────────────────────────────────────────────
+# `owner` é quem decide e a quem se pergunta; os outros dois registam quem fez o
+# trabalho. São listas porque uma equipa cresce — hoje é uma pessoa só.
+owner: Dalton Chivambo
+developed_by: [Dalton Chivambo]
+requirements_by: [Dalton Chivambo]
+
+# ─── Infraestrutura ──────────────────────────────────────────────────────────
+# A base e o role ainda dizem `closing_reconciliation`, o nome antigo do serviço.
+# Não é descuido: renomeá-los obrigaria a migrar a base que já tem as execuções
+# reais (18 138 fechos) e a editar o `.env` de quem já corre isto. O nome do
+# serviço mudou; o do armazenamento fica até haver uma janela para o migrar.
+#   ALTER DATABASE mozaops_closing_reconciliation
+#     RENAME TO mozaops_closing_credit_validation;
+database: mozaops_closing_reconciliation
+role: closing_reconciliation
+# Mesmo motivo: o clientId está no realm importado e o segredo no `.env`.
+keycloak_client: closing-reconciliation

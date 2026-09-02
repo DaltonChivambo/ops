@@ -10,7 +10,7 @@ services:
   # O `ng serve` corre no host (4200) e encaminha `/api/**` para aqui, segundo o
   # `proxy.conf.json` — por isso a porta tem de estar publicada. Em produção não
   # está: quem entra é o Traefik, pela rede interna.
-  closing-reconciliation:
+  closing-credit-validation:
     ports:
       - "127.0.0.1:8001:8000"
 

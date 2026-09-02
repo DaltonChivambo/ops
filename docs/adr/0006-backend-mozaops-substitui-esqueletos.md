@@ -103,3 +103,16 @@ acima está com o caminho actual.
 O nome `mozaops-web` não desapareceu — continua a ser o do projecto no
 `angular.json`, o do pacote npm, o da imagem Docker e o do `clientId` no realm
 do Keycloak. O que mudou foi só a pasta.
+
+## Nota sobre o nome e a pasta do serviço
+
+O serviço chamava-se `closing-reconciliation` e vivia em `backend/services/`,
+sem categoria. Em 2026-09-02 passou a `closing-credit-validation`, que é como a
+automação se chama de facto e o que a rota do frontend já dizia, e desceu para
+`backend/services/reconciliation/` — os serviços agrupam-se por categoria de
+processo, que é o que muda devagar. Ver o
+[README dos serviços](../../backend/services/README.md).
+
+A base de dados, o role e o cliente Keycloak mantêm o nome antigo: renomeá-los
+obrigava a migrar a base com execuções reais e a editar o `.env` de quem já
+corre isto. Os dois nomes estão registados no `service.yaml` do serviço.

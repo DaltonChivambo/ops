@@ -6,7 +6,8 @@ requires-python = ">=3.12"
 dependencies = []
 
 [tool.uv.workspace]
-members = ["libs", "services/*"]
+# Dois niveis: os servicos agrupam-se por categoria (services/<categoria>/<servico>).
+members = ["libs", "services/*/*"]
 
 [tool.uv]
 # `mozaops-libs` é resolvido a partir do workspace e não do índice público.

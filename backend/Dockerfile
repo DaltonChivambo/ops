@@ -18,9 +18,13 @@
 # pastas dos serviços seriam duplicação a ter de andar sincronizada. O que
 # muda entre eles é o nome; passa em `--build-arg`.
 #
-#   docker build --build-arg SERVICE=closing-reconciliation -t mozaops-closing backend
-#   docker build --build-arg SERVICE=cases                  -t mozaops-cases   backend
+#   docker build --build-arg CATEGORY=reconciliation \
+#                --build-arg SERVICE=closing-credit-validation -t mozaops-ccv backend
+#
+# Dois argumentos porque os servicos vivem em services/<categoria>/<servico>:
+# CATEGORY so entra no caminho, SERVICE entra tambem no nome do pacote.
 
+ARG CATEGORY
 ARG SERVICE
 
 # ─── Dependências ─────────────────────────────────────────────────────────────
@@ -32,6 +36,7 @@ ARG SERVICE
 FROM ghcr.io/astral-sh/uv:0.12.1 AS uv
 
 FROM python:3.12-slim AS build
+ARG CATEGORY
 ARG SERVICE
 
 COPY --from=uv /uv /usr/local/bin/uv
@@ -50,11 +55,11 @@ WORKDIR /app
 # workspace, que é o que permite esta separação em dois passos.
 COPY pyproject.toml uv.lock ./
 COPY libs/ libs/
-COPY services/${SERVICE}/pyproject.toml services/${SERVICE}/
+COPY services/${CATEGORY}/${SERVICE}/pyproject.toml services/${CATEGORY}/${SERVICE}/
 RUN uv sync --locked --no-dev --no-install-workspace --package mozaops-${SERVICE}
 
 # Agora o código, e o segundo sync só instala os pacotes do workspace.
-COPY services/${SERVICE}/ services/${SERVICE}/
+COPY services/${CATEGORY}/${SERVICE}/ services/${CATEGORY}/${SERVICE}/
 RUN uv sync --locked --no-dev --package mozaops-${SERVICE}
 
 # ─── Testes ───────────────────────────────────────────────────────────────────
@@ -62,11 +67,12 @@ RUN uv sync --locked --no-dev --package mozaops-${SERVICE}
 # no que vai para produção. Não é alcançado por um build normal — só com
 # `--target test`, que é o que o `make test` faz.
 FROM build AS test
+ARG CATEGORY
 ARG SERVICE
 RUN uv sync --locked --package mozaops-${SERVICE}
 # O PATH do .venv só é posto no estágio de execução; aqui é preciso repeti-lo.
 ENV PATH="/app/.venv/bin:$PATH"
-WORKDIR /app/services/${SERVICE}
+WORKDIR /app/services/${CATEGORY}/${SERVICE}
 CMD ["pytest", "-q"]
 
 # ─── Execução ─────────────────────────────────────────────────────────────────
@@ -74,6 +80,7 @@ CMD ["pytest", "-q"]
 # resolvido. `--locked` acima garante que o build falha se o lock estiver
 # desactualizado, em vez de resolver versões diferentes das que foram testadas.
 FROM python:3.12-slim AS runtime
+ARG CATEGORY
 ARG SERVICE
 
 # Não-root. Um uid fixo e não o que a distribuição decidir: quando houver
@@ -83,6 +90,10 @@ RUN useradd --system --uid 1001 --user-group --no-create-home app
 WORKDIR /app
 COPY --from=build --chown=app:app /app /app
 
+# Os testes vem no contexto para o estagio `test` os poder correr; a imagem de
+# execucao nao os leva.
+RUN find /app/services -type d -name tests -prune -exec rm -rf {} +
+
 # O .venv à frente do PATH dispensa `uv run` em produção — o `gunicorn` e o
 # `alembic` do ambiente são os que se invocam, sem camada nenhuma pelo meio.
 ENV PATH="/app/.venv/bin:$PATH" \
@@ -90,7 +101,7 @@ ENV PATH="/app/.venv/bin:$PATH" \
     PYTHONDONTWRITEBYTECODE=1
 
 # É daqui que `app.main:app` e `alembic.ini` são caminhos relativos válidos.
-WORKDIR /app/services/${SERVICE}
+WORKDIR /app/services/${CATEGORY}/${SERVICE}
 
 USER app
 EXPOSE 8000

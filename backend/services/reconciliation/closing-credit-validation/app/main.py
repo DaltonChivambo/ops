@@ -1,4 +1,4 @@
-"""Entrada do serviço `closing-reconciliation`.
+"""Entrada do serviço `closing-credit-validation`.
 
 Sem Keycloak e sem CORS por agora — ver a nota de âmbito no plano desta
 funcionalidade. Todas as rotas ficam abertas; fechar isto é trabalho do M6+.
@@ -11,9 +11,9 @@ from fastapi.responses import JSONResponse
 from .errors import ApiError
 from .routes import router
 
-logger = logging.getLogger("closing_reconciliation")
+logger = logging.getLogger("closing_credit_validation")
 
-app = FastAPI(title="MozaOps — closing-reconciliation")
+app = FastAPI(title="MozaOps — closing-credit-validation")
 
 app.include_router(router)
 

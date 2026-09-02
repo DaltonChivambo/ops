@@ -22,7 +22,7 @@ de pé mas **ainda não ligado**. Tudo em Docker Compose.
 
 | | |
 |---|---|
-| `closing-reconciliation` (POS) | construído — parse, reconciliação, persistência e relatório |
+| `reconciliation/closing-credit-validation` (POS) | construído — parse, reconciliação, persistência e relatório |
 | Autenticação | **por ligar**: as rotas estão abertas e o frontend corre com sessão de desenvolvimento |
 | Canais ATM e Quiosques | por fazer (é a mesma automação, muda o ficheiro de entrada) |
 | Serviço `cases` | por fazer |

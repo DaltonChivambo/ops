@@ -20,7 +20,7 @@ flowchart LR
     B["Browser<br/>Angular 22 SPA"] -- "HTTP" --> TR["Traefik<br/>entrada única"]
 
     TR -- "/" --> FE["mozaops-web<br/>(nginx)"]
-    TR -- "/api/pos/validacao-credito-fecho<br/>(stripprefix /api)" --> CR["closing-reconciliation<br/>FastAPI"]
+    TR -- "/api/pos/validacao-credito-fecho<br/>(stripprefix /api)" --> CR["closing-credit-validation<br/>FastAPI"]
     TR -- "sso.*" --> KC["Keycloak"]
 
     CR --> PG[("PostgreSQL<br/>1 base + 1 role por serviço")]
@@ -60,7 +60,7 @@ automação serve mais do que um.
 
 | Serviço | Responsabilidade | Estado |
 |---|---|---|
-| `closing-reconciliation` | Validação de crédito de valores de fecho: parse dos ficheiros, reconciliação, persistência e relatório | **construído** (POS) |
+| `reconciliation/closing-credit-validation` | Validação de crédito de valores de fecho: parse dos ficheiros, reconciliação, persistência e relatório | **construído** (POS) |
 | `cases` | Gestão dos casos de divergência, quando deixar de ser suficiente vivê-los dentro da reconciliação | por fazer |
 
 A mesma automação serve os três canais — POS, ATM e Quiosques. Muda o ficheiro de entrada,
@@ -77,7 +77,7 @@ Regra base, num só sentido: **`routes → service → repository → models`**.
 toca na base de dados; o repositório nunca decide regra de negócio.
 
 ```
-backend/services/closing-reconciliation/
+backend/services/reconciliation/closing-credit-validation/
 ├── app/
 │   ├── main.py            app FastAPI, /health e os handlers de erro
 │   ├── routes.py          HTTP — valida o pedido e chama o service
@@ -117,7 +117,7 @@ ops/
 │   ├── Dockerfile             um para todos os serviços, via --build-arg SERVICE
 │   ├── libs/                  mozaops_libs — vazio até ao 2.º consumidor
 │   └── services/
-│       └── closing-reconciliation/
+│       └── reconciliation/closing-credit-validation/
 ├── frontend/                 SPA Angular (features por departamento → ilha)
 ├── infra/
 │   ├── postgres/initdb/       cria base + role por serviço, com REVOKE cruzado

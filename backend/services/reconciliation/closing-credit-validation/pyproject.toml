@@ -1,5 +1,5 @@
 [project]
-name = "mozaops-closing-reconciliation"
+name = "mozaops-closing-credit-validation"
 version = "0.0.0"
 description = "Validação de crédito de fechos (POS, depois ATM/Quiosques): parse, reconciliação, persistência e relatório."
 requires-python = ">=3.12"

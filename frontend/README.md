@@ -82,7 +82,7 @@ Com o backend de pé (`make up` na raiz do monorepo), o `ng serve` reencaminha:
 
 | Prefixo | Destino | |
 |---|---|---|
-| `/api/pos/validacao-credito-fecho` | `localhost:8001` | serviço `closing-reconciliation` |
+| `/api/pos/validacao-credito-fecho` | `localhost:8001` | serviço `closing-credit-validation` |
 
 O browser fala só com o `localhost:4200`, tal como em produção fala só com o
 Traefik. O `pathRewrite` do proxy faz aqui o que o middleware `stripprefix` faz

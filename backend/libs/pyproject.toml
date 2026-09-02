@@ -1,7 +1,7 @@
 [project]
 name = "mozaops-libs"
 version = "0.0.0"
-description = "Utilitários técnicos partilhados entre serviços — vazio até ao segundo consumidor de closing-reconciliation."
+description = "Utilitários técnicos partilhados entre serviços — vazio até ao segundo consumidor de closing-credit-validation."
 requires-python = ">=3.12"
 dependencies = []
 

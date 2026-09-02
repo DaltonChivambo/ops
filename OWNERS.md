@@ -9,7 +9,7 @@ navegação que o operador vê.
 
 | Serviço | Contexto | Departamento | Owner | Porta | Base de dados |
 |---|---|---|---|---|---|
-| `closing-reconciliation` | Conciliação de fechos | Meios de Pagamentos e Canais | \<equipa\> | 8001 | `mozaops_closing_reconciliation` |
+| `reconciliation/closing-credit-validation` | Validação de crédito de valores de fecho | Meios de Pagamentos e Canais | Dalton Chivambo | 8001 | `mozaops_closing_reconciliation` |
 
 ## Frontend
 
