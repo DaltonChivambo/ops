@@ -12,6 +12,7 @@ mensagem para mostrar ao operador.
 import logging
 
 from fastapi import FastAPI, Request
+from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 
 from app.domain.errors import BusinessRuleError, DomainError, NotFoundError
@@ -38,6 +39,21 @@ def register(app: FastAPI) -> None:
             if isinstance(error, tipo):
                 return _envelope(status, code, str(error))
         return _envelope(400, "bad_request", str(error))
+
+    @app.exception_handler(RequestValidationError)
+    async def handle_request_validation(_request: Request, _error: Exception) -> JSONResponse:
+        """O 422 do próprio FastAPI, vestido com o nosso envelope.
+
+        Sem isto, um `?page=abc` ou um corpo que não é JSON devolviam o
+        `{"detail": [...]}` do FastAPI — a única resposta do serviço que o
+        `error.interceptor.ts` do SPA não sabia ler, e que caía na mensagem
+        genérica de «erro inesperado».
+        """
+        return _envelope(
+            422,
+            "bad_request",
+            "O pedido tem parâmetros inválidos. Verifique os valores e tente de novo.",
+        )
 
     @app.exception_handler(Exception)
     async def handle_unexpected(_request: Request, error: Exception) -> JSONResponse:

@@ -11,10 +11,16 @@ devolve o que ele deu.
 from typing import Any
 
 from fastapi import APIRouter, Query, Response, UploadFile
-from fastapi.responses import JSONResponse, StreamingResponse
+from fastapi.responses import StreamingResponse
 
-from app.controllers import serializers
 from app.controllers.dependencies import ValidationServiceDep
+from app.controllers.schemas import (
+    ClosingDetailOut,
+    DetailCountsOut,
+    DetailsPageOut,
+    KeyBreakdownOut,
+    ValidationResultOut,
+)
 from app.domain.errors import InvalidInputError
 from app.domain.vocabulary import SLOT_LABELS, UploadSlot
 from app.pagination import parse_page
@@ -32,7 +38,7 @@ async def create_execution(
     posList: UploadFile | None = None,
     simoClosings: UploadFile | None = None,
     bankaCredits: UploadFile | None = None,
-) -> dict[str, Any]:
+) -> ValidationResultOut:
     uploads = {
         UploadSlot.POS_LIST: posList,
         UploadSlot.SIMO_CLOSINGS: simoClosings,
@@ -54,18 +60,18 @@ async def create_execution(
     execution_id = await service.run(files)
     execution = await service.get_execution(execution_id)
     cases = await service.list_cases(execution_id)
-    return serializers.execution_to_dict(execution, cases)
+    return ValidationResultOut.from_row(execution, cases)
 
 
-@router.get("/execucoes/ultima")
-async def get_latest_execution(service: ValidationServiceDep) -> Response:
+@router.get("/execucoes/ultima", response_model=ValidationResultOut | None)
+async def get_latest_execution(service: ValidationServiceDep) -> Any:
     execution = await service.get_latest_execution()
     if execution is None:
         # 204 e não 200 com `null`: é assim que o SPA distingue «ainda não correu
         # nada» de «correu e não deu resultado».
         return Response(status_code=204)
     cases = await service.list_cases(execution.id)
-    return JSONResponse(serializers.execution_to_dict(execution, cases))
+    return ValidationResultOut.from_row(execution, cases)
 
 
 @router.get("/execucoes/{execution_id}/detalhes")
@@ -76,26 +82,28 @@ async def list_details(
     perPage: int | None = Query(default=None),
     validation: str | None = Query(default=None),
     q: str | None = Query(default=None),
-) -> dict[str, Any]:
+) -> DetailsPageOut:
     await service.get_execution(execution_id)  # 404 se não existir
     parsed_page = parse_page(page, perPage)
     details, total, counts = await service.list_details(execution_id, parsed_page, validation, q)
-    return {
-        "items": [serializers.detail_to_dict(detail) for detail in details],
-        "total": total,
-        "page": parsed_page.page,
-        "perPage": parsed_page.perPage,
-        "counts": counts,
-    }
+    return DetailsPageOut(
+        items=[ClosingDetailOut.from_row(detail) for detail in details],
+        total=total,
+        page=parsed_page.page,
+        perPage=parsed_page.perPage,
+        counts=DetailCountsOut(**counts),
+    )
 
 
 @router.get("/execucoes/{execution_id}/chaves/{key}")
 async def get_key_breakdown(
     execution_id: str, key: str, service: ValidationServiceDep
-) -> dict[str, Any]:
+) -> KeyBreakdownOut:
     """Os dois lados de uma chave — o que a tabela abre ao clicar num fecho."""
     breakdown = await service.get_key_breakdown(execution_id, key)
-    return serializers.key_breakdown_to_dict(breakdown)
+    return KeyBreakdownOut.from_parts(
+        breakdown["key"], breakdown["closings"], breakdown["movements"], breakdown["case"]
+    )
 
 
 @router.get("/execucoes/{execution_id}/relatorio")
