@@ -21,7 +21,7 @@ import type { ProgressPhase, UploadSlotId, ValidationResult } from './data/model
  * Porte de `client/src/modules/pos-closing/PosClosingPage.tsx`.
  */
 @Component({
-  selector: 'app-closing-reconciliation-page',
+  selector: 'app-closing-credit-validation-page',
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     AmountReconciliationComponent,
@@ -111,7 +111,7 @@ import type { ProgressPhase, UploadSlotId, ValidationResult } from './data/model
     </div>
   `,
 })
-export class ClosingReconciliationPageComponent {
+export class ClosingCreditValidationPageComponent {
   private readonly api = inject(ReconciliationApi);
 
   /**

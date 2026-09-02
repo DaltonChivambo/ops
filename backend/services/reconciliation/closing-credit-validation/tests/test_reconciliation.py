@@ -3,9 +3,14 @@
 Os `.xlsx` são dados bancários reais (ver aviso no README da raiz) e nunca são
 versionados — `*.xlsx` está no `.gitignore` da raiz. Este teste salta-se
 sozinho quando `tests/fixtures/` não os tem (ex.: CI, ou um checkout sem os
-ficheiros de amostra). Os números esperados vêm de
-`docs/implementation-plan.md` §8 (verificação ponta a ponta), que por sua vez
-os verificou contra o manual do PDD.
+ficheiros de amostra). Os números esperados foram verificados ponta a ponta
+contra o manual do PDD, no fecho de Junho de 2026.
+
+Para o correr, pôr em `tests/fixtures/` os três ficheiros do departamento com
+os nomes `pos-list.xlsx`, `simo-closings.xlsx` e `banka-credits.xlsx`.
+
+As regras que ele exercita — sem os ficheiros — estão em
+`test_reconciliation_rules.py`, que corre sempre.
 """
 
 from pathlib import Path

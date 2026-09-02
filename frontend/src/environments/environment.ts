@@ -23,14 +23,14 @@ export const environment = {
   /**
    * Caminho base da automação de fechos.
    *
-   * Aponta hoje para o Flask do MozaOps v1, que é o único backend que existe —
-   * `backend/services/closing-reconciliation/` ainda é andaime sem código. Os
-   * segmentos estão em português porque é o contrato da v1.
+   * Os segmentos estão em português por serem o contrato herdado do MozaOps v1,
+   * que o `ARCHITECTURE.md` §7 regista como a excepção assumida — tudo o resto
+   * do código é em inglês. Mudá-los obriga a mexer no router do serviço e no
+   * `PathPrefix` do Traefik ao mesmo tempo.
    *
-   * Quando o serviço v2 arrancar, isto passa a
-   * `/api/pos/closing-credit-validation` (docs/implementation-plan.md:183) e os
-   * segmentos internos deixam de ser em português. É uma linha, e está isolada
-   * aqui exactamente por isso.
+   * Vazio à esquerda porque o `apiBaseUrl` é a mesma origem: em dev o proxy do
+   * `ng serve` reencaminha, em produção é o Traefik. É a mesma topologia dos
+   * dois lados, que é o ponto de haver um proxy à frente.
    */
   closingApiBase: '/api/pos/validacao-credito-fecho',
 };

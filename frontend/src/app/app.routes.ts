@@ -36,8 +36,8 @@ export const routes: Routes = [
         path: ':moduleId/:featureId',
         canActivate: [canAccess(...READERS)],
         loadComponent: () =>
-          import('./features/payments-and-channels/channels/closing-reconciliation/closing-reconciliation-page').then(
-            (m) => m.ClosingReconciliationPageComponent,
+          import('./features/payments-and-channels/channels/closing-credit-validation/closing-credit-validation-page').then(
+            (m) => m.ClosingCreditValidationPageComponent,
           ),
       },
     ],
