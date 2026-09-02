@@ -171,20 +171,52 @@ def test_actualizar_caso_inexistente_da_404(client):
     assert resposta.json()["error"]["code"] == "not_found"
 
 
-def test_actualizar_caso_com_estado_invalido(client):
+def test_actualizar_caso_com_estado_invalido_e_regra_de_negocio(client):
     resposta = client.patch(f"{BASE}/casos/{CASE_ID}", json={"status": "inventado"})
 
-    # DEFEITO conhecido: hoje devolve 404. Um estado inválido é um pedido mal
-    # formado, não um recurso que não existe — passa a 422 no commit dos códigos
-    # de erro, e esta asserção muda com ele.
-    assert resposta.status_code == 404
+    # Um estado que não existe é um pedido que viola a regra, não um recurso
+    # ausente. Devolvia 404 até o commit dos códigos de erro.
+    assert resposta.status_code == 422
+    erro = resposta.json()["error"]
+    assert erro["code"] == "business_rule"
+    # A mensagem diz ao operador quais são os estados possíveis.
+    assert "in-review" in erro["message"]
 
 
-def test_actualizar_caso_sem_nada_para_mudar(client):
+def test_actualizar_caso_sem_nada_para_mudar_e_pedido_incompleto(client):
     resposta = client.patch(f"{BASE}/casos/{CASE_ID}", json={})
 
-    # DEFEITO conhecido: hoje devolve 404, quando devia ser 400.
-    assert resposta.status_code == 404
+    # Nem «não encontrei» nem regra violada: o pedido não diz o que fazer.
+    assert resposta.status_code == 400
+    assert resposta.json()["error"]["code"] == "bad_request"
+
+
+def test_ficheiro_acima_do_limite_e_recusado_antes_de_ser_lido(client, ficheiros, monkeypatch):
+    """O `max_upload_mb` estava declarado e nunca era lido: não havia limite."""
+    from app.controllers import executions
+
+    monkeypatch.setattr(executions.settings, "max_upload_mb", 1)
+    ficheiros["simoClosings"] = (
+        "simo-closings.xlsx",
+        b"x" * (2 * 1024 * 1024),
+        ficheiros["simoClosings"][2],
+    )
+
+    resposta = client.post(f"{BASE}/execucoes", files=ficheiros)
+
+    assert resposta.status_code == 413
+    erro = resposta.json()["error"]
+    assert erro["code"] == "payload_too_large"
+    assert "Fechos SIMO" in erro["message"]
+    assert "2.0 MB" in erro["message"]
+
+
+def test_parametro_de_query_invalido_usa_o_mesmo_envelope(client):
+    """Sem handler próprio, o FastAPI devolvia o seu `{"detail": [...]}`."""
+    resposta = client.get(f"{BASE}/execucoes/{EXECUTION_ID}/detalhes", params={"page": "abc"})
+
+    assert resposta.status_code == 422
+    assert set(resposta.json()) == {"error"}
 
 
 # ─── O relatório ─────────────────────────────────────────────────────────────

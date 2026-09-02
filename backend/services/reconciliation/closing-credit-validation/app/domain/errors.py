@@ -31,5 +31,21 @@ class NoClosingsError(BusinessRuleError):
     """O ficheiro da SIMO não traz um único fecho válido."""
 
 
+class InvalidCaseStatusError(BusinessRuleError):
+    """Pediram um estado de caso que não existe."""
+
+
+class UploadTooLargeError(BusinessRuleError):
+    """Um dos ficheiros passa o limite de tamanho aceite."""
+
+
 class NotFoundError(DomainError):
     """A execução, a chave ou o caso indicados não existem."""
+
+
+class NothingToUpdateError(DomainError):
+    """Vieram zero campos para alterar — o pedido não diz o que fazer.
+
+    Não é «não encontrei» nem regra de negócio violada: é um pedido incompleto,
+    e sai como tal.
+    """

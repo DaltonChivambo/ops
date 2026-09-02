@@ -15,7 +15,13 @@ from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 
-from app.domain.errors import BusinessRuleError, DomainError, NotFoundError
+from app.domain.errors import (
+    BusinessRuleError,
+    DomainError,
+    NotFoundError,
+    NothingToUpdateError,
+    UploadTooLargeError,
+)
 
 logger = logging.getLogger("closing_credit_validation")
 
@@ -23,7 +29,11 @@ logger = logging.getLogger("closing_credit_validation")
 # subclasse nova de `BusinessRuleError` cai no 422 sem se tocar aqui.
 STATUS_BY_ERROR: tuple[tuple[type[DomainError], int, str], ...] = (
     (NotFoundError, 404, "not_found"),
+    # Antes do `BusinessRuleError`, de quem é subclasse: um ficheiro grande
+    # demais tem estado próprio, e o 413 diz ao operador o que aconteceu.
+    (UploadTooLargeError, 413, "payload_too_large"),
     (BusinessRuleError, 422, "business_rule"),
+    (NothingToUpdateError, 400, "bad_request"),
     (DomainError, 400, "bad_request"),
 )
 

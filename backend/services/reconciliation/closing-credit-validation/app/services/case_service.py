@@ -8,7 +8,7 @@ lê sem ter de contar linhas.
 from datetime import date
 from typing import Any
 
-from app.domain.errors import NotFoundError
+from app.domain.errors import InvalidCaseStatusError, NotFoundError, NothingToUpdateError
 from app.domain.vocabulary import CaseStatus
 from app.infrastructure.tables import PendingCase
 from app.repositories.case_repository import CaseRepository
@@ -41,12 +41,17 @@ class CaseService:
         if "status" in patch:
             status = STATUS_FROM_JSON.get(patch["status"])
             if status is None:
-                raise NotFoundError("Estado de caso inválido.")
+                raise InvalidCaseStatusError(
+                    f"Estado de caso inválido: «{patch['status']}». "
+                    "Os estados possíveis são «pending», «in-review» e «resolved»."
+                )
             data["status"] = status
             data["resolved_at"] = date.today() if status is CaseStatus.RESOLVED else None
 
         if not data:
-            raise NotFoundError("Nada a actualizar no caso indicado.")
+            raise NothingToUpdateError(
+                "O pedido não indica nada para alterar. Envie o estado, o e-Ticket, ou ambos."
+            )
 
         case = await self._cases.update(case_id, data)
         if case is None:

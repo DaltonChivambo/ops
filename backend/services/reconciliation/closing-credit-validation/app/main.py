@@ -11,6 +11,9 @@ from fastapi import FastAPI
 
 from app.controllers import error_handlers
 from app.controllers.router import router
+from app.settings import configure_logging
+
+configure_logging()
 
 app = FastAPI(title="MozaOps — closing-credit-validation")
 

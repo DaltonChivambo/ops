@@ -21,9 +21,10 @@ from app.controllers.schemas import (
     KeyBreakdownOut,
     ValidationResultOut,
 )
-from app.domain.errors import InvalidInputError
+from app.domain.errors import InvalidInputError, UploadTooLargeError
 from app.domain.vocabulary import SLOT_LABELS, UploadSlot
 from app.pagination import parse_page
+from app.settings import settings
 
 router = APIRouter()
 
@@ -56,12 +57,39 @@ async def create_execution(
     # Reconstruído sem os `None` — o `missing` acima já garantiu que não há nenhum,
     # mas é aqui que o tipo passa a dizê-lo.
     present = {slot: upload for slot, upload in uploads.items() if upload is not None}
+    _reject_oversized(present)
     files = {slot: (present[slot].file, present[slot].filename or slot) for slot in REQUIRED_SLOTS}
 
     execution_id = await service.run(files)
     execution = await service.get_execution(execution_id)
     cases = await service.list_cases(execution_id)
     return ValidationResultOut.from_row(execution, cases)
+
+
+def _reject_oversized(uploads: dict[UploadSlot, UploadFile]) -> None:
+    """Trava os ficheiros grandes demais ANTES de o openpyxl lhes tocar.
+
+    O `max_upload_mb` estava declarado desde o início e nunca era lido: na
+    prática não havia limite nenhum, e um ficheiro suficientemente grande punha
+    o worker a mastigar memória até o pedido morrer sem explicação. Falhar aqui
+    custa um cabeçalho e dá ao operador uma frase que ele percebe.
+    """
+    limite = settings.max_upload_mb * 1024 * 1024
+    grandes = [
+        (slot, upload)
+        for slot, upload in uploads.items()
+        if upload.size is not None and upload.size > limite
+    ]
+    if not grandes:
+        return
+
+    slot, upload = grandes[0]
+    megabytes = (upload.size or 0) / 1024 / 1024
+    raise UploadTooLargeError(
+        f"O ficheiro «{upload.filename or SLOT_LABELS[slot]}» no campo «{SLOT_LABELS[slot]}» "
+        f"tem {megabytes:.1f} MB e excede o limite de {settings.max_upload_mb} MB. "
+        "Exporte um período mais curto e volte a submeter."
+    )
 
 
 @router.get("/execucoes/ultima", response_model=ValidationResultOut | None)

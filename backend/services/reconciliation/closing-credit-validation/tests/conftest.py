@@ -18,7 +18,7 @@ import pytest
 from fastapi.testclient import TestClient
 
 from app.controllers.dependencies import get_case_service, get_validation_service
-from app.domain.errors import NotFoundError
+from app.domain.errors import InvalidCaseStatusError, NotFoundError, NothingToUpdateError
 from app.infrastructure.tables import ClosingDetail, CreditMovement, Execution, PendingCase
 from app.main import app
 
@@ -182,9 +182,14 @@ class FakeService:
         if case_id != CASE_ID:
             raise NotFoundError("O caso indicado não existe.")
         if not patch:
-            raise NotFoundError("Nada a actualizar no caso indicado.")
+            raise NothingToUpdateError(
+                "O pedido não indica nada para alterar. Envie o estado, o e-Ticket, ou ambos."
+            )
         if "status" in patch and patch["status"] not in ("pending", "in-review", "resolved"):
-            raise NotFoundError("Estado de caso inválido.")
+            raise InvalidCaseStatusError(
+                f"Estado de caso inválido: «{patch['status']}». "
+                "Os estados possíveis são «pending», «in-review» e «resolved»."
+            )
 
         caso = self.cases[0]
         if "e_ticket" in patch:
