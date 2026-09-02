@@ -13,23 +13,33 @@ from typing import Any
 from .vocabulary import CaseType, ClosingType, Validation
 
 
+def _to_camel(campo: str) -> str:
+    """`simo_key_total` → `simoKeyTotal`.
+
+    Escrito à mão para o domínio não passar a depender do Pydantic por causa de
+    quatro linhas — é o mesmo motivo por que aqui não entra FastAPI nem openpyxl.
+    """
+    cabeca, *resto = campo.split("_")
+    return cabeca + "".join(parte.capitalize() for parte in resto)
+
+
 @dataclass(slots=True)
 class PosInfo:
     """Uma linha da Lista de POS do Portal SIMO."""
 
     merchant: str
-    accountNumber: str
-    closingType: ClosingType
+    account_number: str
+    closing_type: ClosingType
 
 
 @dataclass(slots=True)
 class SimoClosing:
     """Um fecho registado no Portal SIMO."""
 
-    posId: str
+    pos_id: str
     period: int
-    closingDate: date
-    operationNumber: int
+    closing_date: date
+    operation_number: int
     total: Decimal
 
 
@@ -56,7 +66,7 @@ class BankaCredit:
     """
 
     amount: Decimal
-    creditDate: date | None
+    credit_date: date | None
     description: str | None
     movements: list["BankaMovement"] = field(default_factory=list)
 
@@ -65,22 +75,22 @@ class BankaCredit:
 class ClosingDetail:
     """Uma linha da folha «Detalhes Validacao» — um fecho SIMO já validado."""
 
-    posId: str
+    pos_id: str
     merchant: str
-    accountNumber: str
+    account_number: str
     period: int
     key: str
-    simoClosingDate: date
-    operationNumber: int
-    simoClosingTotal: Decimal
+    simo_closing_date: date
+    operation_number: int
+    simo_closing_total: Decimal
     # Soma SIMO da chave — a parcela que o Banka credita e que entra na
     # `difference`. `simoClosingTotal` é só este fecho; comparar essa linha
     # com `bankaClosingTotal` (que é da chave) não fecha a conta.
-    simoKeyTotal: Decimal
-    closingDescription: str | None
-    bankaCreditDate: date | None
-    bankaClosingTotal: Decimal | None
-    closingType: ClosingType
+    simo_key_total: Decimal
+    closing_description: str | None
+    banka_credit_date: date | None
+    banka_closing_total: Decimal | None
+    closing_type: ClosingType
     validation: Validation
     difference: Decimal | None
 
@@ -90,12 +100,12 @@ class PendingCase:
     """Caso de divergência para análise/regularização pelo operador."""
 
     key: str
-    posId: str
+    pos_id: str
     period: int
     merchant: str
-    accountNumber: str
-    simoAmount: Decimal
-    bankaAmount: Decimal
+    account_number: str
+    simo_amount: Decimal
+    banka_amount: Decimal
     type: CaseType
 
 
@@ -106,47 +116,52 @@ class ClosingSummary:
     processed: int = 0
     matched: int = 0
     divergent: int = 0
-    validationRate: float = 0.0
-    divergenceAmount: Decimal = Decimal(0)
-    openCases: int = 0
-    resolvedCases: int = 0
-    missingCount: int = 0
-    mismatchCount: int = 0
+    validation_rate: float = 0.0
+    divergence_amount: Decimal = Decimal(0)
+    open_cases: int = 0
+    resolved_cases: int = 0
+    missing_count: int = 0
+    mismatch_count: int = 0
     # Fechos de valor 0,00 (sem crédito a esperar do Banka): não são divergência,
     # ficam fora dos casos pendentes, mas contam-se aqui para se saber que existem.
-    zeroClosings: int = 0
+    zero_closings: int = 0
     # Fechos em chaves com >1 fecho (período repetido/colidido): não se somam,
     # ficam fora do match/mismatch e vão para análise manual individual.
-    duplicatedPeriods: int = 0
+    duplicated_periods: int = 0
     # Linhas repetidas no export da SIMO que foram descartadas antes de somar.
-    duplicatesDiscarded: int = 0
+    duplicates_discarded: int = 0
     # Sinais de qualidade dos ficheiros de entrada (não bloqueiam a execução):
     #   keyCollisions — chaves que agregam >1 período bruto por colisão em % 1000.
     #   unregisteredPos — POS com fechos mas sem linha na Lista de POS (comerciante '—').
-    keyCollisions: int = 0
-    unregisteredPos: int = 0
-    simoAmountMatched: Decimal = Decimal(0)
-    bankaAmountMatched: Decimal = Decimal(0)
-    simoAmountMismatched: Decimal = Decimal(0)
-    bankaAmountMismatched: Decimal = Decimal(0)
-    simoAmountMissing: Decimal = Decimal(0)
+    key_collisions: int = 0
+    unregistered_pos: int = 0
+    simo_amount_matched: Decimal = Decimal(0)
+    banka_amount_matched: Decimal = Decimal(0)
+    simo_amount_mismatched: Decimal = Decimal(0)
+    banka_amount_mismatched: Decimal = Decimal(0)
+    simo_amount_missing: Decimal = Decimal(0)
     # Somas das chaves com períodos duplicados. Não é divergência — é o que está
     # retido à espera de análise manual, e vai ao relatório como tal. O Banka
     # duplica na mesma proporção da SIMO (a chave tem lá vários movimentos), por
     # isso há crédito a apontar-lhes: dá-lo por zero punha o montante todo como
     # dinheiro em falta, que é o contrário do que aconteceu.
-    simoAmountDuplicated: Decimal = Decimal(0)
-    bankaAmountDuplicated: Decimal = Decimal(0)
+    simo_amount_duplicated: Decimal = Decimal(0)
+    banka_amount_duplicated: Decimal = Decimal(0)
 
     def to_json_dict(self) -> dict[str, Any]:
         """Os indicadores como documento JSON, que é a forma em que são guardados.
 
         A coluna `execution.summary` é JSONB e o frontend lê-a tal como está —
         logo esta é a forma canónica, e não uma representação da apresentação.
-        Só os `Decimal` precisam de conversão: o resto já é JSON.
+
+        **As chaves saem em camelCase, e não é descuido.** Os campos do Python
+        são snake_case, mas este dicionário não é Python: é o documento que fica
+        gravado na base e que o `models.ts` lê. Deixá-lo seguir a renomeação
+        partia o SPA E desalinhava-o das execuções já gravadas, que estão em
+        camelCase e não se migram por causa disto.
         """
         return {
-            campo: float(valor) if isinstance(valor, Decimal) else valor
+            _to_camel(campo): float(valor) if isinstance(valor, Decimal) else valor
             for campo, valor in asdict(self).items()
         }
 
@@ -171,9 +186,9 @@ class CreditMovement:
 class ReconciliationResult:
     """Resultado completo de uma execução, antes de ser persistido."""
 
-    periodStart: date
-    periodEnd: date
-    reportName: str
+    period_start: date
+    period_end: date
+    report_name: str
     details: list[ClosingDetail] = field(default_factory=list)
     cases: list[PendingCase] = field(default_factory=list)
     summary: ClosingSummary = field(default_factory=ClosingSummary)

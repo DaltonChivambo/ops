@@ -33,9 +33,9 @@ class CaseService:
     ) -> tuple[PendingCase, dict[str, Any]]:
         """Actualiza estado/e-Ticket de um caso e recalcula o `summary` da execução."""
         data: dict[str, Any] = {}
-        if "eTicket" in patch:
-            e_ticket = patch["eTicket"]
-            data["eTicket"] = (
+        if "e_ticket" in patch:
+            e_ticket = patch["e_ticket"]
+            data["e_ticket"] = (
                 e_ticket.strip() if isinstance(e_ticket, str) and e_ticket.strip() else None
             )
         if "status" in patch:
@@ -43,7 +43,7 @@ class CaseService:
             if status is None:
                 raise NotFoundError("Estado de caso inválido.")
             data["status"] = status
-            data["resolvedAt"] = date.today() if status is CaseStatus.RESOLVED else None
+            data["resolved_at"] = date.today() if status is CaseStatus.RESOLVED else None
 
         if not data:
             raise NotFoundError("Nada a actualizar no caso indicado.")
@@ -52,7 +52,7 @@ class CaseService:
         if case is None:
             raise NotFoundError("O caso indicado não existe.")
 
-        return case, await self._refresh_counters(case.executionId)
+        return case, await self._refresh_counters(case.execution_id)
 
     async def _refresh_counters(self, execution_id: str) -> dict[str, Any]:
         """Reflecte no `summary` guardado as contagens de casos abertos/regularizados."""

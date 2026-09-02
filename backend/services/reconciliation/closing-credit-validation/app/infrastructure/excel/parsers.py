@@ -37,7 +37,7 @@ from .workbook import cell_date, cell_text, find_header_row, parse_number, valid
 # Índices 0-based das colunas dos Fechos SIMO — o único ficheiro cujas posições são
 # estáveis. A Lista de POS e o Banka resolvem as colunas pelo NOME do cabeçalho
 # (ver `parse_pos_list` e `parse_banka_credits`), porque as posições variam entre exports.
-SIMO_COLUMNS = {"posId": 2, "period": 3, "closingDate": 4, "operationNumber": 5, "total": 6}
+SIMO_COLUMNS = {"pos_id": 2, "period": 3, "closing_date": 4, "operation_number": 5, "total": 6}
 
 HEADER_SEARCH_ROWS = 10
 BANKA_SAMPLE_ROWS = 20  # linhas espreitadas para escolher a coluna DESCRITIVO_MOV certa
@@ -191,8 +191,8 @@ def parse_pos_list(stream: IO[bytes], filename: str) -> dict[str, PosInfo]:
         realtime = cell_text(_value(row, realtime_col)).lower()
         result[pos_id] = PosInfo(
             merchant=cell_text(_value(row, merchant_col)),
-            accountNumber=cell_text(_value(row, account_col)),
-            closingType=(
+            account_number=cell_text(_value(row, account_col)),
+            closing_type=(
                 ClosingType.D
                 if realtime == "sim"
                 else ClosingType.D_PLUS_1
@@ -216,19 +216,19 @@ def parse_simo_closings(stream: IO[bytes], filename: str) -> list[SimoClosing]:
 
     closings: list[SimoClosing] = []
     for row in rows:
-        pos_id = normalize_pos_id(cell_text(_value(row, SIMO_COLUMNS["posId"])))
+        pos_id = normalize_pos_id(cell_text(_value(row, SIMO_COLUMNS["pos_id"])))
         period = parse_number(_value(row, SIMO_COLUMNS["period"]))
         total = parse_number(_value(row, SIMO_COLUMNS["total"]))
-        closing_date = cell_date(_value(row, SIMO_COLUMNS["closingDate"]))
+        closing_date = cell_date(_value(row, SIMO_COLUMNS["closing_date"]))
         if not pos_id or period is None or total is None or closing_date is None:
             continue
-        operation = parse_number(_value(row, SIMO_COLUMNS["operationNumber"]))
+        operation = parse_number(_value(row, SIMO_COLUMNS["operation_number"]))
         closings.append(
             SimoClosing(
-                posId=pos_id,
+                pos_id=pos_id,
                 period=int(period),
-                closingDate=closing_date,
-                operationNumber=int(operation) if operation is not None else 0,
+                closing_date=closing_date,
+                operation_number=int(operation) if operation is not None else 0,
                 total=total,
             )
         )
@@ -277,12 +277,12 @@ def parse_banka_credits(stream: IO[bytes], filename: str) -> dict[str, BankaCred
             # Uma chave pode ter movimentos em dias diferentes; a data de crédito
             # é a do primeiro movimento, não a da primeira linha que aparece no
             # ficheiro — o export do MIS não vem por ordem cronológica.
-            if credit_date and (existing.creditDate is None or credit_date < existing.creditDate):
-                existing.creditDate = credit_date
+            if credit_date and (existing.credit_date is None or credit_date < existing.credit_date):
+                existing.credit_date = credit_date
         else:
             credits[key] = BankaCredit(
                 amount=amount,
-                creditDate=credit_date,
+                credit_date=credit_date,
                 description=description or None,
                 movements=[movement],
             )

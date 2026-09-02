@@ -15,6 +15,7 @@ from datetime import date, datetime
 from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict
+from pydantic.alias_generators import to_camel
 
 from app.domain.vocabulary import CaseStatus, CaseType, ClosingType, Validation
 from app.infrastructure.tables import ClosingDetail, CreditMovement, Execution, PendingCase
@@ -35,9 +36,17 @@ CASE_STATUS_LABELS: dict[CaseStatus, CaseStatusLabel] = {
 
 
 class Schema(BaseModel):
-    """Base de todos: proíbe campos a mais, que numa resposta é sempre engano."""
+    """Base de todos os modelos de saída.
 
-    model_config = ConfigDict(extra="forbid")
+    Os campos são snake_case porque são Python; o JSON sai em camelCase
+    porque é o contrato do `models.ts`. O alias faz a ponte, e o
+    `populate_by_name` deixa construí-los pelo nome do campo — que é como o
+    código os escreve.
+
+    `extra="forbid"` porque um campo a mais numa resposta é sempre engano.
+    """
+
+    model_config = ConfigDict(alias_generator=to_camel, populate_by_name=True, extra="forbid")
 
 
 # ─── Saída ───────────────────────────────────────────────────────────────────
@@ -47,19 +56,19 @@ class ClosingDetailOut(Schema):
     """Uma linha da folha «Detalhes Validacao» — um fecho registado na SIMO."""
 
     id: str
-    posId: str
+    pos_id: str
     merchant: str
-    accountNumber: str
+    account_number: str
     period: int
     key: str
-    simoClosingDate: date
-    operationNumber: int
-    simoClosingTotal: float
-    simoKeyTotal: float
-    closingDescription: str | None
-    bankaCreditDate: date | None
-    bankaClosingTotal: float | None
-    closingType: ClosingTypeLabel
+    simo_closing_date: date
+    operation_number: int
+    simo_closing_total: float
+    simo_key_total: float
+    closing_description: str | None
+    banka_credit_date: date | None
+    banka_closing_total: float | None
+    closing_type: ClosingTypeLabel
     validation: Validation
     difference: float | None
 
@@ -67,21 +76,21 @@ class ClosingDetailOut(Schema):
     def from_row(cls, row: ClosingDetail) -> "ClosingDetailOut":
         return cls(
             id=row.id,
-            posId=row.posId,
+            pos_id=row.pos_id,
             merchant=row.merchant,
-            accountNumber=row.accountNumber,
+            account_number=row.account_number,
             period=row.period,
             key=row.key,
-            simoClosingDate=row.simoClosingDate,
-            operationNumber=row.operationNumber,
-            simoClosingTotal=float(row.simoClosingTotal),
-            simoKeyTotal=float(row.simoKeyTotal),
-            closingDescription=row.closingDescription,
-            bankaCreditDate=row.bankaCreditDate,
-            bankaClosingTotal=(
-                float(row.bankaClosingTotal) if row.bankaClosingTotal is not None else None
+            simo_closing_date=row.simo_closing_date,
+            operation_number=row.operation_number,
+            simo_closing_total=float(row.simo_closing_total),
+            simo_key_total=float(row.simo_key_total),
+            closing_description=row.closing_description,
+            banka_credit_date=row.banka_credit_date,
+            banka_closing_total=(
+                float(row.banka_closing_total) if row.banka_closing_total is not None else None
             ),
-            closingType=CLOSING_TYPE_LABELS[row.closingType],
+            closing_type=CLOSING_TYPE_LABELS[row.closing_type],
             validation=row.validation,
             difference=float(row.difference) if row.difference is not None else None,
         )
@@ -101,7 +110,7 @@ class CreditMovementOut(Schema):
         return cls(
             id=row.id,
             key=row.key,
-            date=row.movementDate,
+            date=row.movement_date,
             amount=float(row.amount),
             description=row.description,
         )
@@ -112,51 +121,51 @@ class PendingCaseOut(Schema):
 
     id: str
     key: str
-    posId: str
+    pos_id: str
     period: int
     merchant: str
-    accountNumber: str
-    simoAmount: float
-    bankaAmount: float
+    account_number: str
+    simo_amount: float
+    banka_amount: float
     type: CaseType
-    eTicket: str | None
+    e_ticket: str | None
     status: CaseStatusLabel
-    resolvedAt: date | None
+    resolved_at: date | None
 
     @classmethod
     def from_row(cls, row: PendingCase) -> "PendingCaseOut":
         return cls(
             id=row.id,
             key=row.key,
-            posId=row.posId,
+            pos_id=row.pos_id,
             period=row.period,
             merchant=row.merchant,
-            accountNumber=row.accountNumber,
-            simoAmount=float(row.simoAmount),
-            bankaAmount=float(row.bankaAmount),
+            account_number=row.account_number,
+            simo_amount=float(row.simo_amount),
+            banka_amount=float(row.banka_amount),
             type=row.type,
-            eTicket=row.eTicket,
+            e_ticket=row.e_ticket,
             status=CASE_STATUS_LABELS[row.status],
-            resolvedAt=row.resolvedAt,
+            resolved_at=row.resolved_at,
         )
 
 
 class ExecutionFilesOut(Schema):
     """Os nomes dos três ficheiros que deram origem à execução."""
 
-    posList: str
-    simoClosings: str
-    bankaCredits: str
+    pos_list: str
+    simo_closings: str
+    banka_credits: str
 
 
 class ValidationResultOut(Schema):
     """Uma execução persistida. Os detalhes vêm à parte, paginados."""
 
-    executionId: str
-    executedAt: datetime
-    periodStart: date
-    periodEnd: date
-    reportName: str
+    execution_id: str
+    executed_at: datetime
+    period_start: date
+    period_end: date
+    report_name: str
     files: ExecutionFilesOut
     # Não é tipado campo a campo de propósito: é o documento JSONB tal como foi
     # gravado, e o `ClosingSummary` do domínio é que manda na sua forma. Tipá-lo
@@ -167,15 +176,15 @@ class ValidationResultOut(Schema):
     @classmethod
     def from_row(cls, row: Execution, cases: list[PendingCase]) -> "ValidationResultOut":
         return cls(
-            executionId=row.id,
-            executedAt=row.executedAt,
-            periodStart=row.periodStart,
-            periodEnd=row.periodEnd,
-            reportName=row.reportName,
+            execution_id=row.id,
+            executed_at=row.executed_at,
+            period_start=row.period_start,
+            period_end=row.period_end,
+            report_name=row.report_name,
             files=ExecutionFilesOut(
-                posList=row.posListFile,
-                simoClosings=row.simoClosingsFile,
-                bankaCredits=row.bankaCreditsFile,
+                pos_list=row.pos_list_file,
+                simo_closings=row.simo_closings_file,
+                banka_credits=row.banka_credits_file,
             ),
             summary=row.summary,
             cases=[PendingCaseOut.from_row(case) for case in cases],
@@ -223,7 +232,7 @@ class DetailsPageOut(Schema):
     items: list[ClosingDetailOut]
     total: int
     page: int
-    perPage: int
+    per_page: int
     counts: DetailCountsOut
 
 
@@ -246,7 +255,7 @@ class CasePatchIn(BaseModel):
     essa mensagem por uma do Pydantic.
     """
 
-    model_config = ConfigDict(extra="ignore")
+    model_config = ConfigDict(alias_generator=to_camel, populate_by_name=True, extra="ignore")
 
     status: str | None = None
-    eTicket: str | None = None
+    e_ticket: str | None = None

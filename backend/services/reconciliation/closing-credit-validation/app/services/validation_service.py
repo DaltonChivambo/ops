@@ -82,7 +82,7 @@ class ValidationService:
         execution = await self.get_execution(execution_id)
         details = await self._executions.list_all_details(execution_id)
         cases = await self._cases.list_by_execution(execution_id)
-        return report.build_workbook(execution, details, cases), f"{execution.reportName}.xlsx"
+        return report.build_workbook(execution, details, cases), f"{execution.report_name}.xlsx"
 
 
 def _parse_and_reconcile(

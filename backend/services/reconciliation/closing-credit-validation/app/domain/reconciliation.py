@@ -90,17 +90,17 @@ def reconcile(
     details = _build_details(closings, pos_list, credits, validations, simo_totals)
     cases = _build_cases(details, simo_totals, credits)
     summary = compute_summary(details, cases, simo_totals, credits, validations)
-    summary.duplicatesDiscarded = duplicates
-    summary.keyCollisions = _count_key_collisions(closings)
-    summary.unregisteredPos = _count_unregistered(closings, pos_list)
+    summary.duplicates_discarded = duplicates
+    summary.key_collisions = _count_key_collisions(closings)
+    summary.unregistered_pos = _count_unregistered(closings, pos_list)
 
-    start = min(detail.simoClosingDate for detail in details)
-    end = max(detail.simoClosingDate for detail in details)
+    start = min(detail.simo_closing_date for detail in details)
+    end = max(detail.simo_closing_date for detail in details)
 
     return ReconciliationResult(
-        periodStart=start,
-        periodEnd=end,
-        reportName=build_report_name(start, end),
+        period_start=start,
+        period_end=end,
+        report_name=build_report_name(start, end),
         details=details,
         cases=cases,
         summary=summary,
@@ -124,10 +124,10 @@ def _drop_duplicates(closings: list[SimoClosing]) -> tuple[list[SimoClosing], in
     seen: set[tuple[str, int, date, int, Decimal]] = set()
     for closing in closings:
         identity = (
-            closing.posId,
+            closing.pos_id,
             closing.period,
-            closing.closingDate,
-            closing.operationNumber,
+            closing.closing_date,
+            closing.operation_number,
             closing.total,
         )
         if identity in seen:
@@ -147,20 +147,20 @@ def _count_key_collisions(closings: list[SimoClosing]) -> int:
     """
     periods_by_key: dict[str, set[int]] = {}
     for closing in closings:
-        key = build_key(closing.posId, closing.period)
+        key = build_key(closing.pos_id, closing.period)
         periods_by_key.setdefault(key, set()).add(closing.period)
     return sum(1 for periods in periods_by_key.values() if len(periods) > 1)
 
 
 def _count_unregistered(closings: list[SimoClosing], pos_list: dict[str, PosInfo]) -> int:
     """POS distintos com fechos mas sem linha na Lista de POS (comerciante '—')."""
-    return len({closing.posId for closing in closings if closing.posId not in pos_list})
+    return len({closing.pos_id for closing in closings if closing.pos_id not in pos_list})
 
 
 def _sum_by_key(closings: list[SimoClosing]) -> dict[str, Decimal]:
     totals: dict[str, Decimal] = {}
     for closing in closings:
-        key = build_key(closing.posId, closing.period)
+        key = build_key(closing.pos_id, closing.period)
         totals[key] = totals.get(key, Decimal(0)) + closing.total
     return totals
 
@@ -172,7 +172,7 @@ def _duplicated_keys(closings: list[SimoClosing]) -> set[str]:
     """
     counts: dict[str, int] = {}
     for closing in closings:
-        key = build_key(closing.posId, closing.period)
+        key = build_key(closing.pos_id, closing.period)
         counts[key] = counts.get(key, 0) + 1
     return {key for key, count in counts.items() if count > 1}
 
@@ -186,7 +186,7 @@ def _audit_movements(
     Só as chaves com fecho SIMO entram: o ficheiro do MIS traz créditos de POS e
     períodos que não estão nesta execução, e esses não são alcançáveis pela tabela.
     """
-    keys = {build_key(closing.posId, closing.period) for closing in closings}
+    keys = {build_key(closing.pos_id, closing.period) for closing in closings}
     records: list[CreditMovement] = []
     for key in keys:
         credit = credits.get(key)
@@ -244,25 +244,25 @@ def _build_details(
 ) -> list[ClosingDetail]:
     details: list[ClosingDetail] = []
     for closing in closings:
-        key = build_key(closing.posId, closing.period)
-        info = pos_list.get(closing.posId)
+        key = build_key(closing.pos_id, closing.period)
+        info = pos_list.get(closing.pos_id)
         credit = credits.get(key)
         validation, difference = validations[key]
         details.append(
             ClosingDetail(
-                posId=closing.posId,
+                pos_id=closing.pos_id,
                 merchant=info.merchant if info else UNKNOWN,
-                accountNumber=info.accountNumber if info else UNKNOWN,
+                account_number=info.account_number if info else UNKNOWN,
                 period=closing.period,
                 key=key,
-                simoClosingDate=closing.closingDate,
-                operationNumber=closing.operationNumber,
-                simoClosingTotal=closing.total,
-                simoKeyTotal=simo_totals[key],
-                closingDescription=credit.description if credit else None,
-                bankaCreditDate=credit.creditDate if credit else None,
-                bankaClosingTotal=credit.amount if credit else None,
-                closingType=info.closingType if info else ClosingType.NA,
+                simo_closing_date=closing.closing_date,
+                operation_number=closing.operation_number,
+                simo_closing_total=closing.total,
+                simo_key_total=simo_totals[key],
+                closing_description=credit.description if credit else None,
+                banka_credit_date=credit.credit_date if credit else None,
+                banka_closing_total=credit.amount if credit else None,
+                closing_type=info.closing_type if info else ClosingType.NA,
                 validation=validation,
                 difference=difference,
             )
@@ -293,12 +293,12 @@ def _build_cases(
         cases.append(
             PendingCase(
                 key=detail.key,
-                posId=detail.posId,
+                pos_id=detail.pos_id,
                 period=detail.period,
                 merchant=detail.merchant,
-                accountNumber=detail.accountNumber,
-                simoAmount=simo_totals.get(detail.key, Decimal(0)),
-                bankaAmount=credit.amount if credit else Decimal(0),
+                account_number=detail.account_number,
+                simo_amount=simo_totals.get(detail.key, Decimal(0)),
+                banka_amount=credit.amount if credit else Decimal(0),
                 type=CaseType.MISSING
                 if detail.validation is Validation.MISSING
                 else CaseType.MISMATCH,
@@ -314,47 +314,47 @@ def compute_summary(
     credits: dict[str, BankaCredit],
     validations: dict[str, tuple[Validation, Decimal | None]],
 ) -> ClosingSummary:
-    summary = ClosingSummary(processed=len(details), openCases=len(cases))
+    summary = ClosingSummary(processed=len(details), open_cases=len(cases))
 
     for detail in details:
         if detail.validation is Validation.MATCH:
             summary.matched += 1
         elif detail.validation is Validation.MISSING:
-            summary.missingCount += 1
+            summary.missing_count += 1
         elif detail.validation is Validation.ZERO:
-            summary.zeroClosings += 1
+            summary.zero_closings += 1
         elif detail.validation is Validation.DUPLICATED:
-            summary.duplicatedPeriods += 1
+            summary.duplicated_periods += 1
         else:
-            summary.mismatchCount += 1
+            summary.mismatch_count += 1
 
     for key, (validation, _difference) in validations.items():
         simo_total = simo_totals.get(key, Decimal(0))
         credit = credits.get(key)
         banka_total = credit.amount if credit else Decimal(0)
         if validation is Validation.MATCH:
-            summary.simoAmountMatched += simo_total
-            summary.bankaAmountMatched += banka_total
+            summary.simo_amount_matched += simo_total
+            summary.banka_amount_matched += banka_total
         elif validation is Validation.MISMATCH:
-            summary.simoAmountMismatched += simo_total
-            summary.bankaAmountMismatched += banka_total
-            summary.divergenceAmount += abs(banka_total - simo_total)
+            summary.simo_amount_mismatched += simo_total
+            summary.banka_amount_mismatched += banka_total
+            summary.divergence_amount += abs(banka_total - simo_total)
         elif validation is Validation.DUPLICATED:
             # Não é divergência (não há soma a comparar), mas é dinheiro retido à
             # espera de análise — e o relatório lista-o entre o que falta tratar.
             # Guardam-se os dois lados: o Banka também duplica nestas chaves (tem
             # lá tantos movimentos como a SIMO tem fechos), logo há crédito feito.
             # Não o registar dava a chave por não creditada no apuramento.
-            summary.simoAmountDuplicated += simo_total
-            summary.bankaAmountDuplicated += banka_total
+            summary.simo_amount_duplicated += simo_total
+            summary.banka_amount_duplicated += banka_total
         elif validation is Validation.ZERO:
             continue  # fecho zerado: não há crédito a esperar nem montante a somar
         else:
-            summary.simoAmountMissing += simo_total
-            summary.divergenceAmount += simo_total
+            summary.simo_amount_missing += simo_total
+            summary.divergence_amount += simo_total
 
-    summary.divergent = summary.missingCount + summary.mismatchCount
-    summary.validationRate = validation_rate(summary.matched, summary.processed)
+    summary.divergent = summary.missing_count + summary.mismatch_count
+    summary.validation_rate = validation_rate(summary.matched, summary.processed)
     return summary
 
 

@@ -42,13 +42,13 @@ def test_summary_matches_reference_numbers():
     summary = result.summary
 
     assert summary.processed == 18_138
-    assert summary.validationRate == 99.3
-    assert summary.missingCount == 118
-    assert summary.mismatchCount == 1
-    assert summary.duplicatedPeriods == 16
-    assert float(summary.simoAmountMissing) == 1_021_564.32
-    assert float(summary.simoAmountMatched) == 543_350_098.30
-    assert float(summary.bankaAmountMatched) == 543_350_098.30
+    assert summary.validation_rate == 99.3
+    assert summary.missing_count == 118
+    assert summary.mismatch_count == 1
+    assert summary.duplicated_periods == 16
+    assert float(summary.simo_amount_missing) == 1_021_564.32
+    assert float(summary.simo_amount_matched) == 543_350_098.30
+    assert float(summary.banka_amount_matched) == 543_350_098.30
 
 
 def test_known_collision_key_is_a_mismatch_not_missing():
@@ -63,4 +63,4 @@ def test_known_collision_key_is_a_mismatch_not_missing():
 
 def test_cases_are_one_per_divergent_key():
     result = _reconcile_fixtures()
-    assert len(result.cases) == result.summary.missingCount + result.summary.mismatchCount
+    assert len(result.cases) == result.summary.missing_count + result.summary.mismatch_count

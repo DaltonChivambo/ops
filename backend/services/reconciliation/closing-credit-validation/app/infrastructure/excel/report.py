@@ -151,7 +151,7 @@ def _add_summary_sheet(workbook: Workbook, execution: Any, cases: list[Any]) -> 
     sheet = workbook.create_sheet("Resumo")
     summary = execution.summary or {}
 
-    sheet["B3"] = _summary_title(execution.periodStart, execution.periodEnd)
+    sheet["B3"] = _summary_title(execution.period_start, execution.period_end)
     sheet["B3"].font = Font(bold=True, size=13)
 
     _write_header(
@@ -274,22 +274,22 @@ def _add_details_sheet(workbook: Workbook, details: Iterable[Any], cases: list[A
             sheet,
             row_number,
             [
-                detail.posId,
+                detail.pos_id,
                 detail.merchant,
-                detail.accountNumber,
+                detail.account_number,
                 detail.period,
                 detail.key,
-                detail.simoClosingDate,
-                detail.operationNumber,
-                detail.simoClosingTotal,
-                detail.closingDescription or NOT_APPLICABLE,
-                detail.bankaCreditDate or NOT_APPLICABLE,
-                detail.bankaClosingTotal if detail.bankaClosingTotal is not None else 0,
-                CLOSING_TYPE_LABELS.get(detail.closingType, NOT_APPLICABLE),
+                detail.simo_closing_date,
+                detail.operation_number,
+                detail.simo_closing_total,
+                detail.closing_description or NOT_APPLICABLE,
+                detail.banka_credit_date or NOT_APPLICABLE,
+                detail.banka_closing_total if detail.banka_closing_total is not None else 0,
+                CLOSING_TYPE_LABELS.get(detail.closing_type, NOT_APPLICABLE),
                 VALIDATION_LABELS.get(detail.validation, detail.validation),
                 detail.difference if detail.difference is not None else NOT_APPLICABLE,
-                (case.eTicket if case else None) or "",
-                (case.resolvedAt if case else None) or "",
+                (case.e_ticket if case else None) or "",
+                (case.resolved_at if case else None) or "",
             ],
         )
         row_number += 1
@@ -335,24 +335,24 @@ def _add_pending_cases_sheet(workbook: Workbook, details: Iterable[Any], cases: 
                 sheet,
                 row_number,
                 [
-                    case.posId,
+                    case.pos_id,
                     NOT_APPLICABLE,  # Balcão (não vem nos ficheiros de entrada)
                     NOT_APPLICABLE,  # Unidade Negócio (idem)
                     case.merchant,
-                    case.accountNumber,
+                    case.account_number,
                     case.period,
-                    detail.simoClosingDate if detail else NOT_APPLICABLE,
-                    detail.operationNumber if detail else NOT_APPLICABLE,
-                    case.simoAmount,
-                    CLOSING_TYPE_LABELS.get(detail.closingType, NOT_APPLICABLE)
+                    detail.simo_closing_date if detail else NOT_APPLICABLE,
+                    detail.operation_number if detail else NOT_APPLICABLE,
+                    case.simo_amount,
+                    CLOSING_TYPE_LABELS.get(detail.closing_type, NOT_APPLICABLE)
                     if detail
                     else NOT_APPLICABLE,
-                    (detail.closingDescription if detail else None) or NOT_APPLICABLE,
-                    case.bankaAmount,
+                    (detail.closing_description if detail else None) or NOT_APPLICABLE,
+                    case.banka_amount,
                     # `missing`/`mismatch` são os mesmos valores nos dois enums:
                     # o caso herda o rótulo da validação que lhe deu origem.
                     VALIDATION_LABELS[Validation(kind)],
-                    case.resolvedAt or NOT_APPLICABLE,
+                    case.resolved_at or NOT_APPLICABLE,
                 ],
             )
             row_number += 1
@@ -370,19 +370,19 @@ def _add_pending_cases_sheet(workbook: Workbook, details: Iterable[Any], cases: 
             sheet,
             row_number,
             [
-                detail.posId,
+                detail.pos_id,
                 NOT_APPLICABLE,
                 NOT_APPLICABLE,
                 detail.merchant,
-                detail.accountNumber,
+                detail.account_number,
                 detail.period,
-                detail.simoClosingDate,
-                detail.operationNumber,
-                detail.simoClosingTotal,
-                CLOSING_TYPE_LABELS.get(detail.closingType, NOT_APPLICABLE),
-                detail.closingDescription or NOT_APPLICABLE,
-                detail.bankaClosingTotal
-                if first_of_key and detail.bankaClosingTotal is not None
+                detail.simo_closing_date,
+                detail.operation_number,
+                detail.simo_closing_total,
+                CLOSING_TYPE_LABELS.get(detail.closing_type, NOT_APPLICABLE),
+                detail.closing_description or NOT_APPLICABLE,
+                detail.banka_closing_total
+                if first_of_key and detail.banka_closing_total is not None
                 else NOT_APPLICABLE,
                 VALIDATION_LABELS[Validation.MISMATCH],
                 NOT_APPLICABLE,
@@ -452,7 +452,7 @@ def _set_format(sheet: Worksheet, columns: list[str], number_format: str, rows: 
 
 
 def _sum_simo(cases: list[Any]) -> Decimal:
-    return sum((case.simoAmount for case in cases), Decimal(0))
+    return sum((case.simo_amount for case in cases), Decimal(0))
 
 
 def _amount(value: Any) -> Decimal:

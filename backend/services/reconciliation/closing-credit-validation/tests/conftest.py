@@ -45,13 +45,13 @@ SUMMARY: dict[str, Any] = {
 def make_execution() -> Execution:
     return Execution(
         id=EXECUTION_ID,
-        executedAt=datetime(2026, 9, 2, 3, 15, 10),
-        periodStart=date(2026, 6, 21),
-        periodEnd=date(2026, 6, 28),
-        reportName="FECHO_POS_DOP 21 a 28 de Junho-2026",
-        posListFile="pos-list.xlsx",
-        simoClosingsFile="simo-closings.xlsx",
-        bankaCreditsFile="banka-credits.xlsx",
+        executed_at=datetime(2026, 9, 2, 3, 15, 10),
+        period_start=date(2026, 6, 21),
+        period_end=date(2026, 6, 28),
+        report_name="FECHO_POS_DOP 21 a 28 de Junho-2026",
+        pos_list_file="pos-list.xlsx",
+        simo_closings_file="simo-closings.xlsx",
+        banka_credits_file="banka-credits.xlsx",
         summary=dict(SUMMARY),
     )
 
@@ -59,20 +59,20 @@ def make_execution() -> Execution:
 def make_detail() -> ClosingDetail:
     return ClosingDetail(
         id="d1",
-        executionId=EXECUTION_ID,
-        posId="259342",
+        execution_id=EXECUTION_ID,
+        pos_id="259342",
         merchant="Comerciante de teste",
-        accountNumber="000123456789",
+        account_number="000123456789",
         period=209,
         key=KEY,
-        simoClosingDate=date(2026, 6, 23),
-        operationNumber=7,
-        simoClosingTotal=Decimal("1000.00"),
-        simoKeyTotal=Decimal("1000.00"),
-        closingDescription="P24-Fecho TPA 0000259342 - 209",
-        bankaCreditDate=date(2026, 6, 24),
-        bankaClosingTotal=Decimal("7641.00"),
-        closingType="D_PLUS_1",
+        simo_closing_date=date(2026, 6, 23),
+        operation_number=7,
+        simo_closing_total=Decimal("1000.00"),
+        simo_key_total=Decimal("1000.00"),
+        closing_description="P24-Fecho TPA 0000259342 - 209",
+        banka_credit_date=date(2026, 6, 24),
+        banka_closing_total=Decimal("7641.00"),
+        closing_type="D_PLUS_1",
         validation="mismatch",
         difference=Decimal("6641.00"),
     )
@@ -81,27 +81,27 @@ def make_detail() -> ClosingDetail:
 def make_case() -> PendingCase:
     return PendingCase(
         id=CASE_ID,
-        executionId=EXECUTION_ID,
+        execution_id=EXECUTION_ID,
         key=KEY,
-        posId="259342",
+        pos_id="259342",
         period=209,
         merchant="Comerciante de teste",
-        accountNumber="000123456789",
-        simoAmount=Decimal("1000.00"),
-        bankaAmount=Decimal("7641.00"),
+        account_number="000123456789",
+        simo_amount=Decimal("1000.00"),
+        banka_amount=Decimal("7641.00"),
         type="mismatch",
-        eTicket=None,
+        e_ticket=None,
         status="pending",
-        resolvedAt=None,
+        resolved_at=None,
     )
 
 
 def make_movement() -> CreditMovement:
     return CreditMovement(
         id="m1",
-        executionId=EXECUTION_ID,
+        execution_id=EXECUTION_ID,
         key=KEY,
-        movementDate=date(2026, 6, 24),
+        movement_date=date(2026, 6, 24),
         amount=Decimal("7641.00"),
         description="P24-Fecho TPA 0000259342 - 209",
     )
@@ -155,7 +155,9 @@ class FakeService:
     ) -> tuple[list[ClosingDetail], int, dict[str, int]]:
         self.chamadas["list_details"] = {
             "page": page.page,
-            "perPage": page.perPage,
+            # A chave é o nome do PARÂMETRO da query, não o do campo Python:
+            # é isso que o teste afirma, e é isso que o SPA envia.
+            "perPage": page.per_page,
             "validation": validation,
             "search": search,
         }
@@ -185,15 +187,15 @@ class FakeService:
             raise NotFoundError("Estado de caso inválido.")
 
         caso = self.cases[0]
-        if "eTicket" in patch:
-            caso.eTicket = patch["eTicket"]
+        if "e_ticket" in patch:
+            caso.e_ticket = patch["e_ticket"]
         if "status" in patch:
             caso.status = {"in-review": "in_review"}.get(patch["status"], patch["status"])
         return caso, dict(SUMMARY)
 
     async def build_report(self, execution_id: str) -> tuple[bytes, str]:
         execucao = self._guard(execution_id)
-        return b"PK\x03\x04conteudo-xlsx", f"{execucao.reportName}.xlsx"
+        return b"PK\x03\x04conteudo-xlsx", f"{execucao.report_name}.xlsx"
 
 
 @pytest.fixture

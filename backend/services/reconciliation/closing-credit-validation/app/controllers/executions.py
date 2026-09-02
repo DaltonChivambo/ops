@@ -10,7 +10,7 @@ devolve o que ele deu.
 
 from typing import Any
 
-from fastapi import APIRouter, Query, Response, UploadFile
+from fastapi import APIRouter, File, Query, Response, UploadFile
 from fastapi.responses import StreamingResponse
 
 from app.controllers.dependencies import ValidationServiceDep
@@ -35,14 +35,15 @@ REQUIRED_SLOTS = tuple(UploadSlot)
 @router.post("/execucoes", status_code=201)
 async def create_execution(
     service: ValidationServiceDep,
-    posList: UploadFile | None = None,
-    simoClosings: UploadFile | None = None,
-    bankaCredits: UploadFile | None = None,
+    # Os `alias` são os nomes dos campos no formulário — contrato com o SPA.
+    pos_list: UploadFile | None = File(default=None, alias="posList"),
+    simo_closings: UploadFile | None = File(default=None, alias="simoClosings"),
+    banka_credits: UploadFile | None = File(default=None, alias="bankaCredits"),
 ) -> ValidationResultOut:
     uploads = {
-        UploadSlot.POS_LIST: posList,
-        UploadSlot.SIMO_CLOSINGS: simoClosings,
-        UploadSlot.BANKA_CREDITS: bankaCredits,
+        UploadSlot.POS_LIST: pos_list,
+        UploadSlot.SIMO_CLOSINGS: simo_closings,
+        UploadSlot.BANKA_CREDITS: banka_credits,
     }
     missing = [slot for slot in REQUIRED_SLOTS if uploads[slot] is None]
     if missing:
@@ -79,18 +80,18 @@ async def list_details(
     execution_id: str,
     service: ValidationServiceDep,
     page: int | None = Query(default=None),
-    perPage: int | None = Query(default=None),
+    per_page: int | None = Query(default=None, alias="perPage"),
     validation: str | None = Query(default=None),
     q: str | None = Query(default=None),
 ) -> DetailsPageOut:
     await service.get_execution(execution_id)  # 404 se não existir
-    parsed_page = parse_page(page, perPage)
+    parsed_page = parse_page(page, per_page)
     details, total, counts = await service.list_details(execution_id, parsed_page, validation, q)
     return DetailsPageOut(
         items=[ClosingDetailOut.from_row(detail) for detail in details],
         total=total,
         page=parsed_page.page,
-        perPage=parsed_page.perPage,
+        per_page=parsed_page.per_page,
         counts=DetailCountsOut(**counts),
     )
 

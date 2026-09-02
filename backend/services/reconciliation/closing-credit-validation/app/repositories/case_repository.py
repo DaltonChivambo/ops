@@ -24,15 +24,15 @@ class CaseRepository:
         # não-creditados aparecem primeiro. Dentro do tipo, os maiores montantes.
         result = await self._session.execute(
             sa.select(PendingCase)
-            .where(PendingCase.executionId == execution_id)
-            .order_by(PendingCase.type.asc(), PendingCase.simoAmount.desc())
+            .where(PendingCase.execution_id == execution_id)
+            .order_by(PendingCase.type.asc(), PendingCase.simo_amount.desc())
         )
         return list(result.scalars().all())
 
     async def find_by_key(self, execution_id: str, key: str) -> PendingCase | None:
         result = await self._session.execute(
             sa.select(PendingCase).where(
-                PendingCase.executionId == execution_id, PendingCase.key == key
+                PendingCase.execution_id == execution_id, PendingCase.key == key
             )
         )
         return result.scalar_one_or_none()
@@ -49,7 +49,7 @@ class CaseRepository:
     async def count_by_status(self, execution_id: str) -> dict[str, int]:
         result = await self._session.execute(
             sa.select(PendingCase.status, sa.func.count())
-            .where(PendingCase.executionId == execution_id)
+            .where(PendingCase.execution_id == execution_id)
             .group_by(PendingCase.status)
         )
         return {status: total for status, total in result.all()}

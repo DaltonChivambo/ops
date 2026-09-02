@@ -74,13 +74,15 @@ class Execution(Base):
     __tablename__ = "execution"
 
     id: Mapped[str] = mapped_column(sa.String(36), primary_key=True, default=_uuid)
-    executedAt: Mapped[datetime] = mapped_column(sa.DateTime, default=_now, index=True)
-    periodStart: Mapped[date] = mapped_column(sa.Date)
-    periodEnd: Mapped[date] = mapped_column(sa.Date)
-    reportName: Mapped[str] = mapped_column(sa.String)
-    posListFile: Mapped[str] = mapped_column(sa.String)
-    simoClosingsFile: Mapped[str] = mapped_column(sa.String)
-    bankaCreditsFile: Mapped[str] = mapped_column(sa.String)
+    executed_at: Mapped[datetime] = mapped_column(
+        "executedAt", sa.DateTime, default=_now, index=True
+    )
+    period_start: Mapped[date] = mapped_column("periodStart", sa.Date)
+    period_end: Mapped[date] = mapped_column("periodEnd", sa.Date)
+    report_name: Mapped[str] = mapped_column("reportName", sa.String)
+    pos_list_file: Mapped[str] = mapped_column("posListFile", sa.String)
+    simo_closings_file: Mapped[str] = mapped_column("simoClosingsFile", sa.String)
+    banka_credits_file: Mapped[str] = mapped_column("bankaCreditsFile", sa.String)
     # Snapshot denormalizado do `ClosingSummary` — mutado quando um caso muda de
     # estado (ver `service._refresh_case_counters`), não só à criação.
     summary: Mapped[dict[str, Any]] = mapped_column(JSONB)
@@ -97,21 +99,29 @@ class ClosingDetail(Base):
     )
 
     id: Mapped[str] = mapped_column(sa.String(36), primary_key=True, default=_uuid)
-    executionId: Mapped[str] = mapped_column(sa.ForeignKey("execution.id", ondelete="CASCADE"))
-    posId: Mapped[str] = mapped_column(sa.String)
+    execution_id: Mapped[str] = mapped_column(
+        "executionId", sa.ForeignKey("execution.id", ondelete="CASCADE")
+    )
+    pos_id: Mapped[str] = mapped_column("posId", sa.String)
     merchant: Mapped[str] = mapped_column(sa.String)
-    accountNumber: Mapped[str] = mapped_column(sa.String)
+    account_number: Mapped[str] = mapped_column("accountNumber", sa.String)
     period: Mapped[int] = mapped_column(sa.Integer)
     key: Mapped[str] = mapped_column(sa.String)
-    simoClosingDate: Mapped[date] = mapped_column(sa.Date)
-    operationNumber: Mapped[int] = mapped_column(sa.Integer)
-    simoClosingTotal: Mapped[Decimal] = mapped_column(Money)
+    simo_closing_date: Mapped[date] = mapped_column("simoClosingDate", sa.Date)
+    operation_number: Mapped[int] = mapped_column("operationNumber", sa.Integer)
+    simo_closing_total: Mapped[Decimal] = mapped_column("simoClosingTotal", Money)
     # Soma SIMO da chave — o termo que a `difference` compara com `bankaClosingTotal`.
-    simoKeyTotal: Mapped[Decimal] = mapped_column(Money)
-    closingDescription: Mapped[str | None] = mapped_column(sa.String, nullable=True)
-    bankaCreditDate: Mapped[date | None] = mapped_column(sa.Date, nullable=True)
-    bankaClosingTotal: Mapped[Decimal | None] = mapped_column(Money, nullable=True)
-    closingType: Mapped[ClosingType] = mapped_column(ClosingTypeEnum)
+    simo_key_total: Mapped[Decimal] = mapped_column("simoKeyTotal", Money)
+    closing_description: Mapped[str | None] = mapped_column(
+        "closingDescription", sa.String, nullable=True
+    )
+    banka_credit_date: Mapped[date | None] = mapped_column(
+        "bankaCreditDate", sa.Date, nullable=True
+    )
+    banka_closing_total: Mapped[Decimal | None] = mapped_column(
+        "bankaClosingTotal", Money, nullable=True
+    )
+    closing_type: Mapped[ClosingType] = mapped_column("closingType", ClosingTypeEnum)
     validation: Mapped[Validation] = mapped_column(ValidationEnum)
     difference: Mapped[Decimal | None] = mapped_column(Money, nullable=True)
 
@@ -123,9 +133,11 @@ class CreditMovement(Base):
     __table_args__ = (sa.Index("ix_credit_movement_execution_key", "executionId", "key"),)
 
     id: Mapped[str] = mapped_column(sa.String(36), primary_key=True, default=_uuid)
-    executionId: Mapped[str] = mapped_column(sa.ForeignKey("execution.id", ondelete="CASCADE"))
+    execution_id: Mapped[str] = mapped_column(
+        "executionId", sa.ForeignKey("execution.id", ondelete="CASCADE")
+    )
     key: Mapped[str] = mapped_column(sa.String)
-    movementDate: Mapped[date | None] = mapped_column(sa.Date, nullable=True)
+    movement_date: Mapped[date | None] = mapped_column("movementDate", sa.Date, nullable=True)
     amount: Mapped[Decimal] = mapped_column(Money)
     description: Mapped[str | None] = mapped_column(sa.String, nullable=True)
 
@@ -140,15 +152,17 @@ class PendingCase(Base):
     )
 
     id: Mapped[str] = mapped_column(sa.String(36), primary_key=True, default=_uuid)
-    executionId: Mapped[str] = mapped_column(sa.ForeignKey("execution.id", ondelete="CASCADE"))
+    execution_id: Mapped[str] = mapped_column(
+        "executionId", sa.ForeignKey("execution.id", ondelete="CASCADE")
+    )
     key: Mapped[str] = mapped_column(sa.String)
-    posId: Mapped[str] = mapped_column(sa.String)
+    pos_id: Mapped[str] = mapped_column("posId", sa.String)
     period: Mapped[int] = mapped_column(sa.Integer)
     merchant: Mapped[str] = mapped_column(sa.String)
-    accountNumber: Mapped[str] = mapped_column(sa.String)
-    simoAmount: Mapped[Decimal] = mapped_column(Money)
-    bankaAmount: Mapped[Decimal] = mapped_column(Money)
+    account_number: Mapped[str] = mapped_column("accountNumber", sa.String)
+    simo_amount: Mapped[Decimal] = mapped_column("simoAmount", Money)
+    banka_amount: Mapped[Decimal] = mapped_column("bankaAmount", Money)
     type: Mapped[CaseType] = mapped_column(CaseTypeEnum)
-    eTicket: Mapped[str | None] = mapped_column(sa.String, nullable=True)
+    e_ticket: Mapped[str | None] = mapped_column("eTicket", sa.String, nullable=True)
     status: Mapped[CaseStatus] = mapped_column(CaseStatusEnum, default=CaseStatus.PENDING)
-    resolvedAt: Mapped[date | None] = mapped_column(sa.Date, nullable=True)
+    resolved_at: Mapped[date | None] = mapped_column("resolvedAt", sa.Date, nullable=True)

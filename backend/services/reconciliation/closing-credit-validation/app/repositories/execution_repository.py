@@ -48,34 +48,36 @@ class ExecutionRepository:
         self._session.add(
             Execution(
                 id=execution_id,
-                periodStart=result.periodStart,
-                periodEnd=result.periodEnd,
-                reportName=result.reportName,
-                posListFile=files[UploadSlot.POS_LIST],
-                simoClosingsFile=files[UploadSlot.SIMO_CLOSINGS],
-                bankaCreditsFile=files[UploadSlot.BANKA_CREDITS],
+                period_start=result.period_start,
+                period_end=result.period_end,
+                report_name=result.report_name,
+                pos_list_file=files[UploadSlot.POS_LIST],
+                simo_closings_file=files[UploadSlot.SIMO_CLOSINGS],
+                banka_credits_file=files[UploadSlot.BANKA_CREDITS],
                 summary=summary,
             )
         )
         await self._session.flush()
 
+        # As chaves são os NOMES DOS ATRIBUTOS da ORM (o SQLAlchemy mapeia-os
+        # para as colunas), não os nomes das colunas.
         details: list[dict[str, Any]] = [
             {
                 "id": str(uuid.uuid4()),
-                "executionId": execution_id,
-                "posId": detail.posId,
+                "execution_id": execution_id,
+                "pos_id": detail.pos_id,
                 "merchant": detail.merchant,
-                "accountNumber": detail.accountNumber,
+                "account_number": detail.account_number,
                 "period": detail.period,
                 "key": detail.key,
-                "simoClosingDate": detail.simoClosingDate,
-                "operationNumber": detail.operationNumber,
-                "simoClosingTotal": detail.simoClosingTotal,
-                "simoKeyTotal": detail.simoKeyTotal,
-                "closingDescription": detail.closingDescription,
-                "bankaCreditDate": detail.bankaCreditDate,
-                "bankaClosingTotal": detail.bankaClosingTotal,
-                "closingType": detail.closingType,
+                "simo_closing_date": detail.simo_closing_date,
+                "operation_number": detail.operation_number,
+                "simo_closing_total": detail.simo_closing_total,
+                "simo_key_total": detail.simo_key_total,
+                "closing_description": detail.closing_description,
+                "banka_credit_date": detail.banka_credit_date,
+                "banka_closing_total": detail.banka_closing_total,
+                "closing_type": detail.closing_type,
                 "validation": detail.validation,
                 "difference": detail.difference,
             }
@@ -88,9 +90,9 @@ class ExecutionRepository:
         movements: list[dict[str, Any]] = [
             {
                 "id": str(uuid.uuid4()),
-                "executionId": execution_id,
+                "execution_id": execution_id,
                 "key": movement.key,
-                "movementDate": movement.date,
+                "movement_date": movement.date,
                 "amount": movement.amount,
                 "description": movement.description,
             }
@@ -101,14 +103,14 @@ class ExecutionRepository:
         cases: list[dict[str, Any]] = [
             {
                 "id": str(uuid.uuid4()),
-                "executionId": execution_id,
+                "execution_id": execution_id,
                 "key": case.key,
-                "posId": case.posId,
+                "pos_id": case.pos_id,
                 "period": case.period,
                 "merchant": case.merchant,
-                "accountNumber": case.accountNumber,
-                "simoAmount": case.simoAmount,
-                "bankaAmount": case.bankaAmount,
+                "account_number": case.account_number,
+                "simo_amount": case.simo_amount,
+                "banka_amount": case.banka_amount,
                 "type": case.type,
             }
             for case in result.cases
@@ -129,7 +131,7 @@ class ExecutionRepository:
 
     async def find_latest(self) -> Execution | None:
         result = await self._session.execute(
-            sa.select(Execution).order_by(Execution.executedAt.desc()).limit(1)
+            sa.select(Execution).order_by(Execution.executed_at.desc()).limit(1)
         )
         return result.scalar_one_or_none()
 
@@ -151,9 +153,9 @@ class ExecutionRepository:
             # linhas da mesma chave ficarem contíguas e a tabela as poder agrupar.
             .order_by(
                 ClosingDetail.validation.desc(),
-                ClosingDetail.posId.asc(),
+                ClosingDetail.pos_id.asc(),
                 ClosingDetail.period.asc(),
-                ClosingDetail.simoClosingDate.asc(),
+                ClosingDetail.simo_closing_date.asc(),
             )
             .offset(page.skip)
             .limit(page.take)
@@ -167,8 +169,8 @@ class ExecutionRepository:
         """Todos os detalhes da execução, na ordem natural do relatório."""
         result = await self._session.execute(
             sa.select(ClosingDetail)
-            .where(ClosingDetail.executionId == execution_id)
-            .order_by(ClosingDetail.posId.asc(), ClosingDetail.period.asc())
+            .where(ClosingDetail.execution_id == execution_id)
+            .order_by(ClosingDetail.pos_id.asc(), ClosingDetail.period.asc())
         )
         return list(result.scalars().all())
 
@@ -176,8 +178,8 @@ class ExecutionRepository:
         """Os fechos SIMO de uma chave, na ordem em que o operador os lê."""
         result = await self._session.execute(
             sa.select(ClosingDetail)
-            .where(ClosingDetail.executionId == execution_id, ClosingDetail.key == key)
-            .order_by(ClosingDetail.simoClosingDate.asc(), ClosingDetail.operationNumber.asc())
+            .where(ClosingDetail.execution_id == execution_id, ClosingDetail.key == key)
+            .order_by(ClosingDetail.simo_closing_date.asc(), ClosingDetail.operation_number.asc())
         )
         return list(result.scalars().all())
 
@@ -185,8 +187,8 @@ class ExecutionRepository:
         """Os movimentos de crédito do Banka de uma chave, por data."""
         result = await self._session.execute(
             sa.select(CreditMovement)
-            .where(CreditMovement.executionId == execution_id, CreditMovement.key == key)
-            .order_by(CreditMovement.movementDate.asc())
+            .where(CreditMovement.execution_id == execution_id, CreditMovement.key == key)
+            .order_by(CreditMovement.movement_date.asc())
         )
         return list(result.scalars().all())
 
@@ -213,7 +215,7 @@ class ExecutionRepository:
 
 
 def _details_where(execution_id: str, validation: str | None, search: str | None) -> list[Any]:
-    conditions: list[Any] = [ClosingDetail.executionId == execution_id]
+    conditions: list[Any] = [ClosingDetail.execution_id == execution_id]
     if validation:
         # Lista de estados a mostrar, separada por vírgulas. Tokens desconhecidos
         # caem fora, por isso a selecção vazia (o cliente manda «nenhum») não
@@ -227,9 +229,9 @@ def _details_where(execution_id: str, validation: str | None, search: str | None
             pattern = f"%{term}%"
             conditions.append(
                 sa.or_(
-                    ClosingDetail.posId.ilike(pattern),
+                    ClosingDetail.pos_id.ilike(pattern),
                     ClosingDetail.merchant.ilike(pattern),
-                    ClosingDetail.accountNumber.ilike(pattern),
+                    ClosingDetail.account_number.ilike(pattern),
                 )
             )
     return conditions

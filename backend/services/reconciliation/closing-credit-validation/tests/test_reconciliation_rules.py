@@ -25,7 +25,7 @@ DIA = date(2026, 6, 23)
 
 
 def pos(**alteracoes: object) -> dict[str, PosInfo]:
-    base = {"merchant": "Comerciante", "accountNumber": "000123", "closingType": ClosingType.D}
+    base = {"merchant": "Comerciante", "account_number": "000123", "closing_type": ClosingType.D}
     return {"200001": PosInfo(**{**base, **alteracoes})}  # type: ignore[arg-type]
 
 
@@ -33,7 +33,7 @@ def fecho(
     pos_id: str = "200001", periodo: int = 101, total: str = "100.00", ops: int = 1, dia: date = DIA
 ) -> SimoClosing:
     return SimoClosing(
-        posId=pos_id, period=periodo, closingDate=dia, operationNumber=ops, total=Decimal(total)
+        pos_id=pos_id, period=periodo, closing_date=dia, operation_number=ops, total=Decimal(total)
     )
 
 
@@ -44,7 +44,7 @@ def credito(*montantes: str) -> BankaCredit:
     ]
     return BankaCredit(
         amount=sum((m.amount for m in movimentos), Decimal(0)),
-        creditDate=DIA,
+        credit_date=DIA,
         description=movimentos[0].description,
         movements=movimentos,
     )
@@ -75,9 +75,9 @@ def test_sem_credito_nenhum_e_nao_creditado() -> None:
 
     assert r.details[0].validation is Validation.MISSING
     assert r.details[0].difference is None
-    assert r.details[0].bankaClosingTotal is None
+    assert r.details[0].banka_closing_total is None
     assert r.cases[0].type is CaseType.MISSING
-    assert r.summary.simoAmountMissing == Decimal("100.00")
+    assert r.summary.simo_amount_missing == Decimal("100.00")
 
 
 def test_fecho_a_zero_sem_credito_e_zerado_e_nao_divergencia() -> None:
@@ -95,10 +95,10 @@ def test_dois_fechos_na_mesma_chave_ficam_para_analise_individual() -> None:
 
     assert [d.validation for d in r.details] == [Validation.DUPLICATED] * 2
     assert r.cases == [], "períodos duplicados não geram caso — vão para análise manual"
-    assert r.summary.duplicatedPeriods == 2
+    assert r.summary.duplicated_periods == 2
     # Os dois lados registam-se: o Banka duplica na mesma proporção da SIMO.
-    assert r.summary.simoAmountDuplicated == Decimal("300.00")
-    assert r.summary.bankaAmountDuplicated == Decimal("300.00")
+    assert r.summary.simo_amount_duplicated == Decimal("300.00")
+    assert r.summary.banka_amount_duplicated == Decimal("300.00")
 
 
 # ─── A regra central: somar por chave antes de comparar ──────────────────────
@@ -149,7 +149,7 @@ def test_linha_repetida_no_export_da_simo_nao_conta_duas_vezes() -> None:
     linha = {"total": "100.00", "ops": 3}
     r = reconcile(pos(), [fecho(**linha), fecho(**linha)], {"200001101": credito("100.00")})  # type: ignore[arg-type]
 
-    assert r.summary.duplicatesDiscarded == 1
+    assert r.summary.duplicates_discarded == 1
     assert r.summary.processed == 1
     assert r.details[0].validation is Validation.MATCH
 
@@ -158,9 +158,9 @@ def test_pos_sem_cadastro_fica_com_travessao_e_conta_se() -> None:
     r = reconcile({}, [fecho(total="10.00")], {})
 
     assert r.details[0].merchant == "—"
-    assert r.details[0].accountNumber == "—"
-    assert r.details[0].closingType is ClosingType.NA
-    assert r.summary.unregisteredPos == 1
+    assert r.details[0].account_number == "—"
+    assert r.details[0].closing_type is ClosingType.NA
+    assert r.summary.unregistered_pos == 1
 
 
 def test_periodos_que_colidem_no_modulo_sao_sinalizados() -> None:
@@ -169,7 +169,7 @@ def test_periodos_que_colidem_no_modulo_sao_sinalizados() -> None:
 
     r = reconcile(pos(), fechos, {})
 
-    assert r.summary.keyCollisions == 1
+    assert r.summary.key_collisions == 1
 
 
 def test_os_movimentos_do_banka_guardam_se_um_a_um() -> None:
@@ -196,8 +196,8 @@ def test_o_denominador_da_taxa_e_tudo_o_que_foi_processado() -> None:
 
     assert r.summary.processed == 2
     assert r.summary.matched == 1
-    assert r.summary.zeroClosings == 1
-    assert r.summary.validationRate == 50.0
+    assert r.summary.zero_closings == 1
+    assert r.summary.validation_rate == 50.0
 
 
 def test_o_periodo_do_relatorio_vem_das_datas_dos_fechos() -> None:
@@ -208,9 +208,9 @@ def test_o_periodo_do_relatorio_vem_das_datas_dos_fechos() -> None:
 
     r = reconcile(pos(), fechos, {})
 
-    assert r.periodStart == date(2026, 6, 21)
-    assert r.periodEnd == date(2026, 6, 28)
-    assert r.reportName == "FECHO_POS_DOP 21 a 28 de Junho-2026"
+    assert r.period_start == date(2026, 6, 21)
+    assert r.period_end == date(2026, 6, 28)
+    assert r.report_name == "FECHO_POS_DOP 21 a 28 de Junho-2026"
 
 
 def test_o_nome_do_relatorio_atravessa_meses() -> None:
