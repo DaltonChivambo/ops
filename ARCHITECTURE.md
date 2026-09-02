@@ -73,32 +73,44 @@ confiança de quem lê — a mesma regra que o catálogo do frontend segue.
 
 ## 3. Camadas de um serviço
 
-Regra base, num só sentido: **`routes → service → repository → models`**. O router nunca
-toca na base de dados; o repositório nunca decide regra de negócio.
+Cinco camadas irmãs, num só sentido: **`controllers → services → repositories →
+infrastructure`**, com o `domain/` no meio a não depender de ninguém. O controlador nunca toca
+na base de dados; o repositório nunca decide regra de negócio. Ver
+[ADR 0008](docs/adr/0008-cinco-camadas-por-servico.md).
 
 ```
 backend/services/reconciliation/closing-credit-validation/
 ├── app/
-│   ├── main.py            app FastAPI, /health e os handlers de erro
-│   ├── routes.py          HTTP — valida o pedido e chama o service
-│   ├── service.py         casos de uso, orquestração, transação
-│   ├── repository.py      único ponto de acesso à base de dados
-│   ├── models.py          tabelas SQLAlchemy
-│   ├── serializers.py     modelos → JSON (espelha o models.ts do frontend)
-│   ├── database.py        engine e sessão async
-│   ├── errors.py          ApiError · BusinessError · NotFoundError
-│   ├── pagination.py      page/perPage → skip/take
-│   ├── settings.py        variáveis de ambiente tipadas
-│   ├── domain/            keys · models · reconciliation
-│   └── infra/             excel · parsers · report   (openpyxl)
-├── migrations/            Alembic
+│   ├── main.py                composition root: a app, o router, os handlers, o /health
+│   ├── settings.py            o que o serviço lê do ambiente — e só o que lê
+│   ├── pagination.py          page/perPage → skip/take
+│   ├── controllers/           executions · cases · schemas · dependencies · error_handlers
+│   ├── services/              validation_service · case_service
+│   ├── domain/                vocabulary · models · keys · reconciliation · errors
+│   ├── repositories/          execution_repository · case_repository
+│   └── infrastructure/        database · tables · excel/(workbook · parsers · report)
+├── migrations/                Alembic
 ├── tests/
 ├── alembic.ini · pyproject.toml
-└── service.yaml           contrato do serviço, legível por máquina
+└── service.yaml               contrato do serviço, legível por máquina
 ```
 
 **`domain/` é puro** — sem FastAPI, sem SQLAlchemy, sem openpyxl. É aí que vive o valor da
-automação, e é o que permite testar a reconciliação sem levantar nada.
+automação, e é o que permite testar a reconciliação sem levantar nada. É também onde o
+**vocabulário** é declarado uma vez (`vocabulary.py`, em `StrEnum`): os cinco estados de
+validação, os tipos de fecho, os estados de caso e os campos de upload.
+
+**Os erros do domínio não conhecem HTTP.** A tabela que os traduz em estado e código vive só
+em `controllers/error_handlers.py`, e é percorrida pela MRO — uma subclasse nova de
+`BusinessRuleError` cai no 422 sem se lhe tocar.
+
+**Os repositórios recebem a sessão e nunca a criam.** É a regra que substitui uma unit of
+work: quem a abre é o `Depends` do pedido, e é por isso que tudo o que corre dentro dele
+partilha a transacção.
+
+**Três línguas, cada uma no seu sítio.** O Python é snake_case, as colunas e o JSON são
+camelCase. A ponte é o nome explícito na coluna (`mapped_column("posId", …)`) e o alias no
+schema (`alias_generator=to_camel`) — nenhum dos dois contratos se dobra ao outro.
 
 **`libs/` está vazio, e é de propósito.** Utilitários técnicos partilhados entram no dia em
 que houver um segundo consumidor — nunca tabelas, nunca regra de negócio.
@@ -179,6 +191,27 @@ documentação — comentários incluídos. Nomes próprios não se traduzem: `S
 As **rotas** são a excepção herdada: `/pos/validacao-credito-fecho` mantém os segmentos em
 português do MozaOps v1, porque é o contrato que o frontend já consome.
 
+**Como se escrevem os nomes** — cada camada na convenção da sua linguagem, e as pontes
+declaradas em vez de assumidas:
+
+| Onde | Convenção | Exemplo |
+|---|---|---|
+| Python | snake_case (PEP 8) | `simo_key_total` |
+| Colunas Postgres | camelCase | `"simoKeyTotal"` |
+| JSON da API | camelCase | `simoKeyTotal` |
+| TypeScript | camelCase | `simoKeyTotal` |
+
+A ponte do lado da base é o nome explícito na coluna
+(`simo_key_total: Mapped[Decimal] = mapped_column("simoKeyTotal", Money)`); a ponte do lado do
+JSON é o alias do schema (`alias_generator=to_camel`). **Nenhum dos dois contratos se dobra ao
+outro**: as colunas ficam camelCase porque renomeá-las obriga a migrar uma base com execuções
+reais, e o JSON fica camelCase porque é o que o `models.ts` do SPA consome.
+
+Corolário prático: quando uma chave em camelCase aparece numa *string* de código Python, ou é
+um nome de coluna, ou uma chave do documento JSONB, ou um campo de formulário — nunca um
+atributo. Foi essa a regra que guiou a passagem a PEP 8, e está registada na
+[ADR 0008](docs/adr/0008-cinco-camadas-por-servico.md).
+
 Glossário do domínio: `fecho → closing`, `caso → case`, `chave → key`,
 `comerciante → merchant`, `execução → execution`,
 `confere/incorrecto/não creditado → match/mismatch/missing`. `closing` e não `settlement` —
@@ -193,6 +226,7 @@ os dois lados da reconciliação.
 cp .env.example .env     # ajustar as senhas
 make up                  # traefik, postgres, keycloak, otel, jaeger e os serviços
 make migrate             # alembic upgrade head
+make lint                # ruff (regras e formato) e mypy --strict
 make test                # testes do backend
 ```
 

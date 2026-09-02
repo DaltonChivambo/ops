@@ -15,9 +15,15 @@ O desenho resultante destas decisões está descrito em [`../../ARCHITECTURE.md`
 | [0005](0005-ops-common-com-contexto-de-build-na-raiz.md) | `ops_common` com contexto de build na raiz | Substituído por 0006 | 2026-08-25 |
 | [0006](0006-backend-mozaops-substitui-esqueletos.md) | O backend do MozaOps substitui os esqueletos da plataforma | Aceite | 2026-08-31 |
 | [0007](0007-federacao-ldap.md) | Federação LDAP/AD no Keycloak | Aceite, por aplicar | 2026-08-02 |
+| [0008](0008-cinco-camadas-por-servico.md) | Cinco camadas por serviço, com o vocabulário no domínio | Aceite | 2026-09-02 |
 
 O 0001 e o 0004 mantêm-se: o monorepo continua único, e o departamento continua metadado e
 não estrutura de pastas.
+
+O 0008 substitui **só a decisão de layout** da 0006 — o resto dela (workspace `uv`, uma base
+e um role por serviço, Traefik, Dockerfile único) continua a valer, e por isso a 0006 fica
+**Aceite** e não substituída. É a primeira vez que um ADR substitui parte de outro; quando
+voltar a acontecer, é assim que se regista.
 
 ## Formato
 

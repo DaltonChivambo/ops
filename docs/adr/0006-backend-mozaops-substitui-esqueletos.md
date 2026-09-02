@@ -116,3 +116,17 @@ processo, que é o que muda devagar. Ver o
 A base de dados, o role e o cliente Keycloak mantêm o nome antigo: renomeá-los
 obrigava a migrar a base com execuções reais e a editar o `.env` de quem já
 corre isto. Os dois nomes estão registados no `service.yaml` do serviço.
+
+## Nota sobre as camadas
+
+O layout escolhido acima — `app/` com `routes → service → repository → models`, `domain/` puro
+e `infra/` à parte — foi substituído em 2026-09-02 pela
+[ADR 0008](0008-cinco-camadas-por-servico.md), que arruma o serviço em cinco camadas irmãs.
+
+A razão está lá escrita, e é a fatura desta decisão: copiar em vez de portar trouxe o serviço a
+funcionar, e trouxe também dois módulos chamados `models`, a persistência na raiz do pacote e
+um `errors.py` com códigos HTTP dentro que o adaptador de Excel importava.
+
+**Só a decisão de layout foi substituída.** Tudo o resto deste ADR — o workspace `uv`, uma base
+e um role por serviço com `REVOKE` cruzado, o Traefik, o Dockerfile único com o serviço em
+`--build-arg`, as migrações em `migrations/` — continua a valer.

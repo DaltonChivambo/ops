@@ -46,21 +46,31 @@ duplicados — persiste o resultado e gera o relatório em Excel.
 
 ## Organização
 
+Cinco camadas, num só sentido — ver a
+[ADR 0008](../../../../docs/adr/0008-cinco-camadas-por-servico.md).
+
 ```
 app/
-├── routes.py       HTTP: entrada e saída, sem regra de negócio
-├── service.py      orquestra o caso de uso
-├── repository.py   acesso a dados
-├── models.py       tabelas SQLAlchemy
-├── serializers.py  espelha 1:1 o models.ts do frontend
-├── domain/         regra pura — sem FastAPI, sem SQLAlchemy, sem openpyxl
-└── infra/          parsing de Excel e geração do relatório
-migrations/         Alembic
+├── main.py            junta as peças: a app, o router, os handlers, o /health
+├── settings.py        o que o serviço lê do ambiente — e só o que lê
+├── pagination.py      page/perPage → skip/take
+├── controllers/       HTTP: rotas, schemas Pydantic, dependências, erros → estados
+├── services/          os casos de uso
+├── domain/            a regra pura, e o vocabulário
+├── repositories/      o único acesso a dados
+└── infrastructure/    sessão, tabelas e a leitura/escrita de Excel
+migrations/            Alembic
 tests/
 ```
 
-O `domain/` não importa nada de fora: é onde está o algoritmo de reconciliação,
-e é o que permite testá-lo sem base de dados nem ficheiros.
+O `domain/` não importa nada de fora — sem FastAPI, sem SQLAlchemy, sem
+openpyxl. É onde está o algoritmo de reconciliação e o `vocabulary.py` que
+declara, uma vez, os estados de validação, os tipos de fecho, os estados de caso
+e os campos de upload. É também o que permite testar a regra sem base de dados
+nem ficheiros.
+
+Os erros do domínio não sabem o que é um 404: a tabela que os traduz vive em
+`controllers/error_handlers.py`.
 
 ## Correr
 
@@ -69,8 +79,22 @@ A partir da raiz do monorepo:
 ```bash
 make up        # levanta a fundação e o serviço
 make migrate   # Alembic sobe o schema
+make lint      # ruff (regras e formato) e mypy --strict
 make test      # os testes, em contentor
 ```
+
+## Testes
+
+| Ficheiro | O que cobre | Precisa de quê |
+|---|---|---|
+| `test_api.py` | as seis rotas, os estados de erro e o envelope | nada |
+| `test_contract.py` | os schemas contra o `models.ts` do SPA | nada |
+| `test_reconciliation_rules.py` | as regras da reconciliação, com dados inventados | nada |
+| `test_reconciliation.py` | os números reais: 18 138 fechos, 99,3% | os três `.xlsx` |
+
+O último **salta-se sozinho** sem os ficheiros do departamento — são dados
+bancários e não são versionados. Para o correr, pô-los em `tests/fixtures/` como
+`pos-list.xlsx`, `simo-closings.xlsx` e `banka-credits.xlsx`.
 
 Em desenvolvimento o serviço escuta em `localhost:8001`, que é para onde o
 proxy do frontend reencaminha `/api/pos/validacao-credito-fecho`.
