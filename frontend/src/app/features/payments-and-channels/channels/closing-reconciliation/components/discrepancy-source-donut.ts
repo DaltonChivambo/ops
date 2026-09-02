@@ -5,11 +5,7 @@ import { DonutChartComponent, type DonutSlice } from '../../../../../shared/ui/d
 import type { ClosingSummary } from '../data/models';
 
 /**
- * Fechos por tratar, em anel.
- *
- * O que aqui está é o assunto: quais são os estados que pedem trabalho, com que
- * cor e por que palavras se chamam. O desenho do anel, a legenda e o destaque
- * estão no app-donut-chart, que não sabe nada de fechos.
+ * Fechos por tratar, em anel — o desenho está no app-donut-chart.
  *
  * Os duplicados entram apesar de não serem divergência: ninguém sabe se a chave
  * confere enquanto a duplicação não se desfizer, e é trabalho igual.

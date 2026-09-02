@@ -50,23 +50,14 @@ type TabId = 'cases' | 'closings';
         </div>
       }
 
-      <!-- Colado ao topo enquanto se percorre a lista: sem isto os separadores
-           saíam do ecrã e ficava-se sem forma de trocar de vista sem voltar
-           atrás. O appPageFirstScroll já tentava segurá-los, mas só trata da
-           roda do rato — num tablet o gesto é toque e passava-lhes ao lado. -->
-      <!-- A referência fica AQUI, no elemento que cola, e não na pastilha lá dentro:
-           é a ele que o appPageFirstScroll pergunta quanto falta para assentar, e
-           só ele sabe onde assenta. -->
+      <!-- A referência fica no elemento que cola, e não na pastilha lá dentro:
+           é a ele que o appPageFirstScroll pergunta quanto falta para assentar. -->
       <div
         #tabList
         class="sticky top-[var(--app-header-h)] z-20 -mx-1 flex items-center gap-3 bg-[#f7f6fb] px-1 py-2"
       >
-        <!-- Controlo segmentado. A pista tem de ser MAIS ESCURA do que a página,
-             senão não há controlo nenhum: estava em gray-50 sobre um fundo #f7f6fb,
-             dois pontos em 255, e a moldura gray-100 outro tanto. Via-se um separador
-             branco pousado no nada e o outro como texto morto — ninguém adivinha que
-             são duas vistas e que se troca entre elas. É a pista que diz «isto é um
-             interruptor»; a pastilha branca só diz qual das duas está aberta. -->
+        <!-- A pista tem de ser mais escura do que a página: é ela que diz «isto
+             é um interruptor». A pastilha branca só diz qual está aberta. -->
         <div
           role="tablist"
           aria-label="Vistas do resultado"
@@ -98,20 +89,9 @@ type TabId = 'cases' | 'closings';
           }
         </div>
 
-        <!-- Só quando os separadores já estão colados, que é o mesmo que dizer
-             «estás na zona das tabelas»: mais acima a página tem o topo à vista e
-             o botão não teria para onde levar ninguém.
-
-             «Topo da página» e não «Voltar ao topo»: o rodapé da tabela já tem um
-             com esse nome, e faz outra coisa — rola a lista por dentro, sem mexer
-             na página. Dois botões com o mesmo rótulo e destinos diferentes era
-             pior do que não ter nenhum.
-
-             Cheio e no corpo dos separadores, não uma moldura discreta: branco
-             com borda cinzenta clara sobre um fundo #f7f6fb quase não se via, e a
-             text-xs ficava mais pequeno do que as pastilhas ao lado, com ar de
-             acessório. Aparece raramente e só quando faz falta — nessa altura tem
-             de se dar a ver, não de se esconder. -->
+        <!-- Só com os separadores colados, que é o mesmo que dizer «já se está
+             na zona das tabelas». «Topo da página» e não «Voltar ao topo»: o
+             rodapé da tabela tem um com esse nome que rola a lista, não a página. -->
         @if (stuck()) {
           <button
             type="button"
@@ -148,11 +128,8 @@ export class ResultTabsComponent {
   protected readonly tab = signal<TabId>('closings');
 
   /**
-   * Os separadores estão colados, ou seja: já se desceu até à zona das tabelas.
-   *
-   * Compara-se a posição deles com o desvio onde assentam, e não com zero — o
-   * `top` deles não é zero abaixo do lg, onde a barra do menu ocupa o cimo do
-   * ecrã. É a mesma conta do appPageFirstScroll, pela mesma razão.
+   * Os separadores estão colados. Compara-se com o desvio onde assentam e não
+   * com zero: abaixo do lg o `top` deles é o da barra do menu.
    */
   protected readonly stuck = signal(false);
 
@@ -164,8 +141,6 @@ export class ResultTabsComponent {
       this.stuck.set(el.getBoundingClientRect().top <= assentaEm + 1);
     };
 
-    // `passive`: só se lê a posição, nunca se trava o gesto — travá-lo aqui
-    // engasgava o scroll da página inteira.
     window.addEventListener('scroll', rever, { passive: true });
     window.addEventListener('resize', rever, { passive: true });
     inject(DestroyRef).onDestroy(() => {

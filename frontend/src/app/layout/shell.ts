@@ -4,20 +4,14 @@ import { LucideMenu } from '@lucide/angular';
 
 import { SidebarComponent } from './sidebar';
 
-/**
- * Abaixo disto a barra arranca encolhida por omissão — portáteis e ecrãs mais
- * pequenos, onde os 16.5rem da barra expandida comem uma fatia grande do
- * ecrã antes de o utilizador tocar em nada. É só o valor inicial: continua a
- * poder expandir-se a qualquer momento.
- */
+/** Abaixo disto a barra arranca encolhida. É só o valor inicial. */
 const COLLAPSE_BELOW_PX = 1536;
 
 /**
- * A casca, copiada de `client/src/app/App.tsx`.
+ * A casca da aplicação.
  *
- * A barra é `fixed` e não participa no fluxo; é a margem esquerda do `main` que
- * lhe abre lugar, e é por isso que ela precisa de acompanhar o estado encolhido.
- * O fundo `#f7f6fb` vem do v1 tal como está — não é um cinzento do Tailwind.
+ * A barra é `fixed` e não participa no fluxo: é a margem esquerda do `main` que
+ * lhe abre lugar, e por isso tem de acompanhar o estado encolhido.
  */
 @Component({
   selector: 'app-shell',
@@ -69,10 +63,8 @@ export class ShellComponent {
   protected readonly open = signal(false);
 
   /**
-   * Abrir a navegação num ecrã estreito mostra-a por extenso, sempre.
-   * Encolhida ela é uma coluna de ícones sem rótulos — passa por atalho para
-   * quem já conhece a aplicação, mas como menu é ilegível, e ainda esconde o
-   * botão de fechar, que só existe no estado expandido.
+   * Num ecrã estreito abre sempre por extenso: encolhida é uma coluna de ícones
+   * sem rótulos, e o botão de fechar só existe no estado expandido.
    */
   protected openMenu(): void {
     this.collapsed.set(false);

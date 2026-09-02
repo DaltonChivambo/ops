@@ -101,8 +101,6 @@ export interface CasePatch {
         </ng-container>
 
         <table [class]="tableClass + ' min-w-3xl @4xl:min-w-4xl'">
-          <!-- Fundo nas células e opaco, e a régua de 3px repetida no cabeçalho —
-                 ver a nota igual na app-reconciliation-table. -->
           <thead [class]="theadClass">
             <tr class="border-b border-gray-100 text-gray-400">
               <th scope="col" [class]="th + ' w-[17rem] py-2.5 pr-3 pl-5 text-left'">
@@ -155,8 +153,7 @@ export interface CasePatch {
                   </span>
                 </td>
                 <td class="px-3 py-3.5">
-                  <!-- Grava ao sair do campo, não a cada tecla: um PATCH por
-                         carácter era um pedido por tecla premida. -->
+                  <!-- Grava ao sair do campo: um PATCH por tecla era de mais. -->
                   <input
                     type="text"
                     [value]="item.eTicket ?? ''"

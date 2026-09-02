@@ -2,11 +2,7 @@ import { ChangeDetectionStrategy, Component, computed, input, signal } from '@an
 
 import { numberFormatter, percentageShares } from '../format';
 
-/**
- * Geometria do anel. Traço fino de propósito: quase 90% deste anel é uma cor só,
- * e a 18px de espessura essa mancha pesava o cartão todo. A 12 o anel lê-se como
- * uma linha e o miolo fica para o número, que é o que se vem cá ver.
- */
+/** Traço fino de propósito: o miolo é para o número, que é o que se vem cá ver. */
 const SIZE = 200;
 const RADIUS = 84;
 const STROKE = 12;
@@ -20,12 +16,11 @@ const MIN_DASH = 3;
 
 /** Uma fatia do anel: o rótulo por extenso, o curto para o centro, e a contagem. */
 export interface DonutSlice {
-  /** Nome por extenso, para a legenda. */
   readonly name: string;
   /** Versão curta, que cabe no miolo do anel ao destacar a fatia. */
   readonly short: string;
   readonly count: number;
-  /** Cor em hexadecimal: entra em SVG e em drop-shadow, onde classes não servem. */
+  /** Hexadecimal: entra em SVG e em drop-shadow, onde classes não servem. */
   readonly color: string;
 }
 
@@ -39,13 +34,8 @@ interface Arc extends DonutSlice {
 /**
  * Anel de proporções — SVG à mão, sem biblioteca de gráficos.
  *
- * Sabe desenhar fatias e mais nada: quem o usa dá-lhe a lista e as palavras.
- * Estava colado aos fechos por tratar, e o que era desse assunto eram três
- * linhas de mapeamento no meio de duzentas de geometria e de interacção.
- *
  * Apontar a uma fatia (ou à linha da legenda) destaca-a e troca o centro pela
- * leitura dessa fatia. A legenda são botões e não itens de lista mortos: é o
- * que dá o mesmo destaque a quem navega por teclado.
+ * leitura dessa fatia. A legenda são botões para o teclado ter o mesmo destaque.
  */
 @Component({
   selector: 'app-donut-chart',
@@ -168,11 +158,10 @@ interface Arc extends DonutSlice {
 })
 export class DonutChartComponent {
   readonly slices = input.required<readonly DonutSlice[]>();
-  /** A palavra debaixo do total, quando não há fatia destacada — ex.: «por tratar». */
+  /** A palavra debaixo do total, quando não há fatia destacada. */
   readonly caption = input.required<string>();
-  /** O que dizer quando não há nada para mostrar. */
   readonly emptyMessage = input('Sem dados.');
-  /** O anel é uma imagem para quem não o vê: isto abre a frase que o descreve. */
+  /** Abre a frase que descreve o anel a quem não o vê. */
   readonly ariaPrefix = input.required<string>();
 
   protected readonly size = SIZE;
@@ -181,7 +170,6 @@ export class DonutChartComponent {
   protected readonly strokeActive = STROKE_ACTIVE;
   protected readonly circumference = CIRCUMFERENCE;
 
-  /** Fatia em destaque — pelo rato no anel, ou pelo rato/teclado na legenda. */
   protected readonly active = signal<string | null>(null);
 
   private readonly segments = computed(() => this.slices().filter((slice) => slice.count > 0));
@@ -195,8 +183,7 @@ export class DonutChartComponent {
     const total = this.total();
     if (total === 0) return [];
 
-    // Uma fatia sozinha não tem vizinha de quem se separar: sem isto ficava com
-    // um golpe de 3° a meio de um anel que devia ser contínuo.
+    // Uma fatia sozinha não tem vizinha de quem se separar.
     const gap = segments.length > 1 ? GAP : 0;
     // Em conjunto, porque a soma tem de fechar — ver percentageShares.
     const shares = percentageShares(segments.map((segment) => segment.count));
@@ -216,7 +203,6 @@ export class DonutChartComponent {
     () => this.arcs().find((arc) => arc.name === this.active()) ?? null,
   );
 
-  /** O anel é uma imagem para quem não o vê; o texto tem de valer por ele. */
   protected readonly ariaSummary = computed(() => {
     const parts = this.arcs().map((arc) => `${arc.name}: ${this.count(arc.count)} (${arc.share})`);
     return `${this.ariaPrefix()}, ${this.count(this.total())} no total. ${parts.join('. ')}.`;

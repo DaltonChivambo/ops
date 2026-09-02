@@ -8,8 +8,7 @@ import {
   type Signal,
 } from '@angular/core';
 import { NgTemplateOutlet } from '@angular/common';
-// `isActive` com outro nome: a classe também tem um método isActive, e dentro
-// do construtor os dois cruzavam-se à vista de quem lê.
+// Renomeado: a classe também tem um método isActive.
 import { isActive as routeIsActive, Router } from '@angular/router';
 import {
   LucideBanknote,
@@ -147,11 +146,8 @@ const SECTIONS: readonly NavSection[] = [
         } @else {
           <span class="min-w-0">
             <img src="mozaops_logo_sem_fundo.svg" alt="MozaOps" class="h-8 w-auto" />
-            <!-- Passa a duas linhas em vez de truncar. No drawer o botão de fechar
-                 rouba 44px a esta linha e sobravam ~164px para um texto que pede
-                 ~168 — cortava por uma unha, e "Meios de Pagamentos e Can…" não
-                 diz de que departamento se trata. Aqui não há nada a ganhar em
-                 esconder: são duas linhas curtas debaixo do logótipo. -->
+            <!-- Duas linhas em vez de truncar: cortado, o nome do departamento
+                 deixa de dizer de qual se trata. -->
             <span class="mt-1.5 block text-2xs leading-snug text-gray-400">
               Meios de Pagamentos e Canais
             </span>
@@ -193,11 +189,6 @@ const SECTIONS: readonly NavSection[] = [
         }
       </nav>
 
-      <!-- Estavam aqui três itens de navegação — Definições, Suporte e Sair —
-           que não navegavam para lado nenhum: o onItemClick só age se o item
-           tiver rota ou sublista, e nenhum tinha. Passam para o menu do
-           utilizador, onde as que ainda não têm destino aparecem desactivadas em
-           vez de mortas, e o Sair termina mesmo a sessão. -->
       <div class="mt-4 border-t border-gray-100 pt-4">
         <app-user-menu [collapsed]="collapsed()" />
       </div>
@@ -239,18 +230,9 @@ const SECTIONS: readonly NavSection[] = [
             ></span>
           }
 
-          <!-- Ícone a vermelho onde se está: tanto no item que É a página actual
-               como no grupo que a contém. Dá a pista mesmo com a barra encolhida,
-               onde nem a sublista nem os rótulos se vêem.
-
-               Só valia para o grupo, e o Dashboard — que tem rota própria e por
-               isso entra por isActive — ficava com o ícone a navy, marcado apenas
-               pela barra à esquerda. Duas formas de dizer a mesma coisa, conforme
-               o item tivesse ou não filhos.
-
-               A barra e o fundo ficam só no isActive, e é diferença que se
-               justifica: essa é a marca de «esta página está aberta», e um grupo
-               não é uma página. -->
+          <!-- Ícone a vermelho onde se está: no item que é a página, e no grupo
+               que a contém. É a única pista com a barra encolhida. A régua e o
+               fundo ficam só no primeiro — um grupo não é uma página. -->
           <span class="shrink-0" [class.text-alert-500]="isActive(item) || hasActiveChild(item)">
             @switch (item.icon) {
               @case ('layout-grid') {
@@ -352,15 +334,8 @@ export class SidebarComponent {
   /**
    * Um sinal por rota, construído uma vez — as rotas da barra são estáticas.
    *
-   * Lia-se `router.url` directamente, e isso é uma propriedade, não um sinal:
-   * com OnPush e sem zone.js, mudar de página não avisava a barra de que tinha
-   * de redesenhar. O ecrã trocava e o item continuava por marcar até algo mais
-   * forçar uma passagem — na prática, o clique seguinte. Daí ser preciso clicar
-   * duas vezes para o ícone acender.
-   *
-   * O `isActive` do router devolve `Signal<boolean>` e compara por segmentos,
-   * com `paths: 'subset'` por omissão — a mesma leitura do `startsWith` que
-   * aqui estava, mas sem o apanhar `/pos-antigo` a partir de `/pos`.
+   * Tem de ser sinal: `router.url` é uma propriedade, e com OnPush sem zone.js
+   * mudar de página não avisava a barra, que só se marcava ao clique seguinte.
    */
   private readonly activeByRoute = new Map<string, Signal<boolean>>();
 

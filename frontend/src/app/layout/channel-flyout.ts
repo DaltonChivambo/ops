@@ -21,11 +21,7 @@ import {
 
 import { type Feature, type NavModule } from '../core/navigation';
 
-/**
- * Sem acentos e em minúsculas, para a pesquisa comparar o que se lê e não o que
- * se escreve: em português quem procura «validacao» tem de achar «Validação», e
- * ninguém escreve cedilhas e tis numa caixa de filtro.
- */
+/** Sem acentos nem maiúsculas: quem escreve «validacao» tem de achar «Validação». */
 function comparavel(texto: string): string {
   return texto
     .normalize('NFD')
@@ -93,8 +89,6 @@ function comparavel(texto: string): string {
 
         <div class="min-w-0 flex-1">
           <p class="truncate text-base font-bold text-gray-900">{{ mod.label }}</p>
-          <!-- «0 funcionalidades» é uma contagem a fingir que informa; para um
-               canal sem nada construído, diz-se isso mesmo. -->
           <p class="truncate text-xs text-gray-400">
             @if (mod.features.length === 0) {
               Sem automações
@@ -124,8 +118,6 @@ function comparavel(texto: string): string {
         Visão Geral
       </button>
 
-      <!-- type="search" como nas outras caixas da aplicação: dá o ✕ de limpar
-           que o browser já sabe desenhar. -->
       <label
         class="mt-2 flex items-center gap-2.5 rounded-xl border border-gray-100 bg-gray-50 px-3 py-2 transition-colors focus-within:border-moza-300 focus-within:bg-white"
       >
@@ -169,9 +161,6 @@ function comparavel(texto: string): string {
           </ul>
         </div>
       } @empty {
-        <!-- Duas razões diferentes para a lista estar vazia, e dizer «ainda não há
-             automações» a quem escreveu um termo que não bate mandava-o embora
-             com a informação errada. -->
         <p class="px-3 py-1 text-sm text-gray-400">
           @if (mod.features.length === 0) {
             Ainda não há automações construídas para este canal.
@@ -192,22 +181,15 @@ export class ChannelFlyoutComponent {
   readonly closed = output<void>();
   readonly selected = output<void>();
 
-  /**
-   * Reposta ao trocar de canal. O painel é o mesmo componente para os três, e
-   * o termo ficava lá: escrever «fecho» no POS e abrir a ATM mostrava a ATM já
-   * filtrada por uma palavra que se escreveu noutro sítio.
-   */
+  /** Reposta ao trocar de canal: o painel é o mesmo componente para os três. */
   protected readonly query = linkedSignal({
     source: () => this.module().id,
     computation: () => '',
   });
 
   /**
-   * Agrupa por categoria preservando a ordem de declaração, já filtrado.
-   *
-   * A pesquisa também olha para a categoria, não só para o título: procurar
-   * «fecho» deve trazer o que está debaixo dessa rubrica, que é como se pensa
-   * no trabalho antes de se saber o nome exacto da automação.
+   * Agrupa por categoria, já filtrado. A pesquisa olha também para a categoria:
+   * procurar «fecho» traz o que está debaixo dessa rubrica.
    */
   protected readonly grouped = computed(() => {
     const termo = comparavel(this.query().trim());

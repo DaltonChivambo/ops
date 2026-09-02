@@ -17,16 +17,7 @@ const dateTimeFormatter = new Intl.DateTimeFormat('pt-PT', {
   minute: '2-digit',
 });
 
-/**
- * Cabeçalho da automação: quem é, de que execução se está a falar e o que se
- * pode fazer com ela.
- *
- * Era isto em dois componentes irmãos — um título e uma barra de execução — e
- * via-se: o título ao pé do ícone, e as etiquetas do período a começar lá
- * atrás, na margem da página, alinhadas com os cartões e não com o título de
- * que falam. Três faixas soltas onde só há uma ideia. Juntos, as etiquetas
- * penduram do título e as acções ficam à direita da mesma linha.
- */
+/** Cabeçalho da automação: quem é, de que execução se fala, e o que se lhe faz. */
 @Component({
   selector: 'app-page-header',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -34,10 +25,8 @@ const dateTimeFormatter = new Intl.DateTimeFormat('pt-PT', {
   template: `
     <header class="flex flex-wrap items-start justify-between gap-x-6 gap-y-4">
       <div class="flex min-w-0 items-start gap-3.5">
-        <!-- Vermelho da marca, e em tom suave de propósito: cheio, um quadrado
-             desta dimensão lia-se como aviso, e o vermelho aqui identifica a
-             automação, não alerta para nada. É a mesma escolha que se fez no
-             ícone activo da barra lateral. -->
+        <!-- Tom suave: cheio, um quadrado deste tamanho lia-se como aviso, e o
+             vermelho aqui identifica a automação. -->
         <span
           class="inline-flex size-11 shrink-0 items-center justify-center rounded-xl bg-alert-50 text-alert-600 ring-1 ring-alert-100"
         >
@@ -73,16 +62,8 @@ const dateTimeFormatter = new Intl.DateTimeFormat('pt-PT', {
                 <b class="max-w-52 truncate font-semibold text-gray-900">{{ period() }}</b>
               </span>
 
-              <!-- Não há etiqueta do relatório: o nome dele é FECHO_POS_DOP mais o
-                   período e o ano, ou seja, repetia o período que já está na
-                   etiqueta ao lado — e só cabia cortado a meio. O nome vai no
-                   title do botão que o descarrega, que é onde interessa, e o
-                   browser mostra-o outra vez ao gravar. -->
-
-              <!-- Sem title com os nomes dos três ficheiros: era informação a mais
-                   escondida atrás do rato, num sítio onde ninguém a procura. A
-                   proveniência de uma execução merece sítio próprio se for para
-                   ficar, não um tooltip a saltar ao passar por cima da etiqueta. -->
+              <!-- O nome do relatório repetia o período desta etiqueta: vai no
+                   title do botão que o descarrega. -->
               <span [class]="chip">
                 Executado
                 <b class="max-w-52 truncate font-semibold text-gray-900">{{ executedAt() }}</b>

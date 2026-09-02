@@ -4,18 +4,7 @@ import { LucideConstruction, LucideSearchX } from '@lucide/angular';
 import { findModule } from '../../../core/navigation';
 import { CardComponent } from '../../../shared/ui/card';
 
-/**
- * O que sobra de um canal sem automação pronta.
- *
- * Isto era o catálogo do canal: uma grelha de cartões, com categoria, descrição
- * e um botão «Abrir». Para um canal com uma funcionalidade só, era um ecrã
- * inteiro para escolher entre uma opção — e a de que se precisa está agora a um
- * clique de distância, pela `openSingleFeature`. Aqui ficam apenas os canais que
- * ainda não têm nada para abrir.
- *
- * Sem `app-header`: aquele cabeçalho trazia o nome da sessão e o botão de sair,
- * que já vivem no rodapé da barra lateral e não precisam de ser repetidos.
- */
+/** O que sobra de um canal sem automação pronta — ver a openSingleFeature. */
 @Component({
   selector: 'app-channel-placeholder',
   changeDetection: ChangeDetectionStrategy.OnPush,

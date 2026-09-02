@@ -47,14 +47,9 @@ export interface NavModule {
 }
 
 /**
- * A automação é do canal POS, e só dele.
- *
- * Era uma fábrica, e a ATM e os Quiosques anunciavam-na cada um com a sua
- * versão, marcada como por construir. Não era só «ainda não»: o serviço que a
- * serve expõe /pos/validacao-credito-fecho e mais nada, e o ficheiro de entrada,
- * as regras de reconciliação e o relatório são os do POS. Os outros dois canais
- * prometiam um caminho que nunca existiu — ficam sem funcionalidades até terem
- * a sua, que será outra automação e não esta.
+ * A automação é do canal POS e só dele: o serviço expõe
+ * `/pos/validacao-credito-fecho`, e o ficheiro de entrada, as regras e o
+ * relatório são os do POS.
  */
 const CLOSING_VALIDATION: Feature = {
   id: 'closing-credit-validation',

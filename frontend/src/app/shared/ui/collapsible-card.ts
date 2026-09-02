@@ -25,16 +25,11 @@ function writeStored(key: string, open: boolean): void {
 }
 
 /**
- * Cartão de gráfico que encolhe para o cabeçalho.
+ * Cartão de gráfico que encolhe para o cabeçalho, e lembra-se da escolha.
  *
- * Numa execução com dezoito mil fechos, a tabela é o que se vem cá ver — quem
- * já sabe como está o apuramento quer fechar os gráficos e ganhar o ecrã. A
- * escolha guarda-se, senão fechá-los a cada visita era mais trabalho do que
- * rolar por eles.
- *
- * `@container` fica sempre ligado: o conteúdo destes cartões precisa de saber a
- * largura do cartão, não a da janela. Atenção ao usar isto noutro sítio — o
- * `container-type` faz do cartão bloco de contenção para descendentes `fixed`.
+ * `@container` fica sempre ligado, para o conteúdo se medir pelo cartão e não
+ * pela janela. Atenção: `container-type` faz dele bloco de contenção para
+ * descendentes `fixed`.
  */
 @Component({
   selector: 'app-collapsible-card',
@@ -42,8 +37,7 @@ function writeStored(key: string, open: boolean): void {
   imports: [CardComponent, LucideChevronDown],
   host: {
     class: 'block',
-    // Aberto, estica para igualar o cartão ao lado. Fechado, encolhe para o
-    // cabeçalho — senão ficava um cartão vazio da altura do vizinho.
+    // Aberto, iguala o cartão ao lado; fechado, encolhe para o cabeçalho.
     '[class.h-full]': 'open()',
     '[class.self-start]': '!open()',
   },
@@ -79,14 +73,11 @@ function writeStored(key: string, open: boolean): void {
 })
 export class CollapsibleCardComponent {
   /**
-   * `heading` e não `title`: `title` é um atributo global do HTML, e quem usasse
-   * o componente com atributo estático — `<app-collapsible-card title="...">` —
-   * deixava-o no DOM além de o passar como input. O browser fazia dele tooltip
-   * do cartão inteiro, e passar o rato por um gráfico mostrava um balão a
-   * repetir o cabeçalho que já lá está escrito.
+   * `heading` e não `title`: `title` é atributo global do HTML, e em uso
+   * estático fica no DOM, virando tooltip do cartão inteiro.
    */
   readonly heading = input.required<string>();
-  /** Sufixo da chave em localStorage. Sem ele, o estado não sobrevive à navegação. */
+  /** Sufixo da chave em localStorage. */
   readonly storageKey = input.required<string>();
 
   protected readonly open = signal(true);

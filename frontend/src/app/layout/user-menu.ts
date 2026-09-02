@@ -21,17 +21,9 @@ import { SessionStore } from '../core/auth/session.store';
 import { AVATAR_CLASS } from '../shared/ui/avatar';
 
 /**
- * Entradas por construir.
- *
- * Ficam à vista e desactivadas, com a razão escrita, em vez de clicáveis e sem
- * efeito. O rodapé anterior tinha três itens — Definições, Suporte e Sair — que
- * pareciam botões e não faziam nada: o onItemClick da barra só age quando o item
- * tem rota ou sublista, e nenhum deles tinha. O «Sair» nunca chegou a terminar
- * sessão nenhuma.
- *
- * Quem é dono da identidade aqui é o Keycloak, não esta aplicação — não há
- * tabela de utilizadores nossa, o principal vem todo do token. Quando estas
- * entradas ganharem destino, o mais provável é ser a consola de conta dele.
+ * Entradas por construir: à vista e desactivadas, em vez de clicáveis e sem
+ * efeito. Quem é dono da identidade é o Keycloak, não esta aplicação, portanto
+ * o destino provável é a consola de conta dele.
  */
 const SOON_ITEMS = [
   { id: 'profile', label: 'Perfil', icon: 'user' },
@@ -85,16 +77,14 @@ const SOON_ITEMS = [
     </button>
 
     @if (open()) {
-      <!-- Abre para cima: isto vive no fundo da barra, e para baixo não há ecrã.
-           w-72 e não w-60: "Alterar palavra-passe" mais a etiqueta "em breve"
-           pedem ~247px, e a 15rem o rótulo cortava a meio da palavra. Passa da
-           largura da barra e assenta sobre o conteúdo — é o que um menu faz. -->
+      <!-- Abre para cima: vive no fundo da barra. A w-72 é o que "Alterar
+           palavra-passe" mais a etiqueta pedem sem cortar. -->
       <div
         role="menu"
         class="absolute bottom-full left-0 z-50 mb-2 w-72 rounded-xl border border-gray-100 bg-white py-1.5 shadow-lg"
       >
         @if (collapsed()) {
-          <!-- Encolhida, o gatilho é só o avatar e não diz de quem é a sessão. -->
+          <!-- Encolhida, o gatilho é só o avatar. -->
           <div class="mb-1 border-b border-gray-100 px-3 pt-1 pb-2">
             <p class="truncate text-sm font-semibold text-gray-900">{{ name() }}</p>
             <p class="truncate text-2xs text-gray-400">{{ roleLabels() }}</p>

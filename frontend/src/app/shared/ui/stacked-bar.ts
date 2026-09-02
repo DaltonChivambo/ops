@@ -2,31 +2,22 @@ import { ChangeDetectionStrategy, Component, computed, input, model } from '@ang
 
 /** Um segmento da barra. A cor vem em classe porque é sempre uma cor do tema. */
 export interface BarSegment {
-  /** Identifica o segmento no destaque — o mesmo valor que o `active` toma. */
   readonly key: string;
   readonly label: string;
   readonly value: number;
   /** Classe de fundo, ex.: `bg-emerald-500`. */
   readonly className: string;
-  /** Já formatado por quem sabe as unidades: o gráfico não conhece moedas. */
+  /** Já formatado: o gráfico não conhece moedas. */
   readonly ariaLabel: string;
 }
 
 /**
- * Barra empilhada de proporções, com destaque.
- *
- * O `active` é bidireccional de propósito: quem a usa costuma ter uma tabela ao
- * lado com as mesmas linhas, e apontar a um segmento tem de acender a linha —
- * e a linha, o segmento. Sem isso seriam dois destaques que se ignoram.
- *
- * Duas decisões que aqui parecem detalhe e não são:
+ * Barra empilhada de proporções, com destaque bidireccional — quem a usa tem
+ * uma tabela ao lado, e apontar a um segmento tem de acender a linha.
  *
  * A largura mínima existe porque as fatias que interessam são fracções de ponto
- * percentual: sem ela a barra saía de uma cor só e não dizia nada.
- *
- * Quem arredonda as pontas é o contentor, e os segmentos ficam rectos. A
- * arredondar nos dois sítios, um segmento de 10px levava um raio maior do que
- * ele próprio e saía cortado contra o canto.
+ * percentual. As pontas arredonda-as o contentor, não os segmentos: um segmento
+ * mais estreito do que o raio sairia cortado contra o canto.
  */
 @Component({
   selector: 'app-stacked-bar',
@@ -56,7 +47,6 @@ export interface BarSegment {
 export class StackedBarComponent {
   readonly segments = input.required<readonly BarSegment[]>();
 
-  /** Segmento em destaque, partilhado com quem estiver ao lado. */
   readonly active = model<string | null>(null);
 
   private readonly total = computed(() =>

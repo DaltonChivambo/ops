@@ -111,7 +111,7 @@ const STRUCK_ROW =
           </button>
         }
 
-        <!-- Primeira a ceder largura quando a barra aperta, para não empurrar o resto. -->
+        <!-- Primeira a ceder largura quando a barra aperta. -->
         <label
           class="flex w-full min-w-0 items-center gap-2.5 rounded-xl border border-gray-100 bg-gray-50 px-3.5 py-2.5 transition-colors focus-within:border-moza-300 focus-within:bg-white sm:w-auto sm:max-w-[27rem] sm:flex-1"
         >
@@ -138,15 +138,11 @@ const STRUCK_ROW =
       </ng-container>
 
       <table [class]="tableClass + ' min-w-2xl'">
-        <!-- O fundo vai nas células, não aqui: num grupo de linhas, e com bordas
-               colapsadas, não se pode contar com ele. E opaco — estava a 95% com
-               backdrop-blur, feito para se ver através, e via-se mesmo: as réguas
-               de estado e os fundos âmbar das chaves passavam por trás da faixa. -->
+        <!-- O fundo vai nas células e opaco: num grupo de linhas, com bordas
+             colapsadas, não se pode contar com ele. -->
         <thead [class]="theadClass">
-          <!-- Só border-b. Com border-y havia duas riscas de 1px encostadas — a
-                 de baixo da barra de filtros e a de cima desta linha, da mesma cor
-                 — e duas riscas juntas lêem-se como um sulco entre as duas divs.
-                 As outras tabelas do módulo já eram só border-b. -->
+          <!-- Só border-b: com border-y ficava encostada à risca da barra de
+               filtros, e duas de 1px juntas lêem-se como um sulco. -->
           <tr class="border-b border-gray-100 text-gray-400">
             <th scope="col" [class]="th + ' w-[17rem] py-2.5 pr-3 pl-5 text-left'">
               POS / Comerciante
@@ -212,7 +208,7 @@ const STRUCK_ROW =
                 </td>
               </tr>
             } @else {
-              <!-- Vários fechos no período: linha da CHAVE (total agregado), fechos por baixo. -->
+              <!-- Vários fechos no período: linha da CHAVE, fechos por baixo. -->
               <tr
                 (click)="opened.set(detail)"
                 class="cursor-pointer border-b border-gray-50 bg-amber-50/40 text-gray-600 transition-colors last:border-b-0 hover:bg-amber-50/70"
@@ -264,7 +260,7 @@ const STRUCK_ROW =
                 <td class="px-3 py-3.5 text-right">
                   <app-money [value]="detail.simoKeyTotal" />
                 </td>
-                <!-- Banka é da CHAVE, não do fecho: mostra-se aqui, não nas linhas por baixo. -->
+                <!-- Banka é da CHAVE, não do fecho. -->
                 <td class="px-3 py-3.5 text-right">
                   <app-money [value]="detail.bankaClosingTotal" />
                 </td>
@@ -347,9 +343,8 @@ const STRUCK_ROW =
       </p>
     </app-data-table>
 
-    <!-- Fora do cartão de propósito: o cartão é @container, e container-type faz
-         dele bloco de contenção para descendentes fixed. Lá dentro, este painel
-         deixava de se medir pela janela e passava a medir-se pela tabela. -->
+    <!-- Fora do cartão: o @container faz dele bloco de contenção para
+         descendentes fixed, e o painel passaria a medir-se pela tabela. -->
     @if (opened(); as detail) {
       <app-key-detail-panel
         [executionId]="executionId()"
@@ -358,7 +353,7 @@ const STRUCK_ROW =
       />
     }
 
-    <!-- O POS ID é um botão focável; um tr não é, e role="button" destruiria a semântica. -->
+    <!-- O POS ID é um botão focável; um tr não é. -->
     <ng-template #identity let-detail>
       <button
         type="button"
@@ -419,12 +414,9 @@ export class ReconciliationTableComponent {
   protected readonly page = linkedSignal({ source: this.queryKey, computation: () => 1 });
 
   /**
-   * NÃO se esvazia ao mudar de consulta, ao contrário do resto que deriva dela.
-   * Esvaziar encolhia a tabela de cinquenta linhas para zero durante o pedido; a
-   * página ficava mais curta do que a posição do scroll e o browser era obrigado
-   * a puxá-la para cima, de volta aos gráficos. As linhas antigas ficam à vista,
-   * esbatidas, até as novas chegarem e as substituírem — é para isso que serve o
-   * `opacity-50` na caixa.
+   * NÃO se esvazia ao mudar de consulta, ao contrário do resto que dela deriva:
+   * a tabela encolhia durante o pedido e o browser puxava o scroll para cima.
+   * As linhas antigas ficam esbatidas até as novas chegarem.
    */
   protected readonly items = signal<readonly ClosingDetail[]>([]);
   protected readonly expanded = linkedSignal<string, ReadonlySet<string>>({
