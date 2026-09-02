@@ -55,6 +55,10 @@ services:
     environment:
       DATABASE_URL: postgresql+asyncpg://${DB_RECONCILIATION_USER}:${DB_RECONCILIATION_PASSWORD}@postgres:5432/mozaops_closing_reconciliation
       LOG_LEVEL: ${LOG_LEVEL}
+      # Com valor por omissão porque a variável é nova: um `.env` anterior a ela
+      # resolveria para string vazia, e uma string vazia num campo inteiro faz o
+      # serviço rebentar no arranque em vez de usar o default do `settings.py`.
+      MAX_UPLOAD_MB: ${MAX_UPLOAD_MB:-64}
     networks: [mozaops]
     depends_on:
       postgres:

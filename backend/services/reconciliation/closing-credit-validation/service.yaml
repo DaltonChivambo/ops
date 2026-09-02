@@ -7,9 +7,18 @@
 name: closing-credit-validation
 category: reconciliation
 context: Validação de crédito de valores de fecho
-port: 8001
+
+# `port` é a que o contentor escuta — a mesma do EXPOSE, do gunicorn e do
+# `loadbalancer.server.port` do Traefik. A 8001 é só a publicação em
+# desenvolvimento (`docker-compose.override.yml`), para o `ng serve` lhe chegar.
+port: 8000
+dev_port: 8001
+
 departments: [Meios de Pagamentos e Canais]
 channels: [POS]
+# O caminho público, visto de fora. O router monta em
+# `/pos/validacao-credito-fecho`: o `/api` é a fronteira da API e é o Traefik
+# que o corta.
 routes: [/api/pos/validacao-credito-fecho]
 
 # ─── Quem responde por isto ──────────────────────────────────────────────────
@@ -20,13 +29,23 @@ developed_by: [Dalton Chivambo]
 requirements_by: [Dalton Chivambo]
 
 # ─── Infraestrutura ──────────────────────────────────────────────────────────
-# A base e o role ainda dizem `closing_reconciliation`, o nome antigo do serviço.
-# Não é descuido: renomeá-los obrigaria a migrar a base que já tem as execuções
-# reais (18 138 fechos) e a editar o `.env` de quem já corre isto. O nome do
-# serviço mudou; o do armazenamento fica até haver uma janela para o migrar.
+# TUDO o que ainda diz `closing_reconciliation`, o nome antigo do serviço, está
+# nesta lista — e é de propósito que está toda num sítio só, em vez de espalhada
+# por comentários.
+#
+# Não é descuido: renomear obriga a migrar a base que já tem as execuções reais
+# (18 138 fechos), a reimportar o realm do Keycloak e a editar o `.env` de quem
+# já corre isto. O nome do serviço mudou; o do armazenamento fica até haver uma
+# janela para o migrar, e então corre-se isto:
+#
 #   ALTER DATABASE mozaops_closing_reconciliation
 #     RENAME TO mozaops_closing_credit_validation;
+#   ALTER ROLE closing_reconciliation
+#     RENAME TO closing_credit_validation;
+#
+# ... e mudam-se, a par, o `DB_RECONCILIATION_*` do `.env`, o `DATABASE_URL` do
+# `docker-compose.yml`, o `create_database` do initdb e o clientId no realm.
 database: mozaops_closing_reconciliation
 role: closing_reconciliation
-# Mesmo motivo: o clientId está no realm importado e o segredo no `.env`.
 keycloak_client: closing-reconciliation
+env_prefix: DB_RECONCILIATION

@@ -47,6 +47,10 @@ SQL
 }
 
 create_database "mozaops_closing_reconciliation" "$DB_RECONCILIATION_USER" "$DB_RECONCILIATION_PASSWORD"
+# O `cases` ainda não é um serviço — e mesmo assim fica. É a segunda ponta de
+# que o REVOKE precisa para ser verificável: sem um role que NÃO se possa ligar
+# à base da reconciliação, a regra do ARCHITECTURE.md §5 não se prova. É isto
+# que o scripts/verify-m0.sh testa.
 create_database "mozaops_cases"                  "$DB_CASES_USER"          "$DB_CASES_PASSWORD"
 create_database "keycloak"                       "$DB_KEYCLOAK_USER"       "$DB_KEYCLOAK_PASSWORD"
 

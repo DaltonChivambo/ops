@@ -11,7 +11,7 @@ classifica as divergências e gera o relatório do departamento.
 | Categoria | `reconciliation` |
 | Departamento | Meios de Pagamentos e Canais (DOP) |
 | Canal | POS |
-| Porta | 8001 |
+| Porta | 8000 no contentor · 8001 publicada em desenvolvimento |
 | Rotas | `/api/pos/validacao-credito-fecho` |
 
 ## Responsabilidade
