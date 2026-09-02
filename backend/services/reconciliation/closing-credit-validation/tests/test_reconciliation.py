@@ -11,6 +11,7 @@ os verificou contra o manual do PDD.
 from pathlib import Path
 
 import pytest
+
 from app.domain.reconciliation import reconcile
 from app.infra import parsers
 

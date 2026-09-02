@@ -24,6 +24,11 @@ ignore = [
     "RUF001", "RUF002", "RUF003",  # os comentários são em português, com acentos
 ]
 
+[tool.ruff.lint.isort]
+# Sem isto o isort arruma `app` e `tests` entre as bibliotecas de terceiros —
+# ficam no bloco errado e o `import` deixa de dizer o que é nosso.
+known-first-party = ["app", "tests", "mozaops_libs"]
+
 [tool.ruff.lint.flake8-bugbear]
 # `Depends()`, `Query()` e companhia nos valores por omissão são a forma como se
 # escreve FastAPI — não o descuido do argumento mutável que o B008 persegue.
