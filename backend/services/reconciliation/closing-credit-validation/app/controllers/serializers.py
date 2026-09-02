@@ -6,21 +6,15 @@ os literais que o frontend mostra: `D_PLUS_1` → `'D+1'`, `NA` → `'n.a'`,
 `in_review` → `'in-review'`.
 """
 
-from dataclasses import asdict
 from datetime import date, datetime
 from decimal import Decimal
 from typing import Any
 
-from .domain.models import ClosingSummary
-from .models import ClosingDetail, CreditMovement, Execution, PendingCase
+from app.infrastructure.tables import ClosingDetail, CreditMovement, Execution, PendingCase
 
 CLOSING_TYPE_LABELS = {"D": "D", "D_PLUS_1": "D+1", "NA": "n.a"}
 CASE_STATUS_LABELS = {"pending": "pending", "in_review": "in-review", "resolved": "resolved"}
 CASE_STATUS_VALUES = {value: key for key, value in CASE_STATUS_LABELS.items()}
-
-
-def summary_to_dict(summary: ClosingSummary) -> dict[str, Any]:
-    return {key: _plain(value) for key, value in asdict(summary).items()}
 
 
 def execution_to_dict(

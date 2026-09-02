@@ -13,7 +13,7 @@ from pathlib import Path
 import pytest
 
 from app.domain.reconciliation import reconcile
-from app.infra import parsers
+from app.infrastructure.excel import parsers
 
 FIXTURES = Path(__file__).parent / "fixtures"
 POS_LIST = FIXTURES / "pos-list.xlsx"

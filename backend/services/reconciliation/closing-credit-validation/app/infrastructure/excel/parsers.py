@@ -28,10 +28,10 @@ from typing import IO, Any
 from openpyxl import load_workbook
 from openpyxl.worksheet.worksheet import Worksheet
 
-from ..domain.keys import key_from_description, normalize_pos_id
-from ..domain.models import BankaCredit, BankaMovement, PosInfo, SimoClosing
-from ..errors import BusinessError
-from .excel import cell_date, cell_text, find_header_row, parse_number, validate_headers
+from ...domain.errors import InvalidInputError
+from ...domain.keys import key_from_description, normalize_pos_id
+from ...domain.models import BankaCredit, BankaMovement, PosInfo, SimoClosing
+from .workbook import cell_date, cell_text, find_header_row, parse_number, validate_headers
 
 SLOT_LABELS = {
     "posList": "Lista de POS",
@@ -48,8 +48,8 @@ HEADER_SEARCH_ROWS = 10
 BANKA_SAMPLE_ROWS = 20  # linhas espreitadas para escolher a coluna DESCRITIVO_MOV certa
 
 
-def _structure_error(slot: str, filename: str, missing: list[str]) -> BusinessError:
-    return BusinessError(
+def _structure_error(slot: str, filename: str, missing: list[str]) -> InvalidInputError:
+    return InvalidInputError(
         f"Dados incompletos ou em formato inválido: o ficheiro «{filename}» no campo "
         f"«{SLOT_LABELS[slot]}» não tem as colunas esperadas ({', '.join(missing)}). "
         "Verifique se carregou o ficheiro correcto e volte a submeter."
@@ -63,7 +63,7 @@ def _open_sheet(stream: IO[bytes], slot: str, filename: str, sheet_name: str | N
     # PDF renomeado levantam excepções diferentes do openpyxl, e para o operador
     # são todos o mesmo problema — o ficheiro não se lê.
     except Exception as error:
-        raise BusinessError(
+        raise InvalidInputError(
             f"Dados incompletos ou em formato inválido: não foi possível ler o ficheiro "
             f"«{filename}» no campo «{SLOT_LABELS[slot]}». Confirme que é um Excel (.xlsx) válido."
         ) from error

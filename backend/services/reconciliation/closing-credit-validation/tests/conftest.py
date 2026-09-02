@@ -17,11 +17,10 @@ from typing import Any
 import pytest
 from fastapi.testclient import TestClient
 
-from app import routes
-from app.database import get_session
-from app.errors import NotFoundError
+from app.controllers.dependencies import get_case_service, get_validation_service
+from app.domain.errors import NotFoundError
+from app.infrastructure.tables import ClosingDetail, CreditMovement, Execution, PendingCase
 from app.main import app
-from app.models import ClosingDetail, CreditMovement, Execution, PendingCase
 
 EXECUTION_ID = "3f2b1c00-0000-4000-8000-000000000001"
 CASE_ID = "3f2b1c00-0000-4000-8000-000000000002"
@@ -109,7 +108,10 @@ def make_movement() -> CreditMovement:
 
 
 class FakeService:
-    """Substitui o módulo `service` — as rotas chamam-lhe exactamente o mesmo.
+    """Faz de `ValidationService` e de `CaseService` ao mesmo tempo.
+
+    Um objecto só para os dois porque partilham estado: mudar um caso e reler a
+    execução a seguir tem de ver a mesma coisa, como veria em produção.
 
     Guarda o que lhe pediram (`chamadas`), para os testes poderem afirmar que a
     rota encaminhou os argumentos certos sem espreitar para dentro da camada.
@@ -135,21 +137,21 @@ class FakeService:
             raise NotFoundError("A execução indicada não existe ou já foi removida.")
         return self.execution
 
-    async def run_validation(self, _session: Any, files: Any) -> str:
+    async def run(self, files: Any) -> str:
         self.chamadas["run_validation"] = {slot: nome for slot, (_, nome) in files.items()}
         return EXECUTION_ID
 
-    async def get_execution(self, _session: Any, execution_id: str) -> Execution:
+    async def get_execution(self, execution_id: str) -> Execution:
         return self._guard(execution_id)
 
-    async def get_latest_execution(self, _session: Any) -> Execution | None:
+    async def get_latest_execution(self) -> Execution | None:
         return self.execution
 
-    async def list_cases(self, _session: Any, _execution_id: str) -> list[PendingCase]:
+    async def list_cases(self, _execution_id: str) -> list[PendingCase]:
         return self.cases
 
     async def list_details(
-        self, _session: Any, execution_id: str, page: Any, validation: Any, search: Any
+        self, execution_id: str, page: Any, validation: Any, search: Any
     ) -> tuple[list[ClosingDetail], int, dict[str, int]]:
         self.chamadas["list_details"] = {
             "page": page.page,
@@ -160,7 +162,7 @@ class FakeService:
         self._guard(execution_id)
         return self.details, len(self.details), self.counts
 
-    async def get_key_breakdown(self, _session: Any, execution_id: str, key: str) -> dict[str, Any]:
+    async def get_key_breakdown(self, execution_id: str, key: str) -> dict[str, Any]:
         self._guard(execution_id)
         if key != KEY:
             raise NotFoundError("Não há nenhum fecho com esta chave nesta execução.")
@@ -171,8 +173,8 @@ class FakeService:
             "case": self.cases[0],
         }
 
-    async def update_case(
-        self, _session: Any, case_id: str, patch: dict[str, Any]
+    async def update(
+        self, case_id: str, patch: dict[str, Any]
     ) -> tuple[PendingCase, dict[str, Any]]:
         self.chamadas["update_case"] = patch
         if case_id != CASE_ID:
@@ -189,7 +191,7 @@ class FakeService:
             caso.status = {"in-review": "in_review"}.get(patch["status"], patch["status"])
         return caso, dict(SUMMARY)
 
-    async def build_report(self, _session: Any, execution_id: str) -> tuple[bytes, str]:
+    async def build_report(self, execution_id: str) -> tuple[bytes, str]:
         execucao = self._guard(execution_id)
         return b"PK\x03\x04conteudo-xlsx", f"{execucao.reportName}.xlsx"
 
@@ -200,14 +202,14 @@ def service() -> FakeService:
 
 
 @pytest.fixture
-def client(service: FakeService, monkeypatch: pytest.MonkeyPatch) -> Any:
-    """Cliente HTTP contra a app real, com a camada de serviço substituída.
+def client(service: FakeService) -> Any:
+    """Cliente HTTP contra a app real, com os dois serviços substituídos.
 
-    O `get_session` é anulado porque a sessão nunca chega a ser usada — quem a
-    receberia é o serviço, e esse é falso.
+    A substituição é feita na fronteira que o `dependencies.py` declara, e é aí
+    que ela pára: nada abaixo — repositório, sessão, engine — chega a existir.
     """
-    monkeypatch.setattr(routes, "service", service)
-    app.dependency_overrides[get_session] = lambda: None
+    app.dependency_overrides[get_validation_service] = lambda: service
+    app.dependency_overrides[get_case_service] = lambda: service
     with TestClient(app) as cliente:
         yield cliente
     app.dependency_overrides.clear()

@@ -25,6 +25,7 @@ Camada de domínio: sem I/O, sem framework — recebe estruturas já parseadas.
 from datetime import date
 from decimal import Decimal
 
+from .errors import NoClosingsError
 from .keys import build_key
 from .models import (
     BankaCredit,
@@ -54,10 +55,6 @@ MONTHS_PT = (
 )
 
 UNKNOWN = "—"
-
-
-class NoClosingsError(Exception):
-    """Nenhum fecho válido no ficheiro da SIMO — exceção de negócio do PDD."""
 
 
 def build_report_name(start: date, end: date) -> str:

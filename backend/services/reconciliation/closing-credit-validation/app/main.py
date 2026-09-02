@@ -1,45 +1,23 @@
-"""Entrada do serviço `closing-credit-validation`.
+"""Composition root do serviço `closing-credit-validation`.
 
-Sem Keycloak e sem CORS por agora — ver a nota de âmbito no plano desta
-funcionalidade. Todas as rotas ficam abertas; fechar isto é trabalho do M6+.
+Junta as peças e mais nada: a app, o router, os handlers de erro e o `/health`.
+Quem decide o que recebe o quê é `controllers/dependencies.py`.
+
+Sem Keycloak e sem CORS por agora — todas as rotas ficam abertas; fechar isto é
+trabalho do M6+ e está registado no `ARCHITECTURE.md` §6.
 """
 
-import logging
+from fastapi import FastAPI
 
-from fastapi import FastAPI, Request
-from fastapi.responses import JSONResponse
-
-from .errors import ApiError
-from .routes import router
-
-logger = logging.getLogger("closing_credit_validation")
+from app.controllers import error_handlers
+from app.controllers.router import router
 
 app = FastAPI(title="MozaOps — closing-credit-validation")
 
 app.include_router(router)
+error_handlers.register(app)
 
 
 @app.get("/health")
 async def health() -> dict[str, str]:
     return {"status": "ok"}
-
-
-@app.exception_handler(ApiError)
-async def handle_api_error(_request: Request, error: ApiError) -> JSONResponse:
-    return JSONResponse(
-        status_code=error.status, content={"error": {"code": error.code, "message": error.message}}
-    )
-
-
-@app.exception_handler(Exception)
-async def handle_unexpected(_request: Request, error: Exception) -> JSONResponse:
-    logger.exception("Erro inesperado", exc_info=error)
-    return JSONResponse(
-        status_code=500,
-        content={
-            "error": {
-                "code": "internal_error",
-                "message": "Ocorreu um erro inesperado no servidor. Tente novamente.",
-            }
-        },
-    )

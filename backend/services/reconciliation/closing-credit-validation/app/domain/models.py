@@ -5,9 +5,10 @@ FastAPI, sem SQLAlchemy, sem openpyxl. São o vocabulário que os parsers
 produzem e que a reconciliação consome.
 """
 
-from dataclasses import dataclass, field
+from dataclasses import asdict, dataclass, field
 from datetime import date
 from decimal import Decimal
+from typing import Any
 
 Validation = str  # 'match' | 'mismatch' | 'missing' | 'zero' | 'duplicated'
 ClosingType = str  # 'D' | 'D_PLUS_1' | 'NA'
@@ -138,6 +139,18 @@ class ClosingSummary:
     # dinheiro em falta, que é o contrário do que aconteceu.
     simoAmountDuplicated: Decimal = Decimal(0)
     bankaAmountDuplicated: Decimal = Decimal(0)
+
+    def to_json_dict(self) -> dict[str, Any]:
+        """Os indicadores como documento JSON, que é a forma em que são guardados.
+
+        A coluna `execution.summary` é JSONB e o frontend lê-a tal como está —
+        logo esta é a forma canónica, e não uma representação da apresentação.
+        Só os `Decimal` precisam de conversão: o resto já é JSON.
+        """
+        return {
+            campo: float(valor) if isinstance(valor, Decimal) else valor
+            for campo, valor in asdict(self).items()
+        }
 
 
 @dataclass(slots=True)
