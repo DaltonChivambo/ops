@@ -5,6 +5,7 @@ código, e espelham `models.ts` do frontend 1:1). Os enums são traduzidos para
 os literais que o frontend mostra: `D_PLUS_1` → `'D+1'`, `NA` → `'n.a'`,
 `in_review` → `'in-review'`.
 """
+
 from dataclasses import asdict
 from datetime import date, datetime
 from decimal import Decimal

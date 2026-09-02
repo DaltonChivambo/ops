@@ -7,10 +7,10 @@ ficheiros de amostra). Os números esperados vêm de
 `docs/implementation-plan.md` §8 (verificação ponta a ponta), que por sua vez
 os verificou contra o manual do PDD.
 """
+
 from pathlib import Path
 
 import pytest
-
 from app.domain.reconciliation import reconcile
 from app.infra import parsers
 
@@ -21,7 +21,8 @@ BANKA_CREDITS = FIXTURES / "banka-credits.xlsx"
 
 pytestmark = pytest.mark.skipif(
     not (POS_LIST.exists() and SIMO_CLOSINGS.exists() and BANKA_CREDITS.exists()),
-    reason="ficheiros de amostra reais não estão em tests/fixtures/ (dados bancários, não versionados)",
+    reason="ficheiros de amostra reais não estão em tests/fixtures/ "
+    "(dados bancários, não versionados)",
 )
 
 

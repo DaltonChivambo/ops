@@ -1,4 +1,5 @@
 """Configuração do serviço — variáveis de ambiente tipadas."""
+
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 

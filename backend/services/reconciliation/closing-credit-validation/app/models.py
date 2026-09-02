@@ -16,9 +16,11 @@ não pedem nada a ninguém. Mexer na ordem aqui muda a tabela.
 `bankaCreditsRaw` do schema original não se porta: confirmado que é escrito e
 nunca lido em produção (a folha do relatório que o consumia já não existe).
 """
+
 import uuid
 from datetime import UTC, date, datetime
 from decimal import Decimal
+from typing import Any
 
 import sqlalchemy as sa
 from sqlalchemy.dialects.postgresql import JSONB
@@ -68,7 +70,7 @@ class Execution(Base):
     bankaCreditsFile: Mapped[str] = mapped_column(sa.String)
     # Snapshot denormalizado do `ClosingSummary` — mutado quando um caso muda de
     # estado (ver `service._refresh_case_counters`), não só à criação.
-    summary: Mapped[dict] = mapped_column(JSONB)
+    summary: Mapped[dict[str, Any]] = mapped_column(JSONB)
 
 
 class ClosingDetail(Base):

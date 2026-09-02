@@ -3,6 +3,7 @@
 Sem Keycloak e sem CORS por agora — ver a nota de âmbito no plano desta
 funcionalidade. Todas as rotas ficam abertas; fechar isto é trabalho do M6+.
 """
+
 import logging
 
 from fastapi import FastAPI, Request

@@ -8,6 +8,7 @@ Período» do MIS é `posId` seguido de `período % 1000` com pad a 3 dígitos.
 
 Verificado: período 4540 → 237958540; período 37 → 221675037; período 1 → 263071001.
 """
+
 import re
 
 _DESCRIPTION_KEY = re.compile(r"0{0,4}(\d+)\s*-\s*(\d+)\s*$")

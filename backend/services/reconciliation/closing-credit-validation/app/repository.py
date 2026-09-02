@@ -3,6 +3,7 @@
 Porte de `repositories.py` do MozaOps v1 (Prisma → SQLAlchemy async). Nenhuma
 outra camada importa `sqlalchemy`: assim a troca de ORM fica contida aqui.
 """
+
 import uuid
 from typing import Any
 
@@ -24,7 +25,7 @@ async def create_execution(
     session: AsyncSession,
     result: ReconciliationResult,
     files: dict[str, str],
-    summary: dict,
+    summary: dict[str, Any],
 ) -> str:
     """Persiste execução + detalhes + movimentos + casos numa única transacção."""
     execution_id = str(uuid.uuid4())
@@ -42,7 +43,7 @@ async def create_execution(
     )
     await session.flush()
 
-    details = [
+    details: list[dict[str, Any]] = [
         {
             "id": str(uuid.uuid4()),
             "executionId": execution_id,
@@ -71,7 +72,7 @@ async def create_execution(
 
     # Uma linha por movimento do Banka (~18k, a par dos detalhes): é o que
     # permite abrir um fecho e ver as parcelas do crédito da chave.
-    movements = [
+    movements: list[dict[str, Any]] = [
         {
             "id": str(uuid.uuid4()),
             "executionId": execution_id,
@@ -87,7 +88,7 @@ async def create_execution(
         if batch:
             await session.execute(sa.insert(CreditMovement), batch)
 
-    cases = [
+    cases: list[dict[str, Any]] = [
         {
             "id": str(uuid.uuid4()),
             "executionId": execution_id,
@@ -109,7 +110,9 @@ async def create_execution(
 
 
 async def find_latest_execution(session: AsyncSession) -> Execution | None:
-    result = await session.execute(sa.select(Execution).order_by(Execution.executedAt.desc()).limit(1))
+    result = await session.execute(
+        sa.select(Execution).order_by(Execution.executedAt.desc()).limit(1)
+    )
     return result.scalar_one_or_none()
 
 
@@ -239,18 +242,16 @@ async def count_cases_by_status(session: AsyncSession, execution_id: str) -> dic
         .where(PendingCase.executionId == execution_id)
         .group_by(PendingCase.status)
     )
-    return dict(result.all())
+    return {status: total for status, total in result.all()}
 
 
-async def save_summary(session: AsyncSession, execution_id: str, summary: dict) -> None:
+async def save_summary(session: AsyncSession, execution_id: str, summary: dict[str, Any]) -> None:
     await session.execute(
         sa.update(Execution).where(Execution.id == execution_id).values(summary=summary)
     )
 
 
-def _details_where(
-    execution_id: str, validation: str | None, search: str | None
-) -> list[Any]:
+def _details_where(execution_id: str, validation: str | None, search: str | None) -> list[Any]:
     conditions: list[Any] = [ClosingDetail.executionId == execution_id]
     if validation:
         # Lista de estados a mostrar, separada por vírgulas. Tokens desconhecidos

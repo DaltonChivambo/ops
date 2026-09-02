@@ -5,6 +5,7 @@ Porte de `controllers.py` do MozaOps v1: mesmo prefixo e mesmos sub-caminhos
 serviço sem alterações — só o alvo do proxy de dev muda. Sem BD, sem
 openpyxl: só valida o pedido e chama `service.py`.
 """
+
 from typing import Any
 
 from fastapi import APIRouter, Depends, Query, Request, Response, UploadFile
@@ -42,9 +43,10 @@ async def create_execution(
             + ". Carregue os três ficheiros e volte a submeter."
         )
 
-    files = {
-        slot: (uploads[slot].file, uploads[slot].filename or slot) for slot in REQUIRED_SLOTS
-    }
+    # Reconstruído sem os `None` — o `missing` acima já garantiu que não há nenhum,
+    # mas é aqui que o tipo passa a dizê-lo.
+    present = {slot: upload for slot, upload in uploads.items() if upload is not None}
+    files = {slot: (present[slot].file, present[slot].filename or slot) for slot in REQUIRED_SLOTS}
     execution_id = await service.run_validation(session, files)
     execution = await service.get_execution(session, execution_id)
     cases = await service.list_cases(session, execution_id)

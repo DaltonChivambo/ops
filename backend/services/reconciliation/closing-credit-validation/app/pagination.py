@@ -2,6 +2,7 @@
 
 Converte os query params (`page`, `perPage`) em `skip`/`take`.
 """
+
 from dataclasses import dataclass
 
 DEFAULT_PER_PAGE = 50

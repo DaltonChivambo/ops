@@ -20,8 +20,10 @@ resolvem as colunas pelo NOME do cabeçalho (não por índice fixo); a SIMO mant
                    por índice fixo (ver `parse_banka_credits`). A chave «POS ID
                    vs. Período» é sempre derivada do DESCRITIVO_MOV.
 """
+
+from collections.abc import Iterator
 from itertools import chain, islice
-from typing import IO, Any, Iterator
+from typing import IO, Any
 
 from openpyxl import load_workbook
 from openpyxl.worksheet.worksheet import Worksheet
@@ -57,7 +59,10 @@ def _structure_error(slot: str, filename: str, missing: list[str]) -> BusinessEr
 def _open_sheet(stream: IO[bytes], slot: str, filename: str, sheet_name: str | None) -> Worksheet:
     try:
         workbook = load_workbook(stream, read_only=True, data_only=True)
-    except Exception as error:  # noqa: BLE001 — ficheiro corrompido ou não-Excel
+    # Apanha-se tudo de propósito: um ficheiro corrompido, um .xls antigo ou um
+    # PDF renomeado levantam excepções diferentes do openpyxl, e para o operador
+    # são todos o mesmo problema — o ficheiro não se lê.
+    except Exception as error:
         raise BusinessError(
             f"Dados incompletos ou em formato inválido: não foi possível ler o ficheiro "
             f"«{filename}» no campo «{SLOT_LABELS[slot]}». Confirme que é um Excel (.xlsx) válido."
@@ -99,7 +104,7 @@ def _header_and_rows(
         raise _structure_error(slot, filename, missing)
 
     def _iter() -> Iterator[tuple[Any, ...]]:
-        yield from head[header_index + 1:]
+        yield from head[header_index + 1 :]
         yield from rows
 
     return header, _iter()
@@ -117,8 +122,17 @@ def _data_rows(
     return rows
 
 
-def _value(row: tuple[Any, ...], index: int) -> Any:
-    return row[index] if index < len(row) else None
+def _value(row: tuple[Any, ...], index: int | None) -> Any:
+    """Célula da coluna `index`, ou None se a coluna não existe nesta linha.
+
+    O índice pode vir a None: é o que `_column_index` devolve quando não encontra
+    o cabeçalho. Os cabeçalhos são validados antes de se chegar aqui, por isso na
+    prática não acontece — mas a resposta certa é uma célula vazia, não o
+    `TypeError` que `None < len(row)` levantava.
+    """
+    if index is None or index >= len(row):
+        return None
+    return row[index]
 
 
 def _column_index(header: tuple[Any, ...], name: str) -> int | None:

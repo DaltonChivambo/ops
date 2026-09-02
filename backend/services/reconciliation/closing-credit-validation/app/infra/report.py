@@ -16,10 +16,12 @@ de a obter.
 
 Todo o texto destas folhas é **conteúdo** — logo, em português.
 """
-from datetime import date, datetime
+
+from collections.abc import Iterable
+from datetime import datetime
 from decimal import Decimal
 from io import BytesIO
-from typing import Any, Iterable
+from typing import Any
 
 from openpyxl import Workbook
 from openpyxl.styles import Alignment, Border, Font, PatternFill, Side
@@ -47,8 +49,18 @@ NOT_APPLICABLE = "n.a"
 FIRST_COLUMN = 2
 
 MONTHS_PT = (
-    "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
-    "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro",
+    "Janeiro",
+    "Fevereiro",
+    "Março",
+    "Abril",
+    "Maio",
+    "Junho",
+    "Julho",
+    "Agosto",
+    "Setembro",
+    "Outubro",
+    "Novembro",
+    "Dezembro",
 )
 
 VALIDATION_LABELS = {
@@ -68,16 +80,39 @@ CASE_STATUS_LABELS = {
 CLOSING_TYPE_LABELS = {"D": "D", "D_PLUS_1": "D+1", "NA": NOT_APPLICABLE}
 
 DETAILS_HEADERS = [
-    "POS ID", "Comerciante", "Número de Conta", "Período POS", "POS ID vs. Período",
-    "Data Fecho \nSIMO", "Nº Operaç.", "Total Fecho \nSIMO", "Descritivo Fecho",
-    "Data Crédito BANKA", "TOTAL FECHO \nBANKA", "TIPO Fecho", "Validação",
-    "Diferença Apurada", "e-Ticket", "Data Reg.",
+    "POS ID",
+    "Comerciante",
+    "Número de Conta",
+    "Período POS",
+    "POS ID vs. Período",
+    "Data Fecho \nSIMO",
+    "Nº Operaç.",
+    "Total Fecho \nSIMO",
+    "Descritivo Fecho",
+    "Data Crédito BANKA",
+    "TOTAL FECHO \nBANKA",
+    "TIPO Fecho",
+    "Validação",
+    "Diferença Apurada",
+    "e-Ticket",
+    "Data Reg.",
 ]
 
 CASES_HEADERS = [
-    "POS ID", "Balcão", "Unidade Negócio", "Comerciante", "Número de Conta",
-    "Período POS", "Data Fecho \nSIMO", "Nº Operaç.", "Total Fecho \nSIMO",
-    "TIPO Fecho", "Descritivo Fecho", "TOTAL FECHO \nBANKA", "Validação", "Data Reg.",
+    "POS ID",
+    "Balcão",
+    "Unidade Negócio",
+    "Comerciante",
+    "Número de Conta",
+    "Período POS",
+    "Data Fecho \nSIMO",
+    "Nº Operaç.",
+    "Total Fecho \nSIMO",
+    "TIPO Fecho",
+    "Descritivo Fecho",
+    "TOTAL FECHO \nBANKA",
+    "Validação",
+    "Data Reg.",
 ]
 
 _HEADER_FILL = PatternFill("solid", fgColor=MOZA_RED)
@@ -90,7 +125,12 @@ _TOTAL_FILL = PatternFill("solid", fgColor=LIGHT_GREY)
 
 def build_workbook(execution: Any, details: Iterable[Any], cases: list[Any]) -> bytes:
     workbook = Workbook()
-    workbook.remove(workbook.active)
+    # O Workbook() nasce com uma folha vazia que não queremos; as três folhas do
+    # relatório são criadas a seguir. O `active` é opcional no tipo, nunca na
+    # prática — num livro acabado de criar há sempre uma.
+    blank = workbook.active
+    if blank is not None:
+        workbook.remove(blank)
 
     _add_summary_sheet(workbook, execution, cases)
     _add_details_sheet(workbook, details, cases)
@@ -108,10 +148,17 @@ def _add_summary_sheet(workbook: Workbook, execution: Any, cases: list[Any]) -> 
     sheet["B3"] = _summary_title(execution.periodStart, execution.periodEnd)
     sheet["B3"].font = Font(bold=True, size=13)
 
-    _write_header(sheet, 6, [
-        "Descrição", "N° Fechos", "Montante de Fecho's Portal SIMO",
-        "Montante de Fechos Creditados Banka", "Total (diferença apurada)",
-    ])
+    _write_header(
+        sheet,
+        6,
+        [
+            "Descrição",
+            "N° Fechos",
+            "Montante de Fecho's Portal SIMO",
+            "Montante de Fechos Creditados Banka",
+            "Total (diferença apurada)",
+        ],
+    )
 
     # «Fecho creditado incorrectamente» é a linha única de tudo o que não conferiu:
     # creditado a menos/mais, não creditado e períodos duplicados. Para o DOP o
@@ -138,21 +185,40 @@ def _add_summary_sheet(workbook: Workbook, execution: Any, cases: list[Any]) -> 
         + summary.get("missingCount", 0)
     )
 
-    _write_row(sheet, 7, [
-        VALIDATION_LABELS["mismatch"],
-        incorrect_count, incorrect_simo, incorrect_banka, incorrect_banka - incorrect_simo,
-    ])
-    _write_row(sheet, 8, [
-        "Crédito Confere",
-        matched_count, matched_simo, matched_banka, matched_banka - matched_simo,
-    ])
-    _write_row(sheet, 9, [
-        "Total",
-        incorrect_count + matched_count,
-        incorrect_simo + matched_simo,
-        incorrect_banka + matched_banka,
-        (incorrect_banka + matched_banka) - (incorrect_simo + matched_simo),
-    ], total=True)
+    _write_row(
+        sheet,
+        7,
+        [
+            VALIDATION_LABELS["mismatch"],
+            incorrect_count,
+            incorrect_simo,
+            incorrect_banka,
+            incorrect_banka - incorrect_simo,
+        ],
+    )
+    _write_row(
+        sheet,
+        8,
+        [
+            "Crédito Confere",
+            matched_count,
+            matched_simo,
+            matched_banka,
+            matched_banka - matched_simo,
+        ],
+    )
+    _write_row(
+        sheet,
+        9,
+        [
+            "Total",
+            incorrect_count + matched_count,
+            incorrect_simo + matched_simo,
+            incorrect_banka + matched_banka,
+            (incorrect_banka + matched_banka) - (incorrect_simo + matched_simo),
+        ],
+        total=True,
+    )
 
     sheet.merge_cells("B13:D13")
     sheet["B13"] = "Total Casos Pendentes na SIMO"
@@ -170,11 +236,16 @@ def _add_summary_sheet(workbook: Workbook, execution: Any, cases: list[Any]) -> 
 
     _write_row(sheet, 17, ["Fecho Regularizado", len(resolved), _sum_simo(resolved)])
     _write_row(sheet, 18, [VALIDATION_LABELS["mismatch"], awaiting_count, awaiting_simo])
-    _write_row(sheet, 19, [
-        "Total",
-        len(resolved) + awaiting_count,
-        _sum_simo(resolved) + awaiting_simo,
-    ], total=True)
+    _write_row(
+        sheet,
+        19,
+        [
+            "Total",
+            len(resolved) + awaiting_count,
+            _sum_simo(resolved) + awaiting_simo,
+        ],
+        total=True,
+    )
 
     _set_widths(sheet, [48, 12, 32, 34, 26])
     _set_format(sheet, ["D", "E"], MONEY_FORMAT, rows=range(7, 10))
@@ -193,24 +264,28 @@ def _add_details_sheet(workbook: Workbook, details: Iterable[Any], cases: list[A
     row_number = 3
     for detail in details:
         case = case_by_key.get(detail.key)
-        _write_row(sheet, row_number, [
-            detail.posId,
-            detail.merchant,
-            detail.accountNumber,
-            detail.period,
-            detail.key,
-            detail.simoClosingDate,
-            detail.operationNumber,
-            detail.simoClosingTotal,
-            detail.closingDescription or NOT_APPLICABLE,
-            detail.bankaCreditDate or NOT_APPLICABLE,
-            detail.bankaClosingTotal if detail.bankaClosingTotal is not None else 0,
-            CLOSING_TYPE_LABELS.get(detail.closingType, NOT_APPLICABLE),
-            VALIDATION_LABELS.get(detail.validation, detail.validation),
-            detail.difference if detail.difference is not None else NOT_APPLICABLE,
-            (case.eTicket if case else None) or "",
-            (case.resolvedAt if case else None) or "",
-        ])
+        _write_row(
+            sheet,
+            row_number,
+            [
+                detail.posId,
+                detail.merchant,
+                detail.accountNumber,
+                detail.period,
+                detail.key,
+                detail.simoClosingDate,
+                detail.operationNumber,
+                detail.simoClosingTotal,
+                detail.closingDescription or NOT_APPLICABLE,
+                detail.bankaCreditDate or NOT_APPLICABLE,
+                detail.bankaClosingTotal if detail.bankaClosingTotal is not None else 0,
+                CLOSING_TYPE_LABELS.get(detail.closingType, NOT_APPLICABLE),
+                VALIDATION_LABELS.get(detail.validation, detail.validation),
+                detail.difference if detail.difference is not None else NOT_APPLICABLE,
+                (case.eTicket if case else None) or "",
+                (case.resolvedAt if case else None) or "",
+            ],
+        )
         row_number += 1
 
     _set_widths(sheet, [10, 32, 16, 12, 18, 14, 10, 18, 34, 16, 18, 10, 38, 16, 12, 12])
@@ -250,22 +325,28 @@ def _add_pending_cases_sheet(workbook: Workbook, details: Iterable[Any], cases: 
     for kind in ("mismatch", "missing"):
         for case in (c for c in cases if c.type == kind and c.status != "resolved"):
             detail = detail_by_key.get(case.key)
-            _write_row(sheet, row_number, [
-                case.posId,
-                NOT_APPLICABLE,  # Balcão (não vem nos ficheiros de entrada)
-                NOT_APPLICABLE,  # Unidade Negócio (idem)
-                case.merchant,
-                case.accountNumber,
-                case.period,
-                detail.simoClosingDate if detail else NOT_APPLICABLE,
-                detail.operationNumber if detail else NOT_APPLICABLE,
-                case.simoAmount,
-                CLOSING_TYPE_LABELS.get(detail.closingType, NOT_APPLICABLE) if detail else NOT_APPLICABLE,
-                (detail.closingDescription if detail else None) or NOT_APPLICABLE,
-                case.bankaAmount,
-                VALIDATION_LABELS[kind],
-                case.resolvedAt or NOT_APPLICABLE,
-            ])
+            _write_row(
+                sheet,
+                row_number,
+                [
+                    case.posId,
+                    NOT_APPLICABLE,  # Balcão (não vem nos ficheiros de entrada)
+                    NOT_APPLICABLE,  # Unidade Negócio (idem)
+                    case.merchant,
+                    case.accountNumber,
+                    case.period,
+                    detail.simoClosingDate if detail else NOT_APPLICABLE,
+                    detail.operationNumber if detail else NOT_APPLICABLE,
+                    case.simoAmount,
+                    CLOSING_TYPE_LABELS.get(detail.closingType, NOT_APPLICABLE)
+                    if detail
+                    else NOT_APPLICABLE,
+                    (detail.closingDescription if detail else None) or NOT_APPLICABLE,
+                    case.bankaAmount,
+                    VALIDATION_LABELS[kind],
+                    case.resolvedAt or NOT_APPLICABLE,
+                ],
+            )
             row_number += 1
 
     # Duplicados: um por fecho, com o valor do próprio fecho. O crédito do Banka é
@@ -277,23 +358,28 @@ def _add_pending_cases_sheet(workbook: Workbook, details: Iterable[Any], cases: 
     for detail in (d for d in details if d.validation == "duplicated"):
         first_of_key = detail.key not in credited_keys
         credited_keys.add(detail.key)
-        _write_row(sheet, row_number, [
-            detail.posId,
-            NOT_APPLICABLE,
-            NOT_APPLICABLE,
-            detail.merchant,
-            detail.accountNumber,
-            detail.period,
-            detail.simoClosingDate,
-            detail.operationNumber,
-            detail.simoClosingTotal,
-            CLOSING_TYPE_LABELS.get(detail.closingType, NOT_APPLICABLE),
-            detail.closingDescription or NOT_APPLICABLE,
-            detail.bankaClosingTotal if first_of_key and detail.bankaClosingTotal is not None
-            else NOT_APPLICABLE,
-            VALIDATION_LABELS["mismatch"],
-            NOT_APPLICABLE,
-        ])
+        _write_row(
+            sheet,
+            row_number,
+            [
+                detail.posId,
+                NOT_APPLICABLE,
+                NOT_APPLICABLE,
+                detail.merchant,
+                detail.accountNumber,
+                detail.period,
+                detail.simoClosingDate,
+                detail.operationNumber,
+                detail.simoClosingTotal,
+                CLOSING_TYPE_LABELS.get(detail.closingType, NOT_APPLICABLE),
+                detail.closingDescription or NOT_APPLICABLE,
+                detail.bankaClosingTotal
+                if first_of_key and detail.bankaClosingTotal is not None
+                else NOT_APPLICABLE,
+                VALIDATION_LABELS["mismatch"],
+                NOT_APPLICABLE,
+            ],
+        )
         row_number += 1
 
     # Colunas (com a A vazia): G=Período POS, H=Data Fecho, J=Total SIMO,

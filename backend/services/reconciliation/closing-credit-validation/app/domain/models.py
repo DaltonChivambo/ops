@@ -4,6 +4,7 @@ Porte literal de `domain/models.py` do MozaOps v1. Estruturas puras — sem
 FastAPI, sem SQLAlchemy, sem openpyxl. São o vocabulário que os parsers
 produzem e que a reconciliação consome.
 """
+
 from dataclasses import dataclass, field
 from datetime import date
 from decimal import Decimal

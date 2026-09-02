@@ -21,6 +21,7 @@ um, e o que fica é um valor a mais numa chave, não dinheiro dado por desaparec
 
 Camada de domínio: sem I/O, sem framework — recebe estruturas já parseadas.
 """
+
 from datetime import date
 from decimal import Decimal
 
@@ -38,8 +39,18 @@ from .models import (
 )
 
 MONTHS_PT = (
-    "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
-    "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro",
+    "Janeiro",
+    "Fevereiro",
+    "Março",
+    "Abril",
+    "Maio",
+    "Junho",
+    "Julho",
+    "Agosto",
+    "Setembro",
+    "Outubro",
+    "Novembro",
+    "Dezembro",
 )
 
 UNKNOWN = "—"
@@ -144,9 +155,7 @@ def _count_key_collisions(closings: list[SimoClosing]) -> int:
     return sum(1 for periods in periods_by_key.values() if len(periods) > 1)
 
 
-def _count_unregistered(
-    closings: list[SimoClosing], pos_list: dict[str, PosInfo]
-) -> int:
+def _count_unregistered(closings: list[SimoClosing], pos_list: dict[str, PosInfo]) -> int:
     """POS distintos com fechos mas sem linha na Lista de POS (comerciante '—')."""
     return len({closing.posId for closing in closings if closing.posId not in pos_list})
 

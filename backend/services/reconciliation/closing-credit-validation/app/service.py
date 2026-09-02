@@ -5,6 +5,8 @@ em `parse → reconcile → persist`: hoje corre síncrono dentro do pedido HTTP
 (ver `docs/implementation-plan.md` para o desenho assíncrono futuro), mas a
 separação já deixa a porta aberta para isso sem tocar no pipeline em si.
 """
+
+from collections.abc import Mapping
 from datetime import date
 from typing import IO, Any
 
@@ -15,15 +17,14 @@ from .domain.models import ReconciliationResult
 from .domain.reconciliation import NoClosingsError, reconcile
 from .errors import BusinessError, NotFoundError
 from .infra import parsers, report
+from .models import ClosingDetail, Execution, PendingCase
 from .pagination import Page
 from .serializers import CASE_STATUS_VALUES, summary_to_dict
 
 SLOTS = ("posList", "simoClosings", "bankaCredits")
 
 
-async def run_validation(
-    session: AsyncSession, files: dict[str, tuple[IO[bytes], str]]
-) -> str:
+async def run_validation(session: AsyncSession, files: Mapping[str, tuple[IO[bytes], str]]) -> str:
     """Executa a validação e devolve o id da execução persistida.
 
     `files` mapeia cada campo multipart para `(stream, nome do ficheiro)`.
@@ -35,7 +36,7 @@ async def run_validation(
     )
 
 
-def _parse_and_reconcile(files: dict[str, tuple[IO[bytes], str]]) -> ReconciliationResult:
+def _parse_and_reconcile(files: Mapping[str, tuple[IO[bytes], str]]) -> ReconciliationResult:
     pos_list = parsers.parse_pos_list(*files["posList"])
     closings = parsers.parse_simo_closings(*files["simoClosings"])
     credits = parsers.parse_banka_credits(*files["bankaCredits"])
@@ -47,18 +48,18 @@ def _parse_and_reconcile(files: dict[str, tuple[IO[bytes], str]]) -> Reconciliat
         raise BusinessError(str(error)) from error
 
 
-async def get_execution(session: AsyncSession, execution_id: str):
+async def get_execution(session: AsyncSession, execution_id: str) -> Execution:
     execution = await repository.find_execution(session, execution_id)
     if execution is None:
         raise NotFoundError("A execução indicada não existe ou já foi removida.")
     return execution
 
 
-async def get_latest_execution(session: AsyncSession):
+async def get_latest_execution(session: AsyncSession) -> Execution | None:
     return await repository.find_latest_execution(session)
 
 
-async def list_cases(session: AsyncSession, execution_id: str):
+async def list_cases(session: AsyncSession, execution_id: str) -> list[PendingCase]:
     return await repository.list_cases(session, execution_id)
 
 
@@ -68,7 +69,7 @@ async def list_details(
     page: Page,
     validation: str | None,
     search: str | None,
-):
+) -> tuple[list[ClosingDetail], int, dict[str, int]]:
     details, total = await repository.list_details(session, execution_id, page, validation, search)
     counts = await repository.count_details_by_validation(session, execution_id, search)
     return details, total, counts
@@ -93,12 +94,16 @@ async def get_key_breakdown(session: AsyncSession, execution_id: str, key: str) 
     }
 
 
-async def update_case(session: AsyncSession, case_id: str, patch: dict[str, Any]):
+async def update_case(
+    session: AsyncSession, case_id: str, patch: dict[str, Any]
+) -> tuple[PendingCase, dict[str, Any]]:
     """Actualiza estado/e-Ticket de um caso e recalcula o `summary` da execução."""
     data: dict[str, Any] = {}
     if "eTicket" in patch:
         e_ticket = patch["eTicket"]
-        data["eTicket"] = e_ticket.strip() if isinstance(e_ticket, str) and e_ticket.strip() else None
+        data["eTicket"] = (
+            e_ticket.strip() if isinstance(e_ticket, str) and e_ticket.strip() else None
+        )
     if "status" in patch:
         status = CASE_STATUS_VALUES.get(patch["status"], patch["status"])
         if status not in ("pending", "in_review", "resolved"):

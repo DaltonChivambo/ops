@@ -1,4 +1,5 @@
 """Engine e sessões async — usados por `repository.py` e por `migrations/env.py`."""
+
 from collections.abc import AsyncIterator
 
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine

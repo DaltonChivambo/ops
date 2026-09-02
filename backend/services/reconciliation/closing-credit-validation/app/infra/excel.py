@@ -5,10 +5,12 @@ Os exports do Portal SIMO e do MIS/MicroStrategy trazem datas em três formatos
 português `3.180,00` e decimal `143975.4`), com linhas de título antes dos
 cabeçalhos em posições que variam. Estas funções normalizam tudo isso.
 """
+
 import re
-from datetime import date, datetime, timezone
+from collections.abc import Iterable, Sequence
+from datetime import UTC, date, datetime
 from decimal import Decimal, InvalidOperation
-from typing import Any, Iterable, Sequence
+from typing import Any
 
 # Dias entre a epoch do Excel (1899-12-30) e a do Unix (1970-01-01).
 EXCEL_EPOCH_OFFSET = 25569
@@ -23,7 +25,7 @@ Row = Sequence[Any]
 def _excel_serial_to_date(serial: float) -> date:
     """Converte um serial de data do Excel (epoch 1899-12-30) para `date`."""
     timestamp = round((serial - EXCEL_EPOCH_OFFSET) * SECONDS_PER_DAY)
-    return datetime.fromtimestamp(timestamp, tz=timezone.utc).date()
+    return datetime.fromtimestamp(timestamp, tz=UTC).date()
 
 
 def _ddmmyyyy_to_date(value: str) -> date | None:
