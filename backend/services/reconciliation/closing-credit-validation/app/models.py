@@ -17,12 +17,12 @@ não pedem nada a ninguém. Mexer na ordem aqui muda a tabela.
 nunca lido em produção (a folha do relatório que o consumia já não existe).
 """
 import uuid
-from datetime import date, datetime
+from datetime import UTC, date, datetime
 from decimal import Decimal
 
 import sqlalchemy as sa
 from sqlalchemy.dialects.postgresql import JSONB
-from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
+from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
 
 class Base(DeclarativeBase):
@@ -31,6 +31,15 @@ class Base(DeclarativeBase):
 
 def _uuid() -> str:
     return str(uuid.uuid4())
+
+
+def _now() -> datetime:
+    """Instante actual em UTC, sem fuso — a coluna `executedAt` é `DateTime` sem timezone.
+
+    Substitui `datetime.utcnow`, depreciado no 3.12. Guarda exactamente o mesmo
+    valor: pôr lá um `datetime` com fuso é que mudaria o que fica na base.
+    """
+    return datetime.now(UTC).replace(tzinfo=None)
 
 
 VALIDATION_VALUES = ("zero", "match", "mismatch", "missing", "duplicated")
@@ -50,7 +59,7 @@ class Execution(Base):
     __tablename__ = "execution"
 
     id: Mapped[str] = mapped_column(sa.String(36), primary_key=True, default=_uuid)
-    executedAt: Mapped[datetime] = mapped_column(sa.DateTime, default=datetime.utcnow, index=True)
+    executedAt: Mapped[datetime] = mapped_column(sa.DateTime, default=_now, index=True)
     periodStart: Mapped[date] = mapped_column(sa.Date)
     periodEnd: Mapped[date] = mapped_column(sa.Date)
     reportName: Mapped[str] = mapped_column(sa.String)
@@ -60,16 +69,6 @@ class Execution(Base):
     # Snapshot denormalizado do `ClosingSummary` — mutado quando um caso muda de
     # estado (ver `service._refresh_case_counters`), não só à criação.
     summary: Mapped[dict] = mapped_column(JSONB)
-
-    details: Mapped[list["ClosingDetail"]] = relationship(
-        back_populates="execution", cascade="all, delete-orphan"
-    )
-    cases: Mapped[list["PendingCase"]] = relationship(
-        back_populates="execution", cascade="all, delete-orphan"
-    )
-    movements: Mapped[list["CreditMovement"]] = relationship(
-        back_populates="execution", cascade="all, delete-orphan"
-    )
 
 
 class ClosingDetail(Base):
@@ -101,8 +100,6 @@ class ClosingDetail(Base):
     validation: Mapped[str] = mapped_column(ValidationEnum)
     difference: Mapped[Decimal | None] = mapped_column(Money, nullable=True)
 
-    execution: Mapped[Execution] = relationship(back_populates="details")
-
 
 class CreditMovement(Base):
     """Um movimento de crédito do Banka atribuído a uma chave — a parcela do total."""
@@ -116,8 +113,6 @@ class CreditMovement(Base):
     movementDate: Mapped[date | None] = mapped_column(sa.Date, nullable=True)
     amount: Mapped[Decimal] = mapped_column(Money)
     description: Mapped[str | None] = mapped_column(sa.String, nullable=True)
-
-    execution: Mapped[Execution] = relationship(back_populates="movements")
 
 
 class PendingCase(Base):
@@ -142,5 +137,3 @@ class PendingCase(Base):
     eTicket: Mapped[str | None] = mapped_column(sa.String, nullable=True)
     status: Mapped[str] = mapped_column(CaseStatusEnum, default="pending")
     resolvedAt: Mapped[date | None] = mapped_column(sa.Date, nullable=True)
-
-    execution: Mapped[Execution] = relationship(back_populates="cases")

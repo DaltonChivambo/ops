@@ -9,13 +9,9 @@ class ApiError(Exception):
     status = 400
     code = "bad_request"
 
-    def __init__(self, message: str, *, code: str | None = None, status: int | None = None):
+    def __init__(self, message: str):
         super().__init__(message)
         self.message = message
-        if code:
-            self.code = code
-        if status:
-            self.status = status
 
 
 class BusinessError(ApiError):

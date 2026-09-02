@@ -37,9 +37,9 @@ SLOT_LABELS = {
     "bankaCredits": "Créditos Banka",
 }
 
-# Índices 0-based das colunas usadas na Lista de POS e nos Fechos SIMO (estáveis).
-# O Banka resolve as colunas pelo nome do cabeçalho — ver `parse_banka_credits`.
-POS_LIST_COLUMNS = {"posId": 1, "merchant": 2, "accountNumber": 3, "realtime": 4}
+# Índices 0-based das colunas dos Fechos SIMO — o único ficheiro cujas posições são
+# estáveis. A Lista de POS e o Banka resolvem as colunas pelo NOME do cabeçalho
+# (ver `parse_pos_list` e `parse_banka_credits`), porque as posições variam entre exports.
 SIMO_COLUMNS = {"posId": 2, "period": 3, "closingDate": 4, "operationNumber": 5, "total": 6}
 
 HEADER_SEARCH_ROWS = 10

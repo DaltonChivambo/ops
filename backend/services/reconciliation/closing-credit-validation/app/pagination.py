@@ -1,10 +1,8 @@
 """Paginação — porte de `shared/pagination.py` do MozaOps v1.
 
-Converte os query params (`page`, `perPage`) em `skip`/`take` e constrói o
-envelope da resposta.
+Converte os query params (`page`, `perPage`) em `skip`/`take`.
 """
 from dataclasses import dataclass
-from typing import Any
 
 DEFAULT_PER_PAGE = 50
 MAX_PER_PAGE = 200
@@ -29,7 +27,3 @@ def parse_page(page: int | None, per_page: int | None) -> Page:
         page=max(1, page or 1),
         perPage=min(MAX_PER_PAGE, max(1, per_page or DEFAULT_PER_PAGE)),
     )
-
-
-def envelope(items: list[Any], total: int, page: Page, **extra: Any) -> dict[str, Any]:
-    return {"items": items, "total": total, "page": page.page, "perPage": page.perPage, **extra}

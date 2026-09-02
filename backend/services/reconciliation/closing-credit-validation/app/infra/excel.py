@@ -20,13 +20,13 @@ _PT_NUMBER = re.compile(r"^-?[\d.]+,\d+$")
 Row = Sequence[Any]
 
 
-def excel_serial_to_date(serial: float) -> date:
+def _excel_serial_to_date(serial: float) -> date:
     """Converte um serial de data do Excel (epoch 1899-12-30) para `date`."""
     timestamp = round((serial - EXCEL_EPOCH_OFFSET) * SECONDS_PER_DAY)
     return datetime.fromtimestamp(timestamp, tz=timezone.utc).date()
 
 
-def ddmmyyyy_to_date(value: str) -> date | None:
+def _ddmmyyyy_to_date(value: str) -> date | None:
     """Converte `dd/mm/yyyy` para `date`; devolve None se não reconhecer."""
     match = _DDMMYYYY.match(value.strip())
     if not match:
@@ -83,9 +83,9 @@ def cell_date(value: Any) -> date | None:
     if isinstance(value, bool):
         return None
     if isinstance(value, (int, float)):
-        return excel_serial_to_date(float(value))
+        return _excel_serial_to_date(float(value))
     if isinstance(value, str):
-        return ddmmyyyy_to_date(value)
+        return _ddmmyyyy_to_date(value)
     return None
 
 
