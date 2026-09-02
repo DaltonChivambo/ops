@@ -3,7 +3,13 @@ SHELL := /bin/bash
 
 COMPOSE := docker compose
 
-.PHONY: help up down restart logs status verify-m0 psql clean migrate test lint
+# O `lint` e o `test` partilham a imagem: é o estágio que traz o pytest, o ruff e
+# o mypy, que a imagem de execução não leva. Construir uma vez serve os dois.
+SERVICE := closing-credit-validation
+CATEGORY := reconciliation
+TEST_IMAGE := mozaops-$(SERVICE):test
+
+.PHONY: help up down restart logs status verify-m0 psql clean migrate test lint test-image
 
 help:  ## Mostra os comandos disponíveis
 	@grep -hE '^[a-zA-Z_-]+:.*?## ' $(MAKEFILE_LIST) \
@@ -16,11 +22,22 @@ up:  ## Sobe a infraestrutura e os serviços
 migrate:  ## Aplica as migrações Alembic de cada serviço
 	$(COMPOSE) run --rm closing-credit-validation alembic upgrade head
 
-test:  ## Testes do backend (estágio `test` da imagem — a de execução não traz pytest)
+test-image:
 	docker build --target test \
-		--build-arg CATEGORY=reconciliation --build-arg SERVICE=closing-credit-validation \
-		-t mozaops-closing-credit-validation:test ./backend
-	docker run --rm mozaops-closing-credit-validation:test
+		--build-arg CATEGORY=$(CATEGORY) --build-arg SERVICE=$(SERVICE) \
+		-t $(TEST_IMAGE) ./backend
+
+test: test-image  ## Testes do backend (estágio `test` da imagem — a de execução não traz pytest)
+	docker run --rm $(TEST_IMAGE)
+
+lint: test-image  ## ruff (regras e formato) e mypy --strict, sobre o backend todo
+	# O `cd /app` vai dentro do `sh` e não num `-w`: é em /app que está o
+	# `pyproject.toml` com a configuração das duas ferramentas — e passá-lo em
+	# `-w` faz o Git Bash do Windows traduzi-lo para um caminho que não existe.
+	docker run --rm $(TEST_IMAGE) sh -c "cd /app && \
+		ruff check . && \
+		ruff format --check . && \
+		mypy services/$(CATEGORY)/$(SERVICE)/app"
 
 down:  ## Pára tudo, mantendo os dados
 	$(COMPOSE) down

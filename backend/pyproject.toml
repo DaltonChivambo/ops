@@ -18,10 +18,18 @@ line-length = 100
 target-version = "py312"
 
 [tool.ruff.lint]
-select = ["E", "F", "I", "UP", "B", "SIM", "RUF", "ASYNC", "S", "ARG", "PTH"]
+select = ["E", "F", "I", "UP", "B", "SIM", "RUF", "ASYNC", "S", "ARG", "PTH", "BLE"]
 ignore = [
     "S101",  # assert — os testes vivem disso
     "RUF001", "RUF002", "RUF003",  # os comentários são em português, com acentos
+]
+
+[tool.ruff.lint.flake8-bugbear]
+# `Depends()`, `Query()` e companhia nos valores por omissão são a forma como se
+# escreve FastAPI — não o descuido do argumento mutável que o B008 persegue.
+extend-immutable-calls = [
+    "fastapi.Body", "fastapi.Cookie", "fastapi.Depends", "fastapi.File",
+    "fastapi.Form", "fastapi.Header", "fastapi.Path", "fastapi.Query",
 ]
 
 [tool.ruff.lint.per-file-ignores]
