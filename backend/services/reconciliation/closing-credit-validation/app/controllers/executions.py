@@ -16,18 +16,14 @@ from fastapi.responses import JSONResponse, StreamingResponse
 from app.controllers import serializers
 from app.controllers.dependencies import ValidationServiceDep
 from app.domain.errors import InvalidInputError
+from app.domain.vocabulary import SLOT_LABELS, UploadSlot
 from app.pagination import parse_page
 
 router = APIRouter()
 
 XLSX_MEDIA_TYPE = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
 
-REQUIRED_SLOTS = ("posList", "simoClosings", "bankaCredits")
-SLOT_LABELS = {
-    "posList": "Lista de POS",
-    "simoClosings": "Fechos SIMO",
-    "bankaCredits": "Créditos Banka",
-}
+REQUIRED_SLOTS = tuple(UploadSlot)
 
 
 @router.post("/execucoes", status_code=201)
@@ -37,7 +33,11 @@ async def create_execution(
     simoClosings: UploadFile | None = None,
     bankaCredits: UploadFile | None = None,
 ) -> dict[str, Any]:
-    uploads = {"posList": posList, "simoClosings": simoClosings, "bankaCredits": bankaCredits}
+    uploads = {
+        UploadSlot.POS_LIST: posList,
+        UploadSlot.SIMO_CLOSINGS: simoClosings,
+        UploadSlot.BANKA_CREDITS: bankaCredits,
+    }
     missing = [slot for slot in REQUIRED_SLOTS if uploads[slot] is None]
     if missing:
         raise InvalidInputError(

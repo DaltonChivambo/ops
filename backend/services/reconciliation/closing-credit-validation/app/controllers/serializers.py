@@ -10,11 +10,22 @@ from datetime import date, datetime
 from decimal import Decimal
 from typing import Any
 
+from app.domain.vocabulary import CaseStatus, ClosingType
 from app.infrastructure.tables import ClosingDetail, CreditMovement, Execution, PendingCase
 
-CLOSING_TYPE_LABELS = {"D": "D", "D_PLUS_1": "D+1", "NA": "n.a"}
-CASE_STATUS_LABELS = {"pending": "pending", "in_review": "in-review", "resolved": "resolved"}
-CASE_STATUS_VALUES = {value: key for key, value in CASE_STATUS_LABELS.items()}
+# Como cada valor do enum se escreve no JSON. Só dois diferem do valor da
+# base: o `D_PLUS_1` e o `in_review`, porque o contrato do SPA quer `D+1` e
+# `in-review`. O resto sai tal como está guardado.
+CLOSING_TYPE_LABELS = {
+    ClosingType.D: "D",
+    ClosingType.D_PLUS_1: "D+1",
+    ClosingType.NA: "n.a",
+}
+CASE_STATUS_LABELS = {
+    CaseStatus.PENDING: "pending",
+    CaseStatus.IN_REVIEW: "in-review",
+    CaseStatus.RESOLVED: "resolved",
+}
 
 
 def execution_to_dict(

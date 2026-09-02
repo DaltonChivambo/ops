@@ -10,9 +10,7 @@ from datetime import date
 from decimal import Decimal
 from typing import Any
 
-Validation = str  # 'match' | 'mismatch' | 'missing' | 'zero' | 'duplicated'
-ClosingType = str  # 'D' | 'D_PLUS_1' | 'NA'
-CaseType = str  # 'missing' | 'mismatch'
+from .vocabulary import CaseType, ClosingType, Validation
 
 
 @dataclass(slots=True)

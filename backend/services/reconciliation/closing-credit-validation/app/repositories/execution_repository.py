@@ -10,12 +10,14 @@ recebe, e é por isso que tudo o que corre num pedido partilha a transacção.
 """
 
 import uuid
+from collections.abc import Mapping
 from typing import Any
 
 import sqlalchemy as sa
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.domain.models import ReconciliationResult
+from app.domain.vocabulary import UploadSlot, Validation
 from app.infrastructure.tables import ClosingDetail, CreditMovement, Execution, PendingCase
 from app.pagination import Page
 
@@ -23,7 +25,7 @@ from app.pagination import Page
 # estável nas ~18k linhas de uma execução real.
 INSERT_BATCH = 5_000
 
-VALIDATION_STATES = frozenset(("match", "mismatch", "missing", "zero", "duplicated"))
+VALIDATION_STATES = frozenset(Validation)
 
 
 class ExecutionRepository:
@@ -33,7 +35,7 @@ class ExecutionRepository:
     async def create(
         self,
         result: ReconciliationResult,
-        files: dict[str, str],
+        files: Mapping[UploadSlot, str],
         summary: dict[str, Any],
     ) -> str:
         """Persiste execução + detalhes + movimentos + casos numa única transacção.
@@ -49,9 +51,9 @@ class ExecutionRepository:
                 periodStart=result.periodStart,
                 periodEnd=result.periodEnd,
                 reportName=result.reportName,
-                posListFile=files["posList"],
-                simoClosingsFile=files["simoClosings"],
-                bankaCreditsFile=files["bankaCredits"],
+                posListFile=files[UploadSlot.POS_LIST],
+                simoClosingsFile=files[UploadSlot.SIMO_CLOSINGS],
+                bankaCreditsFile=files[UploadSlot.BANKA_CREDITS],
                 summary=summary,
             )
         )
@@ -192,7 +194,7 @@ class ExecutionRepository:
         self, execution_id: str, search: str | None = None
     ) -> dict[str, int]:
         """Contagens para os chips — sobre TODAS as linhas da execução, não da página."""
-        counts = {"all": 0, "match": 0, "mismatch": 0, "missing": 0, "zero": 0, "duplicated": 0}
+        counts: dict[str, int] = {"all": 0, **dict.fromkeys(Validation, 0)}
         where = _details_where(execution_id, None, search)
         result = await self._session.execute(
             sa.select(ClosingDetail.validation, sa.func.count())

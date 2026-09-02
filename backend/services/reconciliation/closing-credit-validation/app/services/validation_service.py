@@ -14,13 +14,12 @@ from typing import IO, Any
 from app.domain.errors import NotFoundError
 from app.domain.models import ReconciliationResult
 from app.domain.reconciliation import reconcile
+from app.domain.vocabulary import UploadSlot
 from app.infrastructure.excel import parsers, report
 from app.infrastructure.tables import ClosingDetail, Execution, PendingCase
 from app.pagination import Page
 from app.repositories.case_repository import CaseRepository
 from app.repositories.execution_repository import ExecutionRepository
-
-SLOTS = ("posList", "simoClosings", "bankaCredits")
 
 
 class ValidationService:
@@ -28,13 +27,13 @@ class ValidationService:
         self._executions = executions
         self._cases = cases
 
-    async def run(self, files: Mapping[str, tuple[IO[bytes], str]]) -> str:
+    async def run(self, files: Mapping[UploadSlot, tuple[IO[bytes], str]]) -> str:
         """Executa a validação e devolve o id da execução persistida.
 
         `files` mapeia cada campo multipart para `(stream, nome do ficheiro)`.
         """
         result = _parse_and_reconcile(files)
-        names = {slot: files[slot][1] for slot in SLOTS}
+        names = {slot: files[slot][1] for slot in UploadSlot}
         return await self._executions.create(result, names, result.summary.to_json_dict())
 
     async def get_execution(self, execution_id: str) -> Execution:
@@ -86,10 +85,12 @@ class ValidationService:
         return report.build_workbook(execution, details, cases), f"{execution.reportName}.xlsx"
 
 
-def _parse_and_reconcile(files: Mapping[str, tuple[IO[bytes], str]]) -> ReconciliationResult:
-    pos_list = parsers.parse_pos_list(*files["posList"])
-    closings = parsers.parse_simo_closings(*files["simoClosings"])
-    credits = parsers.parse_banka_credits(*files["bankaCredits"])
+def _parse_and_reconcile(
+    files: Mapping[UploadSlot, tuple[IO[bytes], str]],
+) -> ReconciliationResult:
+    pos_list = parsers.parse_pos_list(*files[UploadSlot.POS_LIST])
+    closings = parsers.parse_simo_closings(*files[UploadSlot.SIMO_CLOSINGS])
+    credits = parsers.parse_banka_credits(*files[UploadSlot.BANKA_CREDITS])
     # O `NoClosingsError` é uma excepção de negócio do PDD, com a mensagem já em
     # português: sobe tal como está, sem tradução pelo meio.
     return reconcile(pos_list, closings, credits)

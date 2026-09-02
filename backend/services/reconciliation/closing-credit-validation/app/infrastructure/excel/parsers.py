@@ -31,13 +31,8 @@ from openpyxl.worksheet.worksheet import Worksheet
 from ...domain.errors import InvalidInputError
 from ...domain.keys import key_from_description, normalize_pos_id
 from ...domain.models import BankaCredit, BankaMovement, PosInfo, SimoClosing
+from ...domain.vocabulary import SLOT_LABELS, ClosingType, UploadSlot
 from .workbook import cell_date, cell_text, find_header_row, parse_number, validate_headers
-
-SLOT_LABELS = {
-    "posList": "Lista de POS",
-    "simoClosings": "Fechos SIMO",
-    "bankaCredits": "Créditos Banka",
-}
 
 # Índices 0-based das colunas dos Fechos SIMO — o único ficheiro cujas posições são
 # estáveis. A Lista de POS e o Banka resolvem as colunas pelo NOME do cabeçalho
@@ -48,7 +43,7 @@ HEADER_SEARCH_ROWS = 10
 BANKA_SAMPLE_ROWS = 20  # linhas espreitadas para escolher a coluna DESCRITIVO_MOV certa
 
 
-def _structure_error(slot: str, filename: str, missing: list[str]) -> InvalidInputError:
+def _structure_error(slot: UploadSlot, filename: str, missing: list[str]) -> InvalidInputError:
     return InvalidInputError(
         f"Dados incompletos ou em formato inválido: o ficheiro «{filename}» no campo "
         f"«{SLOT_LABELS[slot]}» não tem as colunas esperadas ({', '.join(missing)}). "
@@ -56,7 +51,9 @@ def _structure_error(slot: str, filename: str, missing: list[str]) -> InvalidInp
     )
 
 
-def _open_sheet(stream: IO[bytes], slot: str, filename: str, sheet_name: str | None) -> Worksheet:
+def _open_sheet(
+    stream: IO[bytes], slot: UploadSlot, filename: str, sheet_name: str | None
+) -> Worksheet:
     try:
         workbook = load_workbook(stream, read_only=True, data_only=True)
     # Apanha-se tudo de propósito: um ficheiro corrompido, um .xls antigo ou um
@@ -77,7 +74,7 @@ def _open_sheet(stream: IO[bytes], slot: str, filename: str, sheet_name: str | N
 
 def _header_and_rows(
     sheet: Worksheet,
-    slot: str,
+    slot: UploadSlot,
     filename: str,
     anchor: str,
     expected: list[str],
@@ -112,7 +109,7 @@ def _header_and_rows(
 
 def _data_rows(
     sheet: Worksheet,
-    slot: str,
+    slot: UploadSlot,
     filename: str,
     anchor: str,
     expected: list[str],
@@ -172,10 +169,10 @@ def parse_pos_list(stream: IO[bytes], filename: str) -> dict[str, PosInfo]:
     ordem), por isso são resolvidas pelo NOME do cabeçalho. O POS Id é
     normalizado (sem zeros à esquerda) para casar com a SIMO e o Banka.
     """
-    sheet = _open_sheet(stream, "posList", filename, "Export")
+    sheet = _open_sheet(stream, UploadSlot.POS_LIST, filename, "Export")
     header, rows = _header_and_rows(
         sheet,
-        "posList",
+        UploadSlot.POS_LIST,
         filename,
         "merchant id",
         ["merchant id", "pos id", "nome comerciante", "nº conta", "fecho realtime"],
@@ -196,7 +193,11 @@ def parse_pos_list(stream: IO[bytes], filename: str) -> dict[str, PosInfo]:
             merchant=cell_text(_value(row, merchant_col)),
             accountNumber=cell_text(_value(row, account_col)),
             closingType=(
-                "D" if realtime == "sim" else "D_PLUS_1" if realtime in ("não", "nao") else "NA"
+                ClosingType.D
+                if realtime == "sim"
+                else ClosingType.D_PLUS_1
+                if realtime in ("não", "nao")
+                else ClosingType.NA
             ),
         )
     return result
@@ -204,10 +205,10 @@ def parse_pos_list(stream: IO[bytes], filename: str) -> dict[str, PosInfo]:
 
 def parse_simo_closings(stream: IO[bytes], filename: str) -> list[SimoClosing]:
     """Fechos do Portal SIMO → lista de fechos válidos."""
-    sheet = _open_sheet(stream, "simoClosings", filename, None)
+    sheet = _open_sheet(stream, UploadSlot.SIMO_CLOSINGS, filename, None)
     rows = _data_rows(
         sheet,
-        "simoClosings",
+        UploadSlot.SIMO_CLOSINGS,
         filename,
         "id comerciante",
         ["id comerciante", "pos id", "período pos", "data fecho", "total fecho"],
@@ -242,10 +243,10 @@ def parse_banka_credits(stream: IO[bytes], filename: str) -> dict[str, BankaCred
     posições das colunas variam entre exports, por isso são resolvidas pelo NOME
     do cabeçalho: DATA_SISTEMA, DESCRITIVO_MOV e VALOR_TRANSACAO.
     """
-    sheet = _open_sheet(stream, "bankaCredits", filename, "FECHO_POS")
+    sheet = _open_sheet(stream, UploadSlot.BANKA_CREDITS, filename, "FECHO_POS")
     header, rows = _header_and_rows(
         sheet,
-        "bankaCredits",
+        UploadSlot.BANKA_CREDITS,
         filename,
         "data_sistema",
         ["data_sistema", "descritivo", "valor_transacao"],

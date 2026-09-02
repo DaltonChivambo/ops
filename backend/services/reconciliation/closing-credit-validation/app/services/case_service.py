@@ -9,13 +9,18 @@ from datetime import date
 from typing import Any
 
 from app.domain.errors import NotFoundError
+from app.domain.vocabulary import CaseStatus
 from app.infrastructure.tables import PendingCase
 from app.repositories.case_repository import CaseRepository
 from app.repositories.execution_repository import ExecutionRepository
 
-# `in-review` é o que viaja no JSON; `in_review` é o valor do enum na base.
-CASE_STATUS_VALUES = {"pending": "pending", "in-review": "in_review", "resolved": "resolved"}
-CASE_STATUSES = ("pending", "in_review", "resolved")
+# `in-review` é o que viaja no JSON; `in_review` é o valor do enum na base. É a
+# única diferença entre os dois lados, e vive aqui em vez de num `if`.
+STATUS_FROM_JSON = {
+    "pending": CaseStatus.PENDING,
+    "in-review": CaseStatus.IN_REVIEW,
+    "resolved": CaseStatus.RESOLVED,
+}
 
 
 class CaseService:
@@ -34,11 +39,11 @@ class CaseService:
                 e_ticket.strip() if isinstance(e_ticket, str) and e_ticket.strip() else None
             )
         if "status" in patch:
-            status = CASE_STATUS_VALUES.get(patch["status"], patch["status"])
-            if status not in CASE_STATUSES:
+            status = STATUS_FROM_JSON.get(patch["status"])
+            if status is None:
                 raise NotFoundError("Estado de caso inválido.")
             data["status"] = status
-            data["resolvedAt"] = date.today() if status == "resolved" else None
+            data["resolvedAt"] = date.today() if status is CaseStatus.RESOLVED else None
 
         if not data:
             raise NotFoundError("Nada a actualizar no caso indicado.")
@@ -57,7 +62,7 @@ class CaseService:
 
         summary = dict(execution.summary or {})
         counts = await self._cases.count_by_status(execution_id)
-        resolved = counts.get("resolved", 0)
+        resolved = counts.get(CaseStatus.RESOLVED, 0)
         # Chaves em camelCase de propósito: são as do documento guardado em JSONB,
         # que o frontend lê tal como está — não são atributos de Python.
         summary["resolvedCases"] = resolved

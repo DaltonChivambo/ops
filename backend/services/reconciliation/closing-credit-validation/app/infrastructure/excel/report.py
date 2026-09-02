@@ -28,6 +28,8 @@ from openpyxl.styles import Alignment, Border, Font, PatternFill, Side
 from openpyxl.utils import get_column_letter
 from openpyxl.worksheet.worksheet import Worksheet
 
+from app.domain.vocabulary import CaseStatus, CaseType, ClosingType, Validation
+
 MOZA_RED = "FFC00000"
 LIGHT_GREY = "FFF2F2F2"
 
@@ -64,20 +66,24 @@ MONTHS_PT = (
 )
 
 VALIDATION_LABELS = {
-    "match": "Crédito Confere",
-    "mismatch": "Fecho creditado incorrectamente",
-    "missing": "Fecho Não Creditado_aguarda tratamento da SIMO",
-    "zero": "Fecho zerado (sem movimento)",
-    "duplicated": "Períodos duplicados_analisar individualmente",
+    Validation.MATCH: "Crédito Confere",
+    Validation.MISMATCH: "Fecho creditado incorrectamente",
+    Validation.MISSING: "Fecho Não Creditado_aguarda tratamento da SIMO",
+    Validation.ZERO: "Fecho zerado (sem movimento)",
+    Validation.DUPLICATED: "Períodos duplicados_analisar individualmente",
 }
 
 CASE_STATUS_LABELS = {
-    "pending": "Fecho Não Creditado_aguarda tratamento da SIMO",
-    "in_review": "Em análise",
-    "resolved": "Fecho Regularizado",
+    CaseStatus.PENDING: "Fecho Não Creditado_aguarda tratamento da SIMO",
+    CaseStatus.IN_REVIEW: "Em análise",
+    CaseStatus.RESOLVED: "Fecho Regularizado",
 }
 
-CLOSING_TYPE_LABELS = {"D": "D", "D_PLUS_1": "D+1", "NA": NOT_APPLICABLE}
+CLOSING_TYPE_LABELS = {
+    ClosingType.D: "D",
+    ClosingType.D_PLUS_1: "D+1",
+    ClosingType.NA: NOT_APPLICABLE,
+}
 
 DETAILS_HEADERS = [
     "POS ID",
@@ -189,7 +195,7 @@ def _add_summary_sheet(workbook: Workbook, execution: Any, cases: list[Any]) -> 
         sheet,
         7,
         [
-            VALIDATION_LABELS["mismatch"],
+            VALIDATION_LABELS[Validation.MISMATCH],
             incorrect_count,
             incorrect_simo,
             incorrect_banka,
@@ -235,7 +241,7 @@ def _add_summary_sheet(workbook: Workbook, execution: Any, cases: list[Any]) -> 
     awaiting_simo = _sum_simo(awaiting) + _amount(summary.get("simoAmountDuplicated"))
 
     _write_row(sheet, 17, ["Fecho Regularizado", len(resolved), _sum_simo(resolved)])
-    _write_row(sheet, 18, [VALIDATION_LABELS["mismatch"], awaiting_count, awaiting_simo])
+    _write_row(sheet, 18, [VALIDATION_LABELS[Validation.MISMATCH], awaiting_count, awaiting_simo])
     _write_row(
         sheet,
         19,
@@ -322,7 +328,7 @@ def _add_pending_cases_sheet(workbook: Workbook, details: Iterable[Any], cases: 
     row_number = 3
     # Incorrectos primeiro, depois não creditados: dinheiro errado antes de dinheiro
     # em falta. Um caso regularizado já não está pendente na SIMO.
-    for kind in ("mismatch", "missing"):
+    for kind in (CaseType.MISMATCH, CaseType.MISSING):
         for case in (c for c in cases if c.type == kind and c.status != "resolved"):
             detail = detail_by_key.get(case.key)
             _write_row(
@@ -343,7 +349,9 @@ def _add_pending_cases_sheet(workbook: Workbook, details: Iterable[Any], cases: 
                     else NOT_APPLICABLE,
                     (detail.closingDescription if detail else None) or NOT_APPLICABLE,
                     case.bankaAmount,
-                    VALIDATION_LABELS[kind],
+                    # `missing`/`mismatch` são os mesmos valores nos dois enums:
+                    # o caso herda o rótulo da validação que lhe deu origem.
+                    VALIDATION_LABELS[Validation(kind)],
                     case.resolvedAt or NOT_APPLICABLE,
                 ],
             )
@@ -376,7 +384,7 @@ def _add_pending_cases_sheet(workbook: Workbook, details: Iterable[Any], cases: 
                 detail.bankaClosingTotal
                 if first_of_key and detail.bankaClosingTotal is not None
                 else NOT_APPLICABLE,
-                VALIDATION_LABELS["mismatch"],
+                VALIDATION_LABELS[Validation.MISMATCH],
                 NOT_APPLICABLE,
             ],
         )

@@ -6,12 +6,12 @@ declara a forma das tabelas.
 **A ordem de declaração dos enums é a ordem de leitura da tabela.** O Postgres
 ordena um enum pela ordem em que os valores foram declarados no `CREATE TYPE`,
 e `repository.list_details` pede `validation DESC`. Lida de baixo para cima,
-`VALIDATION_VALUES` é o que o operador vê primeiro:
+o `Validation` de `domain/vocabulary.py` é o que o operador vê primeiro:
 
     duplicated · missing · mismatch · match · zero
 
 Primeiro o que exige trabalho, depois o que confere, e no fim os zerados — que
-não pedem nada a ninguém. Mexer na ordem aqui muda a tabela.
+não pedem nada a ninguém. A ordem vive agora no vocabulário do domínio.
 
 `bankaCreditsRaw` do schema original não se porta: confirmado que é escrito e
 nunca lido em produção (a folha do relatório que o consumia já não existe).
@@ -20,11 +20,14 @@ nunca lido em produção (a folha do relatório que o consumia já não existe).
 import uuid
 from datetime import UTC, date, datetime
 from decimal import Decimal
+from enum import StrEnum
 from typing import Any
 
 import sqlalchemy as sa
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
+
+from app.domain.vocabulary import CaseStatus, CaseType, ClosingType, Validation
 
 
 class Base(DeclarativeBase):
@@ -44,15 +47,25 @@ def _now() -> datetime:
     return datetime.now(UTC).replace(tzinfo=None)
 
 
-VALIDATION_VALUES = ("zero", "match", "mismatch", "missing", "duplicated")
-CLOSING_TYPE_VALUES = ("D", "D_PLUS_1", "NA")
-CASE_STATUS_VALUES = ("pending", "in_review", "resolved")
-CASE_TYPE_VALUES = ("missing", "mismatch")
+def _pg_enum(enum: type[StrEnum], name: str) -> sa.Enum:
+    """Enum nativo do Postgres a partir do vocabulário do domínio.
 
-ValidationEnum = sa.Enum(*VALIDATION_VALUES, name="validation", native_enum=True)
-ClosingTypeEnum = sa.Enum(*CLOSING_TYPE_VALUES, name="closing_type", native_enum=True)
-CaseStatusEnum = sa.Enum(*CASE_STATUS_VALUES, name="case_status", native_enum=True)
-CaseTypeEnum = sa.Enum(*CASE_TYPE_VALUES, name="case_type", native_enum=True)
+    O `values_callable` não é opcional: sem ele o SQLAlchemy persiste o NOME do
+    membro (`MATCH`) e não o valor (`match`), e a coluna deixava de casar com o
+    `CREATE TYPE` que já está na base.
+    """
+    return sa.Enum(
+        enum,
+        name=name,
+        native_enum=True,
+        values_callable=lambda membros: [membro.value for membro in membros],
+    )
+
+
+ValidationEnum = _pg_enum(Validation, "validation")
+ClosingTypeEnum = _pg_enum(ClosingType, "closing_type")
+CaseStatusEnum = _pg_enum(CaseStatus, "case_status")
+CaseTypeEnum = _pg_enum(CaseType, "case_type")
 
 Money = sa.Numeric(18, 2)
 
@@ -98,8 +111,8 @@ class ClosingDetail(Base):
     closingDescription: Mapped[str | None] = mapped_column(sa.String, nullable=True)
     bankaCreditDate: Mapped[date | None] = mapped_column(sa.Date, nullable=True)
     bankaClosingTotal: Mapped[Decimal | None] = mapped_column(Money, nullable=True)
-    closingType: Mapped[str] = mapped_column(ClosingTypeEnum)
-    validation: Mapped[str] = mapped_column(ValidationEnum)
+    closingType: Mapped[ClosingType] = mapped_column(ClosingTypeEnum)
+    validation: Mapped[Validation] = mapped_column(ValidationEnum)
     difference: Mapped[Decimal | None] = mapped_column(Money, nullable=True)
 
 
@@ -135,7 +148,7 @@ class PendingCase(Base):
     accountNumber: Mapped[str] = mapped_column(sa.String)
     simoAmount: Mapped[Decimal] = mapped_column(Money)
     bankaAmount: Mapped[Decimal] = mapped_column(Money)
-    type: Mapped[str] = mapped_column(CaseTypeEnum)
+    type: Mapped[CaseType] = mapped_column(CaseTypeEnum)
     eTicket: Mapped[str | None] = mapped_column(sa.String, nullable=True)
-    status: Mapped[str] = mapped_column(CaseStatusEnum, default="pending")
+    status: Mapped[CaseStatus] = mapped_column(CaseStatusEnum, default=CaseStatus.PENDING)
     resolvedAt: Mapped[date | None] = mapped_column(sa.Date, nullable=True)

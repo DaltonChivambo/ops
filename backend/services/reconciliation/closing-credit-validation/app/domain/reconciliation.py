@@ -36,8 +36,8 @@ from .models import (
     PosInfo,
     ReconciliationResult,
     SimoClosing,
-    Validation,
 )
+from .vocabulary import CaseType, ClosingType, Validation
 
 MONTHS_PT = (
     "Janeiro",
@@ -213,25 +213,25 @@ def _validate_keys(
     for key, simo_total in simo_totals.items():
         # Chave com >1 fecho: não se soma nem se compara — fica para análise manual.
         if key in duplicated_keys:
-            result[key] = ("duplicated", None)
+            result[key] = (Validation.DUPLICATED, None)
             continue
         credit = credits.get(key)
         banka_amount = credit.amount if credit else Decimal(0)
         # Fecho a 0,00 sem crédito (ou crédito 0,00): não há nada a conferir — é
         # um fecho zerado, não uma divergência. Sai da lista de casos pendentes.
         if simo_total == 0 and banka_amount == 0:
-            result[key] = ("zero", Decimal(0))
+            result[key] = (Validation.ZERO, Decimal(0))
             continue
         if credit is None:
-            result[key] = ("missing", None)
+            result[key] = (Validation.MISSING, None)
             continue
         difference = credit.amount - simo_total
         # Igualdade EXACTA: os totais têm de ser taxativamente iguais para conferir
         # — sem tolerância de arredondamento.
         if difference == 0:
-            result[key] = ("match", Decimal(0))
+            result[key] = (Validation.MATCH, Decimal(0))
         else:
-            result[key] = ("mismatch", difference)
+            result[key] = (Validation.MISMATCH, difference)
     return result
 
 
@@ -262,7 +262,7 @@ def _build_details(
                 closingDescription=credit.description if credit else None,
                 bankaCreditDate=credit.creditDate if credit else None,
                 bankaClosingTotal=credit.amount if credit else None,
-                closingType=info.closingType if info else "NA",
+                closingType=info.closingType if info else ClosingType.NA,
                 validation=validation,
                 difference=difference,
             )
@@ -283,7 +283,10 @@ def _build_cases(
     cases: list[PendingCase] = []
     seen: set[str] = set()
     for detail in details:
-        if detail.validation in ("match", "zero", "duplicated") or detail.key in seen:
+        if (
+            detail.validation in (Validation.MATCH, Validation.ZERO, Validation.DUPLICATED)
+            or detail.key in seen
+        ):
             continue
         seen.add(detail.key)
         credit = credits.get(detail.key)
@@ -296,7 +299,9 @@ def _build_cases(
                 accountNumber=detail.accountNumber,
                 simoAmount=simo_totals.get(detail.key, Decimal(0)),
                 bankaAmount=credit.amount if credit else Decimal(0),
-                type="missing" if detail.validation == "missing" else "mismatch",
+                type=CaseType.MISSING
+                if detail.validation is Validation.MISSING
+                else CaseType.MISMATCH,
             )
         )
     return cases
@@ -312,13 +317,13 @@ def compute_summary(
     summary = ClosingSummary(processed=len(details), openCases=len(cases))
 
     for detail in details:
-        if detail.validation == "match":
+        if detail.validation is Validation.MATCH:
             summary.matched += 1
-        elif detail.validation == "missing":
+        elif detail.validation is Validation.MISSING:
             summary.missingCount += 1
-        elif detail.validation == "zero":
+        elif detail.validation is Validation.ZERO:
             summary.zeroClosings += 1
-        elif detail.validation == "duplicated":
+        elif detail.validation is Validation.DUPLICATED:
             summary.duplicatedPeriods += 1
         else:
             summary.mismatchCount += 1
@@ -327,14 +332,14 @@ def compute_summary(
         simo_total = simo_totals.get(key, Decimal(0))
         credit = credits.get(key)
         banka_total = credit.amount if credit else Decimal(0)
-        if validation == "match":
+        if validation is Validation.MATCH:
             summary.simoAmountMatched += simo_total
             summary.bankaAmountMatched += banka_total
-        elif validation == "mismatch":
+        elif validation is Validation.MISMATCH:
             summary.simoAmountMismatched += simo_total
             summary.bankaAmountMismatched += banka_total
             summary.divergenceAmount += abs(banka_total - simo_total)
-        elif validation == "duplicated":
+        elif validation is Validation.DUPLICATED:
             # Não é divergência (não há soma a comparar), mas é dinheiro retido à
             # espera de análise — e o relatório lista-o entre o que falta tratar.
             # Guardam-se os dois lados: o Banka também duplica nestas chaves (tem
@@ -342,7 +347,7 @@ def compute_summary(
             # Não o registar dava a chave por não creditada no apuramento.
             summary.simoAmountDuplicated += simo_total
             summary.bankaAmountDuplicated += banka_total
-        elif validation == "zero":
+        elif validation is Validation.ZERO:
             continue  # fecho zerado: não há crédito a esperar nem montante a somar
         else:
             summary.simoAmountMissing += simo_total
