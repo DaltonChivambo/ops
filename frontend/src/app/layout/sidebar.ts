@@ -60,7 +60,7 @@ interface NavSection {
    * secção **inteira** — «Pagamentos» e «Fraudes» são placeholders sem rota
    * nem área própria, por isso ficam à boleia. Quando uma delas ganhar a
    * primeira automação, ganha a sua própria área, e este campo desce de
-   * secção para item — ver `docs/adr/0010-acesso-por-area.md`.
+   * secção para item.
    */
   readonly area: AreaId | null;
   readonly items: readonly NavItem[];

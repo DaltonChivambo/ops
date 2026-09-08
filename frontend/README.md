@@ -112,7 +112,7 @@ põe o de renovação num cookie `HttpOnly`.
 | `core/auth/area.guard.ts` | sem sessão manda entrar; com sessão e sem a área do módulo manda a `/sem-acesso` |
 
 **O acesso é por área, não por papel.** Quem é da área faz tudo o que a
-automação faz — ver [ADR 0010](../docs/adr/0010-acesso-por-area.md). As áreas de
+automação faz. As áreas de
 cada pessoa vêm do backend (`GET /api/identity/me`), e não do token: abrir uma
 área a mais uma unidade orgânica é mudar configuração do backend, não publicar
 um SPA novo.

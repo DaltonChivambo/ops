@@ -2,7 +2,7 @@
 
 Mapa serviço → área responsável. Governa a atribuição de revisores de PR.
 A área é **metadado** (`service.yaml`), não estrutura de pastas — as pastas dos serviços são
-por bounded context. Desde o [ADR 0010](docs/adr/0010-acesso-por-area.md), a área é também a
+por bounded context. A área é também a
 unidade de **acesso**: a tabela de Serviços e o `AUTH_AREAS` do `.env` falam da mesma coisa.
 
 **Área não é departamento.** «Meios de Pagamentos e Canais» é um departamento — o

@@ -7,8 +7,7 @@ vocabulário do catálogo (`core/navigation.ts`: `AreaId`, `AREAS`, `NavModule.a
 
 Hoje só uma ilha tem automação construída, e só ela é área: **Canais**
 (`canais`, código GEEA `3230`, «Canais e Serviços de Integração»). Quem não for
-desta área não vê as páginas dela, nem lhe chega pela API — ver
-[ADR 0010](../../../../../docs/adr/0010-acesso-por-area.md). «Meios de
+desta área não vê as páginas dela, nem lhe chega pela API. «Meios de
 Pagamentos» (`2442`, «Serviço de Meios de Pagamento») é outra unidade real, e
 ganha a sua própria área no dia em que tiver a primeira automação.
 

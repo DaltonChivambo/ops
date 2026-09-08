@@ -48,7 +48,7 @@ testa em dev é a topologia que corre em produção.
 | ORM / Migrações | SQLAlchemy 2 (async, asyncpg), Alembic |
 | Base de dados | PostgreSQL 18 |
 | Entrada / routing | Traefik v3 |
-| Identidade | GEEA — o Keycloak corporativo, já federado com o AD ([ADR 0009](docs/adr/0009-autenticacao-contra-o-geea.md)) |
+| Identidade | GEEA — o Keycloak corporativo, já federado com o AD |
 | Observabilidade | OpenTelemetry Collector → Jaeger |
 | Contentores | Docker Engine, Docker Compose |
 
@@ -177,8 +177,7 @@ docker compose exec postgres psql -U closing_reconciliation -d mozaops_cases
 
 **Quem autentica é o GEEA** — o Keycloak corporativo, já federado com o Active Directory. O
 MozaOps não tem servidor de identidade próprio, nem tabela de utilizadores, nem password para
-gerir: as credenciais são as do Windows. Ver
-[ADR 0009](docs/adr/0009-autenticacao-contra-o-geea.md).
+gerir: as credenciais são as do Windows.
 
 ```mermaid
 sequenceDiagram
@@ -207,7 +206,7 @@ Três regras que sustentam o resto:
 3. **O acesso é por área, e não por papel.** A área é a unidade do MozaOps — hoje
    `canais` (código GEEA `3230`, «Canais e Serviços de Integração»); cada automação pertence
    a uma, e quem for da área faz tudo o que ela faz. O mapa unidade-do-GEEA → área está em
-   `AUTH_AREAS`, e a decisão em [ADR 0010](docs/adr/0010-acesso-por-area.md).
+   `AUTH_AREAS`.
 
 **Vocabulário, porque é onde isto se confunde:** no nosso código `area` é a área do MozaOps —
 uma unidade orgânica real, não um departamento inteiro. «Meios de Pagamentos e Canais» é o

@@ -85,7 +85,7 @@ de dados; um repositório nunca decide regra de negócio.
 | Campo | O que é |
 |---|---|
 | `dev_port` | a porta publicada em desenvolvimento, se diferente da `port` |
-| `area` · `channels` | metadado — mudam mais depressa que o código. A `area` é também a unidade de acesso (ADR 0010) |
+| `area` · `channels` | metadado — mudam mais depressa que o código. A `area` é também a unidade de acesso |
 | `routes` | o caminho **público**, com o `/api` que o Traefik corta |
 | `env_prefix` | quando o nome na infraestrutura difere do do serviço |
 | `developed_by` · `requirements_by` | quem fez o trabalho, se não for o `owner` |

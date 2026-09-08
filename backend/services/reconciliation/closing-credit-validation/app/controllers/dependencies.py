@@ -55,8 +55,8 @@ CaseServiceDep = Annotated[CaseService, Depends(get_case_service)]
 # aberta até alguém se lembrar.
 #
 # É uma só porque dentro da área não há graus — quem entra, faz tudo o que a
-# automação faz. Ver `docs/adr/0010-acesso-por-area.md`; o dia em que voltar a
-# haver um acto reservado a alguém, é aqui que nasce a segunda.
+# automação faz. O dia em que voltar a haver um acto reservado a alguém, é
+# aqui que nasce a segunda.
 #
 # Devolve o `Principal`, o que deixa a mesma dependência servir de guarda e de
 # resposta a «quem está a pedir isto» — sem a rota o pedir duas vezes.

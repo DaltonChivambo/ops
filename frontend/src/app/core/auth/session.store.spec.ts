@@ -96,7 +96,7 @@ describe('SessionStore', () => {
     });
 
     it('a função não muda nada', async () => {
-      // Director e técnico da mesma unidade vêem o mesmo: é o ponto do ADR 0010.
+      // Director e técnico da mesma unidade vêem o mesmo.
       api.loginResult = sessao({ function: 'Técnico' });
       await store.signIn('m007000', 'senha');
 

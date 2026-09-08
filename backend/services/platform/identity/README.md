@@ -28,8 +28,7 @@ de unidade.
 
 Uma nota de vocabulário: a claim do GEEA chama-se `departmentCode`, mas o que lá
 vem é a unidade orgânica — que tanto é um departamento como uma área ou um
-serviço. **Área** é a nossa unidade de acesso, e não há papéis dentro dela: ver
-[ADR 0010](../../../../docs/adr/0010-acesso-por-area.md).
+serviço. **Área** é a nossa unidade de acesso, e não há papéis dentro dela.
 
 **O token de acesso vai no corpo; o de renovação vai em cookie `HttpOnly`.**
 O SPA guarda o de acesso em memória e envia-o no cabeçalho `Authorization`, que

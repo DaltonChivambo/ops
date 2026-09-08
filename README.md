@@ -25,7 +25,7 @@ Compose.
 |---|---|
 | `reconciliation/closing-credit-validation` (POS) | construído — parse, reconciliação, persistência e relatório |
 | `platform/identity` | construído — sessões contra o GEEA, com as rotas das automações fechadas |
-| Autenticação | ligada: credenciais do domínio, acesso por área ([ADR 0009](docs/adr/0009-autenticacao-contra-o-geea.md) · [0010](docs/adr/0010-acesso-por-area.md)) |
+| Autenticação | ligada: credenciais do domínio, acesso por área |
 | Canais ATM e Quiosques | por fazer (é a mesma automação, muda o ficheiro de entrada) |
 | Serviço `cases` | por fazer |
 | CI | por fazer |

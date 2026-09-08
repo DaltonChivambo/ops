@@ -6,8 +6,7 @@
 # abaixo — e quem se organiza por departamento/ilha é o frontend, porque é a
 # navegação que o operador vê.
 #
-# Desde o ADR 0010, a área é também a unidade de ACESSO: só entra aqui quem for
-# desta. **Não é o departamento** (`payments-and-channels`, código GEEA 2350) —
+# A área é também a unidade de ACESSO: só entra aqui quem for desta. **Não é o departamento** (`payments-and-channels`, código GEEA 2350) —
 # é a unidade orgânica real de quem trata dos canais, `CANAIS E SERVIÇOS DE
 # INTEGRAÇÃO`, código GEEA 3230. O valor tem de ser igual ao `AUTH_SERVICE_AREA`
 # do compose e ao id do catálogo do SPA — os três dizem a mesma coisa, e

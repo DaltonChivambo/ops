@@ -12,7 +12,7 @@ Pagamentos e Canais»). Cada automação pertence a uma; quem não for da área 
 a vê nem lhe chega pela API.
 
 **Não há papéis dentro da área.** Operador, supervisor e chefe de departamento
-fazem hoje o mesmo trabalho no sistema — ver `docs/adr/0010-acesso-por-area.md`.
+fazem hoje o mesmo trabalho no sistema.
 
 **Ordem de precedência**, do mais forte para o mais fraco:
 

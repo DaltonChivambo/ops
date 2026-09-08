@@ -10,8 +10,7 @@ unidade orgânica a pessoa pertence; o MozaOps decide o que essa unidade abre.
 
 Não há papéis. Dentro de uma área, quem opera, quem supervisiona e quem chefia
 fazem hoje exactamente o mesmo trabalho no sistema — inventar três níveis para
-os distinguir era escrever uma regra que ninguém pediu. Ver
-`docs/adr/0010-acesso-por-area.md`.
+os distinguir era escrever uma regra que ninguém pediu.
 """
 
 from dataclasses import dataclass

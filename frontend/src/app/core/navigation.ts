@@ -19,8 +19,7 @@
  * departamento é só agrupamento visual (`sidebar.ts`); o acesso é à área.
  *
  * O GEEA chama `department` à unidade onde a pessoa está registada, mas o que
- * lá vem tanto é um departamento como uma área ou um serviço — ver
- * `docs/adr/0010-acesso-por-area.md`.
+ * lá vem tanto é um departamento como uma área ou um serviço.
  */
 export type AreaId = 'canais';
 

@@ -15,7 +15,7 @@ import { TokenStore } from './token.store';
  * de cada vez que alguém mudasse de unidade.
  *
  * Não há papéis. Dentro da área, quem opera, quem supervisiona e quem chefia
- * fazem hoje o mesmo — ver `docs/adr/0010-acesso-por-area.md`.
+ * fazem hoje o mesmo.
  */
 export interface Principal {
   readonly sub: string;
