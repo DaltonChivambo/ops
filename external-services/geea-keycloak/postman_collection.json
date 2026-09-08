@@ -1,0 +1,79 @@
+{
+  "info": {
+    "name": "GEEA_KEYCLOAK",
+    "description": "Mock externo de autenticação (SSOLogin) e unidades organizacionais (GEEA).",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "base_url", "value": "http://localhost:8100" },
+    { "key": "geea_realm", "value": "QAS" },
+    { "key": "geea_username", "value": "geea.integracao" },
+    { "key": "geea_password", "value": "mude-me-em-producao" },
+    { "key": "geea_client_id", "value": "qa-workflow-ui" },
+    { "key": "geea_client_secret", "value": "mude-me-em-producao" },
+    { "key": "geea_token", "value": "" }
+  ],
+  "item": [
+    {
+      "name": "SSOLogin",
+      "request": {
+        "method": "GET",
+        "url": {
+          "raw": "{{base_url}}/geea/idmUtils/SSOLogin?realm={{geea_realm}}&username={{geea_username}}&password={{geea_password}}&clientId={{geea_client_id}}&clientSecret={{geea_client_secret}}&clientIpAdress=127.0.0.1",
+          "host": ["{{base_url}}"],
+          "path": ["geea", "idmUtils", "SSOLogin"],
+          "query": [
+            { "key": "realm", "value": "{{geea_realm}}" },
+            { "key": "username", "value": "{{geea_username}}" },
+            { "key": "password", "value": "{{geea_password}}" },
+            { "key": "clientId", "value": "{{geea_client_id}}" },
+            { "key": "clientSecret", "value": "{{geea_client_secret}}" },
+            { "key": "clientIpAdress", "value": "127.0.0.1" }
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"login ok\", function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "const json = pm.response.json();",
+              "pm.collectionVariables.set(\"geea_token\", json.output.accessToken);"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Get Departamentos",
+      "request": {
+        "method": "GET",
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            { "key": "token", "value": "{{geea_token}}", "type": "string" }
+          ]
+        },
+        "url": {
+          "raw": "{{base_url}}/departamentos",
+          "host": ["{{base_url}}"],
+          "path": ["departamentos"]
+        }
+      }
+    },
+    {
+      "name": "Health",
+      "request": {
+        "method": "GET",
+        "url": {
+          "raw": "{{base_url}}/health",
+          "host": ["{{base_url}}"],
+          "path": ["health"]
+        }
+      }
+    }
+  ]
+}

@@ -1,0 +1,1818 @@
+[
+  {
+    "codigo": "7",
+    "nome": "DEPARTAMENTO ESTRANGEIRO, GARANTIAS E CORRESPONDENTES",
+    "tipo": "Departamento",
+    "segmento": "---",
+    "regiao": "Sul",
+    "inferido": false
+  },
+  {
+    "codigo": "8",
+    "nome": "ÁREA TRANSPORTES E ARMAZÉNS",
+    "tipo": "Área",
+    "segmento": "---",
+    "regiao": "Sul",
+    "inferido": false
+  },
+  {
+    "codigo": "100",
+    "nome": "CENTRO PRIVATE SOMMERSCHIELD",
+    "tipo": "Unidade de Negócio",
+    "segmento": "Private",
+    "regiao": "Sul",
+    "inferido": false
+  },
+  {
+    "codigo": "200",
+    "nome": "CENTRO PRIVATE MAPUTO",
+    "tipo": "Unidade de Negócio",
+    "segmento": "Private",
+    "regiao": "Sul",
+    "inferido": false
+  },
+  {
+    "codigo": "201",
+    "nome": "AGÊNCIA M PARK",
+    "tipo": "Unidade de Negócio",
+    "segmento": "Retalho",
+    "regiao": "Sul",
+    "inferido": false
+  },
+  {
+    "codigo": "202",
+    "nome": "AGÊNCIA MATOLA",
+    "tipo": "Unidade de Negócio",
+    "segmento": "Retalho",
+    "regiao": "Sul",
+    "inferido": false
+  },
+  {
+    "codigo": "203",
+    "nome": "AGÊNCIA ALTO MAÉ",
+    "tipo": "Unidade de Negócio",
+    "segmento": "Retalho",
+    "regiao": "Sul",
+    "inferido": false
+  },
+  {
+    "codigo": "204",
+    "nome": "AGÊNCIA AVENIDA ANGOLA",
+    "tipo": "Unidade de Negócio",
+    "segmento": "Retalho",
+    "regiao": "Sul",
+    "inferido": false
+  },
+  {
+    "codigo": "205",
+    "nome": "AGÊNCIA JULIUS NYERERE",
+    "tipo": "Unidade de Negócio",
+    "segmento": "Retalho",
+    "regiao": "Sul",
+    "inferido": false
+  },
+  {
+    "codigo": "206",
+    "nome": "AGÊNCIA 24 DE JULHO",
+    "tipo": "Unidade de Negócio",
+    "segmento": "Retalho",
+    "regiao": "Sul",
+    "inferido": false
+  },
+  {
+    "codigo": "207",
+    "nome": "AGÊNCIA 25 DE SETEMBRO",
+    "tipo": "Unidade de Negócio",
+    "segmento": "Retalho",
+    "regiao": "Sul",
+    "inferido": false
+  },
+  {
+    "codigo": "208",
+    "nome": "AGÊNCIA NAMPULA",
+    "tipo": "Unidade de Negócio",
+    "segmento": "Retalho",
+    "regiao": "Norte",
+    "inferido": false
+  },
+  {
+    "codigo": "209",
+    "nome": "AGÊNCIA NACALA",
+    "tipo": "Unidade de Negócio",
+    "segmento": "Retalho",
+    "regiao": "Norte",
+    "inferido": false
+  },
+  {
+    "codigo": "210",
+    "nome": "AGÊNCIA TETE",
+    "tipo": "Unidade de Negócio",
+    "segmento": "Retalho",
+    "regiao": "Centro",
+    "inferido": true
+  },
+  {
+    "codigo": "211",
+    "nome": "AGÊNCIA BEIRA",
+    "tipo": "Unidade de Negócio",
+    "segmento": "Retalho",
+    "regiao": "Centro",
+    "inferido": false
+  },
+  {
+    "codigo": "212",
+    "nome": "AGÊNCIA CHIMOIO",
+    "tipo": "Unidade de Negócio",
+    "segmento": "Retalho",
+    "regiao": "Centro",
+    "inferido": false
+  },
+  {
+    "codigo": "213",
+    "nome": "AGÊNCIA KARL MARX",
+    "tipo": "Unidade de Negócio",
+    "segmento": "Retalho",
+    "regiao": "Sul",
+    "inferido": false
+  },
+  {
+    "codigo": "214",
+    "nome": "AGÊNCIA XAI-XAI",
+    "tipo": "Unidade de Negócio",
+    "segmento": "Retalho",
+    "regiao": "Sul",
+    "inferido": false
+  },
+  {
+    "codigo": "215",
+    "nome": "AGÊNCIA AVENIDA DO TRABALHO",
+    "tipo": "Unidade de Negócio",
+    "segmento": "Retalho",
+    "regiao": "Sul",
+    "inferido": false
+  },
+  {
+    "codigo": "216",
+    "nome": "AGÊNCIA MACHAVA",
+    "tipo": "Unidade de Negócio",
+    "segmento": "Retalho",
+    "regiao": "Sul",
+    "inferido": false
+  },
+  {
+    "codigo": "217",
+    "nome": "AGÊNCIA DAS FPLM",
+    "tipo": "Unidade de Negócio",
+    "segmento": "Retalho",
+    "regiao": "Sul",
+    "inferido": false
+  },
+  {
+    "codigo": "218",
+    "nome": "AGÊNCIA PEMBA",
+    "tipo": "Unidade de Negócio",
+    "segmento": "Retalho",
+    "regiao": "Norte",
+    "inferido": false
+  },
+  {
+    "codigo": "219",
+    "nome": "AGÊNCIA QUELIMANE",
+    "tipo": "Unidade de Negócio",
+    "segmento": "Retalho",
+    "regiao": "Norte",
+    "inferido": false
+  },
+  {
+    "codigo": "220",
+    "nome": "AGÊNCIA MAXIXE",
+    "tipo": "Unidade de Negócio",
+    "segmento": "Retalho",
+    "regiao": "Sul",
+    "inferido": true
+  },
+  {
+    "codigo": "221",
+    "nome": "AGÊNCIA MATEMA",
+    "tipo": "Unidade de Negócio",
+    "segmento": "Retalho",
+    "regiao": "Centro",
+    "inferido": false
+  },
+  {
+    "codigo": "222",
+    "nome": "AGÊNCIA JINDAL",
+    "tipo": "Unidade de Negócio",
+    "segmento": "Retalho",
+    "regiao": "Centro",
+    "inferido": false
+  },
+  {
+    "codigo": "223",
+    "nome": "AGÊNCIA AEROPORTO MAPUTO",
+    "tipo": "Unidade de Negócio",
+    "segmento": "Retalho",
+    "regiao": "Sul",
+    "inferido": false
+  },
+  {
+    "codigo": "224",
+    "nome": "AGÊNCIA CUAMBA",
+    "tipo": "Unidade de Negócio",
+    "segmento": "Retalho",
+    "regiao": "Norte",
+    "inferido": false
+  },
+  {
+    "codigo": "225",
+    "nome": "AGÊNCIA SEDE",
+    "tipo": "Unidade de Negócio",
+    "segmento": "Retalho",
+    "regiao": "Sul",
+    "inferido": false
+  },
+  {
+    "codigo": "226",
+    "nome": "AGÊNCIA ZIMPETO",
+    "tipo": "Unidade de Negócio",
+    "segmento": "Retalho",
+    "regiao": "Sul",
+    "inferido": false
+  },
+  {
+    "codigo": "227",
+    "nome": "AGÊNCIA PRAÇA DA JUVENTUDE",
+    "tipo": "Unidade de Negócio",
+    "segmento": "Retalho",
+    "regiao": "Sul",
+    "inferido": false
+  },
+  {
+    "codigo": "228",
+    "nome": "AGÊNCIA MATOLA RIO",
+    "tipo": "Unidade de Negócio",
+    "segmento": "Retalho",
+    "regiao": "Sul",
+    "inferido": false
+  },
+  {
+    "codigo": "229",
+    "nome": "AGÊNCIA MUTAUANHA",
+    "tipo": "Unidade de Negócio",
+    "segmento": "Retalho",
+    "regiao": "Norte",
+    "inferido": false
+  },
+  {
+    "codigo": "230",
+    "nome": "AGÊNCIA MAO TSÉ-TUNG",
+    "tipo": "Unidade de Negócio",
+    "segmento": "Retalho",
+    "regiao": "Sul",
+    "inferido": true
+  },
+  {
+    "codigo": "231",
+    "nome": "AGÊNCIA RESSANO GARCIA",
+    "tipo": "Unidade de Negócio",
+    "segmento": "Retalho",
+    "regiao": "Sul",
+    "inferido": false
+  },
+  {
+    "codigo": "232",
+    "nome": "AGÊNCIA POLITÉCNICA DE NACALA",
+    "tipo": "Unidade de Negócio",
+    "segmento": "Retalho",
+    "regiao": "Norte",
+    "inferido": false
+  },
+  {
+    "codigo": "233",
+    "nome": "AGÊNCIA BAIRRO JARDIM",
+    "tipo": "Unidade de Negócio",
+    "segmento": "Retalho",
+    "regiao": "Sul",
+    "inferido": false
+  },
+  {
+    "codigo": "235",
+    "nome": "AGÊNCIA MANHIÇA",
+    "tipo": "Unidade de Negócio",
+    "segmento": "Retalho",
+    "regiao": "Sul",
+    "inferido": true
+  },
+  {
+    "codigo": "236",
+    "nome": "AGÊNCIA MOAMBA",
+    "tipo": "Unidade de Negócio",
+    "segmento": "Retalho",
+    "regiao": "Sul",
+    "inferido": false
+  },
+  {
+    "codigo": "237",
+    "nome": "AGÊNCIA DONDO",
+    "tipo": "Unidade de Negócio",
+    "segmento": "Retalho",
+    "regiao": "Centro",
+    "inferido": false
+  },
+  {
+    "codigo": "238",
+    "nome": "AGENCIA MARRACUENE",
+    "tipo": "Unidade de Negócio",
+    "segmento": "Retalho",
+    "regiao": "Sul",
+    "inferido": false
+  },
+  {
+    "codigo": "239",
+    "nome": "AGÊNCIA DE INHAMBANE",
+    "tipo": "Unidade de Negócio",
+    "segmento": "Retalho",
+    "regiao": "Sul",
+    "inferido": false
+  },
+  {
+    "codigo": "240",
+    "nome": "AGÊNCIA MACHAVA SEDE",
+    "tipo": "Unidade de Negócio",
+    "segmento": "Retalho",
+    "regiao": "Sul",
+    "inferido": false
+  },
+  {
+    "codigo": "241",
+    "nome": "AGÊNCIA PRAÇA DOS TRABALHADORES",
+    "tipo": "Unidade de Negócio",
+    "segmento": "Retalho",
+    "regiao": "Sul",
+    "inferido": false
+  },
+  {
+    "codigo": "242",
+    "nome": "AGÊNCIA COOP",
+    "tipo": "Unidade de Negócio",
+    "segmento": "Retalho",
+    "regiao": "Sul",
+    "inferido": false
+  },
+  {
+    "codigo": "243",
+    "nome": "AGÊNCIA LICHINGA",
+    "tipo": "Unidade de Negócio",
+    "segmento": "Retalho",
+    "regiao": "Norte",
+    "inferido": false
+  },
+  {
+    "codigo": "244",
+    "nome": "AGÊNCIA VANDUZI",
+    "tipo": "Unidade de Negócio",
+    "segmento": "Retalho",
+    "regiao": "Centro",
+    "inferido": false
+  },
+  {
+    "codigo": "245",
+    "nome": "AGÊNCIA GONDOLA",
+    "tipo": "Unidade de Negócio",
+    "segmento": "Retalho",
+    "regiao": "Centro",
+    "inferido": false
+  },
+  {
+    "codigo": "246",
+    "nome": "AGÊNCIA MURRUPULA",
+    "tipo": "Unidade de Negócio",
+    "segmento": "Retalho",
+    "regiao": "Norte",
+    "inferido": true
+  },
+  {
+    "codigo": "248",
+    "nome": "AGÊNCIA CHICUALACUALA",
+    "tipo": "Unidade de Negócio",
+    "segmento": "Retalho",
+    "regiao": "Sul",
+    "inferido": false
+  },
+  {
+    "codigo": "265",
+    "nome": "AGÊNCIA MACHAZE",
+    "tipo": "Unidade de Negócio",
+    "segmento": "Retalho",
+    "regiao": "Centro",
+    "inferido": true
+  },
+  {
+    "codigo": "269",
+    "nome": "AGÊNCIA SAMORA MACHEL",
+    "tipo": "Unidade de Negócio",
+    "segmento": "Retalho",
+    "regiao": "Sul",
+    "inferido": false
+  },
+  {
+    "codigo": "270",
+    "nome": "AGÊNCIA 24 JULHO CORTIÇO",
+    "tipo": "Unidade de Negócio",
+    "segmento": "Retalho",
+    "regiao": "Sul",
+    "inferido": false
+  },
+  {
+    "codigo": "271",
+    "nome": "AGÊNCIA MATOLA JOÃO MATEUS",
+    "tipo": "Unidade de Negócio",
+    "segmento": "Retalho",
+    "regiao": "Sul",
+    "inferido": true
+  },
+  {
+    "codigo": "272",
+    "nome": "AGÊNCIA BEIRA SERPA PINTO",
+    "tipo": "Unidade de Negócio",
+    "segmento": "Retalho",
+    "regiao": "Centro",
+    "inferido": false
+  },
+  {
+    "codigo": "273",
+    "nome": "AGÊNCIA ULONGUÉ",
+    "tipo": "Unidade de Negócio",
+    "segmento": "Retalho",
+    "regiao": "Centro",
+    "inferido": false
+  },
+  {
+    "codigo": "274",
+    "nome": "AGÊNCIA MALEMA",
+    "tipo": "Unidade de Negócio",
+    "segmento": "Retalho",
+    "regiao": "Norte",
+    "inferido": false
+  },
+  {
+    "codigo": "275",
+    "nome": "AGÊNCIA NKHAME",
+    "tipo": "Unidade de Negócio",
+    "segmento": "Retalho",
+    "regiao": "Centro",
+    "inferido": false
+  },
+  {
+    "codigo": "400",
+    "nome": "AGÊNCIA MERCADO MALHAMPESENE",
+    "tipo": "Unidade de Negócio MI",
+    "segmento": "Retalho",
+    "regiao": "Sul",
+    "inferido": false
+  },
+  {
+    "codigo": "401",
+    "nome": "AGÊNCIA MERCADO TSALALA",
+    "tipo": "Unidade de Negócio MI",
+    "segmento": "Retalho",
+    "regiao": "Sul",
+    "inferido": false
+  },
+  {
+    "codigo": "402",
+    "nome": "AGÊNCIA MERCADO T3",
+    "tipo": "Unidade de Negócio MI",
+    "segmento": "Retalho",
+    "regiao": "Sul",
+    "inferido": false
+  },
+  {
+    "codigo": "403",
+    "nome": "AGÊNCIA MERCADO SOCIMOL",
+    "tipo": "Unidade de Negócio MI",
+    "segmento": "Retalho",
+    "regiao": "Sul",
+    "inferido": false
+  },
+  {
+    "codigo": "404",
+    "nome": "AGÊNCIA MERCADO BOANE",
+    "tipo": "Unidade de Negócio MI",
+    "segmento": "Retalho",
+    "regiao": "Sul",
+    "inferido": false
+  },
+  {
+    "codigo": "405",
+    "nome": "AGÊNCIA MERCADO XIQUELENE",
+    "tipo": "Unidade de Negócio MI",
+    "segmento": "Retalho",
+    "regiao": "Sul",
+    "inferido": false
+  },
+  {
+    "codigo": "406",
+    "nome": "AGÊNCIA MERCADO GOTO",
+    "tipo": "Unidade de Negócio MI",
+    "segmento": "Retalho",
+    "regiao": "Centro",
+    "inferido": false
+  },
+  {
+    "codigo": "407",
+    "nome": "AGÊNCIA MERCADO MUNHAVA",
+    "tipo": "Unidade de Negócio MI",
+    "segmento": "Retalho",
+    "regiao": "Centro",
+    "inferido": false
+  },
+  {
+    "codigo": "408",
+    "nome": "AGÊNCIA MERCADO RESTA",
+    "tipo": "Unidade de Negócio MI",
+    "segmento": "Retalho",
+    "regiao": "Norte",
+    "inferido": false
+  },
+  {
+    "codigo": "409",
+    "nome": "AGÊNCIA MERCADO 25 DE JUNHO",
+    "tipo": "Unidade de Negócio MI",
+    "segmento": "Retalho",
+    "regiao": "Norte",
+    "inferido": false
+  },
+  {
+    "codigo": "600",
+    "nome": "CENTRO MOZA CORPORATE",
+    "tipo": "Unidade de Negócio",
+    "segmento": "Corporate",
+    "regiao": "Sul",
+    "inferido": false
+  },
+  {
+    "codigo": "601",
+    "nome": "CENTRO CORPORATE AV DE ANGOLA",
+    "tipo": "Unidade de Negócio",
+    "segmento": "Corporate",
+    "regiao": "Sul",
+    "inferido": false
+  },
+  {
+    "codigo": "602",
+    "nome": "CENTRO CORPORATE MATOLA",
+    "tipo": "Unidade de Negócio",
+    "segmento": "Corporate",
+    "regiao": "Sul",
+    "inferido": false
+  },
+  {
+    "codigo": "603",
+    "nome": "CENTRO CORPORATE NAMPULA",
+    "tipo": "Unidade de Negócio",
+    "segmento": "Corporate",
+    "regiao": "Norte",
+    "inferido": false
+  },
+  {
+    "codigo": "604",
+    "nome": "CENTRO CORPORATE TETE",
+    "tipo": "Unidade de Negócio",
+    "segmento": "Corporate",
+    "regiao": "Centro",
+    "inferido": false
+  },
+  {
+    "codigo": "605",
+    "nome": "CENTRO CORPORATE BEIRA",
+    "tipo": "Unidade de Negócio",
+    "segmento": "Corporate",
+    "regiao": "Centro",
+    "inferido": true
+  },
+  {
+    "codigo": "606",
+    "nome": "CENTRO CORPORATE NACALA",
+    "tipo": "Unidade de Negócio",
+    "segmento": "Corporate",
+    "regiao": "Norte",
+    "inferido": false
+  },
+  {
+    "codigo": "607",
+    "nome": "CENTRO CORPORATE 25 DE SETEMBRO",
+    "tipo": "Unidade de Negócio",
+    "segmento": "Corporate",
+    "regiao": "Sul",
+    "inferido": false
+  },
+  {
+    "codigo": "608",
+    "nome": "CENTRO CORPORATE PEMBA",
+    "tipo": "Unidade de Negócio",
+    "segmento": "Corporate",
+    "regiao": "Norte",
+    "inferido": false
+  },
+  {
+    "codigo": "609",
+    "nome": "CENTRO CORPORATE QUELIMANE",
+    "tipo": "Unidade de Negócio",
+    "segmento": "Corporate",
+    "regiao": "Norte",
+    "inferido": false
+  },
+  {
+    "codigo": "610",
+    "nome": "CENTRO CORPORATE ZIMPETO",
+    "tipo": "Unidade de Negócio",
+    "segmento": "Corporate",
+    "regiao": "Sul",
+    "inferido": false
+  },
+  {
+    "codigo": "611",
+    "nome": "CENTRO CORPORATE MAO TSÉ TUNG",
+    "tipo": "Unidade de Negócio",
+    "segmento": "Corporate",
+    "regiao": "Sul",
+    "inferido": false
+  },
+  {
+    "codigo": "612",
+    "nome": "CENTRO CORPORATE MUTAUANHA",
+    "tipo": "Unidade de Negócio",
+    "segmento": "Corporate",
+    "regiao": "Norte",
+    "inferido": false
+  },
+  {
+    "codigo": "800",
+    "nome": "CENTRO PRIVATE NAMPULA",
+    "tipo": "Unidade de Negócio",
+    "segmento": "Private",
+    "regiao": "Norte",
+    "inferido": false
+  },
+  {
+    "codigo": "801",
+    "nome": "CENTRO PRIVATE BEIRA",
+    "tipo": "Unidade de Negócio",
+    "segmento": "Private",
+    "regiao": "Centro",
+    "inferido": false
+  },
+  {
+    "codigo": "802",
+    "nome": "CENTRO PRIVATE TETE",
+    "tipo": "Unidade de Negócio",
+    "segmento": "Private",
+    "regiao": "Centro",
+    "inferido": false
+  },
+  {
+    "codigo": "900",
+    "nome": "DIRECÇÃO REGIONAL SUL",
+    "tipo": "Direcção Regional",
+    "segmento": "Retalho",
+    "regiao": "Sul",
+    "inferido": false
+  },
+  {
+    "codigo": "901",
+    "nome": "DIRECÇÃO REGIONAL CENTRO",
+    "tipo": "Direcção Regional",
+    "segmento": "Retalho",
+    "regiao": "Centro",
+    "inferido": false
+  },
+  {
+    "codigo": "902",
+    "nome": "DIRECÇÃO REGIONAL NORTE",
+    "tipo": "Direcção Regional",
+    "segmento": "Retalho",
+    "regiao": "Norte",
+    "inferido": false
+  },
+  {
+    "codigo": "903",
+    "nome": "DIRECÇÃO REGIONAL MAPUTO ESTE",
+    "tipo": "Direcção Regional",
+    "segmento": "Retalho",
+    "regiao": "Sul",
+    "inferido": false
+  },
+  {
+    "codigo": "904",
+    "nome": "DIRECÇÃO REGIONAL MAPUTO OESTE",
+    "tipo": "Direcção Regional",
+    "segmento": "Retalho",
+    "regiao": "Sul",
+    "inferido": false
+  },
+  {
+    "codigo": "905",
+    "nome": "DIRECÇÃO REGIONAL NORTE - CORPORATE",
+    "tipo": "Direcção Regional",
+    "segmento": "Corporate",
+    "regiao": "Norte",
+    "inferido": true
+  },
+  {
+    "codigo": "906",
+    "nome": "DIRECÇÃO REGIONAL CENTRO - PRIVATE",
+    "tipo": "Direcção Regional",
+    "segmento": "Private",
+    "regiao": "Centro",
+    "inferido": false
+  },
+  {
+    "codigo": "907",
+    "nome": "DIRECÇÃO REGIONAL NORTE - PRIVATE",
+    "tipo": "Direcção Regional",
+    "segmento": "Private",
+    "regiao": "Norte",
+    "inferido": false
+  },
+  {
+    "codigo": "908",
+    "nome": "DIRECÇÃO REGIONAL SUL - PRIVATE",
+    "tipo": "Direcção Regional",
+    "segmento": "Private",
+    "regiao": "Sul",
+    "inferido": false
+  },
+  {
+    "codigo": "909",
+    "nome": "DIRECÇÃO REGIONAL SUL - CORPORATE",
+    "tipo": "Direcção Regional",
+    "segmento": "Corporate",
+    "regiao": "Sul",
+    "inferido": false
+  },
+  {
+    "codigo": "910",
+    "nome": "DIRECÇÃO REGIONAL MSCN – MI",
+    "tipo": "Direcção Regional",
+    "segmento": "Retalho",
+    "regiao": "Todas as Regiões",
+    "inferido": false
+  },
+  {
+    "codigo": "911",
+    "nome": "DIRECÇÃO REGIONAL CENTRO - CORPORATE",
+    "tipo": "Direcção Regional",
+    "segmento": "Corporate",
+    "regiao": "Centro",
+    "inferido": true
+  },
+  {
+    "codigo": "999",
+    "nome": "INSTITUCIONAIS E EMPRESAS PÚBLICAS",
+    "tipo": "Unidade de Negócio",
+    "segmento": "Institucional",
+    "regiao": "Todas as Regiões",
+    "inferido": false
+  },
+  {
+    "codigo": "1000",
+    "nome": "SEDE",
+    "tipo": "N/A",
+    "segmento": "Corporate",
+    "regiao": "Sul",
+    "inferido": false
+  },
+  {
+    "codigo": "1100",
+    "nome": "CONSELHO DE ADMINISTRAÇÃO",
+    "tipo": "Concelho de Administração",
+    "segmento": "Corporate",
+    "regiao": "Sul",
+    "inferido": false
+  },
+  {
+    "codigo": "1200",
+    "nome": "COMISSÃO EXECUTIVA",
+    "tipo": "Comissão Executiva",
+    "segmento": "Institucional",
+    "regiao": "Sul",
+    "inferido": false
+  },
+  {
+    "codigo": "1300",
+    "nome": "DIRECÇÃO DE AUDITORIA INTERNA",
+    "tipo": "Direcção",
+    "segmento": "Institucional",
+    "regiao": "Sul",
+    "inferido": false
+  },
+  {
+    "codigo": "1310",
+    "nome": "DIRECÇÃO",
+    "tipo": "Área",
+    "segmento": "Retalho",
+    "regiao": "Sul",
+    "inferido": false
+  },
+  {
+    "codigo": "1320",
+    "nome": "ÁREA DE INSPECÇÃO",
+    "tipo": "Área",
+    "segmento": "---",
+    "regiao": "Sul",
+    "inferido": false
+  },
+  {
+    "codigo": "1330",
+    "nome": "ÁREA DE AUDITORIA INTERNA",
+    "tipo": "Área",
+    "segmento": "Corporate",
+    "regiao": "Sul",
+    "inferido": false
+  },
+  {
+    "codigo": "1340",
+    "nome": "ÁREA DE APOIO ADMINISTRATIVO",
+    "tipo": "Área",
+    "segmento": "---",
+    "regiao": "Sul",
+    "inferido": false
+  },
+  {
+    "codigo": "1400",
+    "nome": "DIRECÇÃO DE CRÉDITO",
+    "tipo": "Direcção",
+    "segmento": "---",
+    "regiao": "Sul",
+    "inferido": false
+  },
+  {
+    "codigo": "1420",
+    "nome": "ÁREA DE OFERTA",
+    "tipo": "Área",
+    "segmento": "---",
+    "regiao": "Sul",
+    "inferido": false
+  },
+  {
+    "codigo": "1430",
+    "nome": "ÁREA DE ANÁLISE DE CRÉDITO",
+    "tipo": "Área",
+    "segmento": "---",
+    "regiao": "Sul",
+    "inferido": false
+  },
+  {
+    "codigo": "1500",
+    "nome": "DIRECÇÃO DE RISCO",
+    "tipo": "Direcção",
+    "segmento": "Corporate",
+    "regiao": "Sul",
+    "inferido": false
+  },
+  {
+    "codigo": "1520",
+    "nome": "ÁREA DE CONTROLO DO RISCO",
+    "tipo": "Área",
+    "segmento": "---",
+    "regiao": "Sul",
+    "inferido": false
+  },
+  {
+    "codigo": "1530",
+    "nome": "ÁREA DE GESTÃO ESTRATÉGICA DE RISCO",
+    "tipo": "Área",
+    "segmento": "---",
+    "regiao": "Sul",
+    "inferido": false
+  },
+  {
+    "codigo": "1600",
+    "nome": "DIRECÇÃO DE SISTEMAS E TECNOLOGIAS DE INFORMAÇÃO",
+    "tipo": "Direcção",
+    "segmento": "---",
+    "regiao": "Sul",
+    "inferido": false
+  },
+  {
+    "codigo": "1620",
+    "nome": "ÁREA DE PROJECTOS E APLICAÇÕES",
+    "tipo": "Área",
+    "segmento": "---",
+    "regiao": "Sul",
+    "inferido": false
+  },
+  {
+    "codigo": "1630",
+    "nome": "ÁREA DE CORE",
+    "tipo": "Área",
+    "segmento": "---",
+    "regiao": "Sul",
+    "inferido": false
+  },
+  {
+    "codigo": "1640",
+    "nome": "ÁREA DE COMUNICAÇÕES, SISTEMAS E SEGURANÇA",
+    "tipo": "Área",
+    "segmento": "---",
+    "regiao": "Sul",
+    "inferido": false
+  },
+  {
+    "codigo": "1650",
+    "nome": "ÁREA DE CONTROLO FINANCEIRO/GESTÃO DO PORTIFÓLIO",
+    "tipo": "Área",
+    "segmento": "---",
+    "regiao": "Sul",
+    "inferido": false
+  },
+  {
+    "codigo": "1700",
+    "nome": "DIRECÇÃO JURÍDICA",
+    "tipo": "Direcção",
+    "segmento": "---",
+    "regiao": "Sul",
+    "inferido": false
+  },
+  {
+    "codigo": "1720",
+    "nome": "AREA_ASS_TEC",
+    "tipo": "Área",
+    "segmento": "---",
+    "regiao": "Sul",
+    "inferido": false
+  },
+  {
+    "codigo": "1730",
+    "nome": "ÁREA DE VISO JURÍDICO",
+    "tipo": "Área",
+    "segmento": "---",
+    "regiao": "Sul",
+    "inferido": false
+  },
+  {
+    "codigo": "1800",
+    "nome": "DIRECÇÃO DE MARKETING",
+    "tipo": "Direcção",
+    "segmento": "---",
+    "regiao": "Sul",
+    "inferido": false
+  },
+  {
+    "codigo": "1820",
+    "nome": "ÁREA DE GESTÃO DE SEGMENTOS",
+    "tipo": "Área",
+    "segmento": "---",
+    "regiao": "Sul",
+    "inferido": false
+  },
+  {
+    "codigo": "1830",
+    "nome": "ÁREA DE PRODUTOS E INOVAÇÃO",
+    "tipo": "Área",
+    "segmento": "---",
+    "regiao": "Sul",
+    "inferido": false
+  },
+  {
+    "codigo": "1840",
+    "nome": "ÁREA DE INFORMAÇÃO E DINAMIZAÇÃO COMERCIAL",
+    "tipo": "Área",
+    "segmento": "---",
+    "regiao": "Sul",
+    "inferido": false
+  },
+  {
+    "codigo": "1900",
+    "nome": "DIRECÇÃO DE PLANEAMENTO, CONTABILIDADE E FINANÇAS",
+    "tipo": "Direcção",
+    "segmento": "---",
+    "regiao": "Sul",
+    "inferido": false
+  },
+  {
+    "codigo": "1910",
+    "nome": "DEPARTAMENTO DE CONTABILIDADE",
+    "tipo": "Departamento",
+    "segmento": "---",
+    "regiao": "Sul",
+    "inferido": false
+  },
+  {
+    "codigo": "1912",
+    "nome": "ÁREA DE PROCESSAMENTO CONTABILÍSTICO",
+    "tipo": "Área",
+    "segmento": "---",
+    "regiao": "Sul",
+    "inferido": false
+  },
+  {
+    "codigo": "1913",
+    "nome": "ÁREA DE CONTROLO DE IMOBILIZADO",
+    "tipo": "Área",
+    "segmento": "---",
+    "regiao": "Sul",
+    "inferido": false
+  },
+  {
+    "codigo": "1914",
+    "nome": "ÁREA DE RECONCILIAÇÕES E CONTROLO",
+    "tipo": "Área",
+    "segmento": "---",
+    "regiao": "Sul",
+    "inferido": false
+  },
+  {
+    "codigo": "1915",
+    "nome": "ÁREA DE REPORTE REGULAMENTAR",
+    "tipo": "Área",
+    "segmento": "---",
+    "regiao": "Sul",
+    "inferido": false
+  },
+  {
+    "codigo": "1916",
+    "nome": "ÁREA DE NORMATIVO E PROJECTOS",
+    "tipo": "Área",
+    "segmento": "---",
+    "regiao": "Sul",
+    "inferido": false
+  },
+  {
+    "codigo": "1930",
+    "nome": "DEPARTAMENTO DE PLANEAMENTO E CONTROLO",
+    "tipo": "Departamento",
+    "segmento": "---",
+    "regiao": "Sul",
+    "inferido": false
+  },
+  {
+    "codigo": "1932",
+    "nome": "ÁREA DE PLANEAMENTO E ORÇAMENTO",
+    "tipo": "Área",
+    "segmento": "---",
+    "regiao": "Sul",
+    "inferido": false
+  },
+  {
+    "codigo": "1933",
+    "nome": "ÁREA DE CONTROLO ORÇAMENTAL",
+    "tipo": "Área",
+    "segmento": "---",
+    "regiao": "Sul",
+    "inferido": false
+  },
+  {
+    "codigo": "1934",
+    "nome": "ÁREA DE INFORMAÇÃO DE GESTÃO",
+    "tipo": "Área",
+    "segmento": "---",
+    "regiao": "Sul",
+    "inferido": false
+  },
+  {
+    "codigo": "2000",
+    "nome": "DIRECÇÃO DE PESSOAS",
+    "tipo": "Direcção",
+    "segmento": "---",
+    "regiao": "Sul",
+    "inferido": false
+  },
+  {
+    "codigo": "2020",
+    "nome": "ÁREA DE GESTÃO DE RH",
+    "tipo": "Área",
+    "segmento": "---",
+    "regiao": "Sul",
+    "inferido": false
+  },
+  {
+    "codigo": "2030",
+    "nome": "ÁREA DE FORMAÇÃO",
+    "tipo": "Área",
+    "segmento": "---",
+    "regiao": "Sul",
+    "inferido": false
+  },
+  {
+    "codigo": "2040",
+    "nome": "ÁREA DE RECRUTAMENTO E SELEÇÃO",
+    "tipo": "Área",
+    "segmento": "---",
+    "regiao": "Sul",
+    "inferido": false
+  },
+  {
+    "codigo": "2100",
+    "nome": "DIRECÇÃO DE MERCADOS E TESOURARIA",
+    "tipo": "Direcção",
+    "segmento": "---",
+    "regiao": "Sul",
+    "inferido": false
+  },
+  {
+    "codigo": "2120",
+    "nome": "ÁREA DE SALA DE MERCADOS",
+    "tipo": "Área",
+    "segmento": "Retalho",
+    "regiao": "Sul",
+    "inferido": false
+  },
+  {
+    "codigo": "2130",
+    "nome": "ÁREA DE ALM/ALCO E GESTÃO DA POUPANÇA",
+    "tipo": "Área",
+    "segmento": "---",
+    "regiao": "Sul",
+    "inferido": false
+  },
+  {
+    "codigo": "2140",
+    "nome": "ÁREA DE FINANCIAL INSTITUTIONS E IDE",
+    "tipo": "Área",
+    "segmento": "---",
+    "regiao": "Sul",
+    "inferido": false
+  },
+  {
+    "codigo": "2150",
+    "nome": "ÁREA DE CONTROLO DE OPERAÇÕES",
+    "tipo": "Área",
+    "segmento": "---",
+    "regiao": "Sul",
+    "inferido": false
+  },
+  {
+    "codigo": "2200",
+    "nome": "DIRECÇÃO DE COMUNICAÇAO E QUALIDADE",
+    "tipo": "Direcção",
+    "segmento": "---",
+    "regiao": "Sul",
+    "inferido": false
+  },
+  {
+    "codigo": "2220",
+    "nome": "ÁREA DE IMAGEM E COMUNICAÇÃO",
+    "tipo": "Área",
+    "segmento": "---",
+    "regiao": "Sul",
+    "inferido": false
+  },
+  {
+    "codigo": "2230",
+    "nome": "DIRECÇÃO DE QUALIDADE",
+    "tipo": "Direcção",
+    "segmento": "Institucional",
+    "regiao": "Sul",
+    "inferido": false
+  },
+  {
+    "codigo": "2240",
+    "nome": "ÁREA DE RESPONSABILIDADE SOCIAL",
+    "tipo": "Área",
+    "segmento": "---",
+    "regiao": "Sul",
+    "inferido": false
+  },
+  {
+    "codigo": "2300",
+    "nome": "DIRECÇÃO DE ORGANIZAÇÃO E SERVIÇOS GERAIS",
+    "tipo": "Direcção",
+    "segmento": "---",
+    "regiao": "Sul",
+    "inferido": false
+  },
+  {
+    "codigo": "2310",
+    "nome": "DEPARTAMENTO DE ORGANIZAÇÃO",
+    "tipo": "Departamento",
+    "segmento": "---",
+    "regiao": "Sul",
+    "inferido": false
+  },
+  {
+    "codigo": "2312",
+    "nome": "ÁREA DE CONTINUIDADE DE NEGÓCIO",
+    "tipo": "Área",
+    "segmento": "---",
+    "regiao": "Sul",
+    "inferido": false
+  },
+  {
+    "codigo": "2313",
+    "nome": "ÁREA DE SUPORTES E ESTRUTURAS",
+    "tipo": "Área",
+    "segmento": "---",
+    "regiao": "Sul",
+    "inferido": false
+  },
+  {
+    "codigo": "2314",
+    "nome": "ÁREA DE GESTÃO DE PROJECTOS",
+    "tipo": "Área",
+    "segmento": "---",
+    "regiao": "Sul",
+    "inferido": false
+  },
+  {
+    "codigo": "2315",
+    "nome": "ÁREA DE REENGENHARIA DE PROCESSOS",
+    "tipo": "Área",
+    "segmento": "---",
+    "regiao": "Sul",
+    "inferido": false
+  },
+  {
+    "codigo": "2316",
+    "nome": "ÁREA DE HELP DESK/CALL CENTER",
+    "tipo": "Área",
+    "segmento": "---",
+    "regiao": "Sul",
+    "inferido": false
+  },
+  {
+    "codigo": "2330",
+    "nome": "DEPARTAMENTO DE SERVIÇOS GERAIS",
+    "tipo": "Departamento",
+    "segmento": "---",
+    "regiao": "Sul",
+    "inferido": false
+  },
+  {
+    "codigo": "2332",
+    "nome": "ÁREA DE GESTÃO DE PATRIMÓNIO",
+    "tipo": "Área",
+    "segmento": "---",
+    "regiao": "Sul",
+    "inferido": false
+  },
+  {
+    "codigo": "2333",
+    "nome": "ÁREA DE COMPRAS E SERVIÇOS",
+    "tipo": "Área",
+    "segmento": "---",
+    "regiao": "Sul",
+    "inferido": false
+  },
+  {
+    "codigo": "2350",
+    "nome": "DEPARTAMENTO DE APOIO OPERACIONAL",
+    "tipo": "Departamento",
+    "segmento": "---",
+    "regiao": "Sul",
+    "inferido": false
+  },
+  {
+    "codigo": "2400",
+    "nome": "DIRECÇÃO DE OPERAÇÕES",
+    "tipo": "Direcção",
+    "segmento": "---",
+    "regiao": "Sul",
+    "inferido": false
+  },
+  {
+    "codigo": "2420",
+    "nome": "ÁREA DE APOIO OPERACIONAL",
+    "tipo": "Área",
+    "segmento": "---",
+    "regiao": "Sul",
+    "inferido": false
+  },
+  {
+    "codigo": "2430",
+    "nome": "ÁREA DE CLIENTES E CONTAS",
+    "tipo": "Área",
+    "segmento": "---",
+    "regiao": "Sul",
+    "inferido": false
+  },
+  {
+    "codigo": "2431",
+    "nome": "SERVIÇO DE CLIENTES",
+    "tipo": "Serviço",
+    "segmento": "---",
+    "regiao": "Sul",
+    "inferido": false
+  },
+  {
+    "codigo": "2432",
+    "nome": "SERVIÇO DE DEPÓSITOS E SEGUROS",
+    "tipo": "Serviço",
+    "segmento": "---",
+    "regiao": "Sul",
+    "inferido": false
+  },
+  {
+    "codigo": "2433",
+    "nome": "SERVIÇO DE GESTÃO DOCUMENTAL",
+    "tipo": "Serviço",
+    "segmento": "---",
+    "regiao": "Sul",
+    "inferido": false
+  },
+  {
+    "codigo": "2434",
+    "nome": "SERVIÇO DE RECONCILIAÇÕES",
+    "tipo": "Serviço",
+    "segmento": "---",
+    "regiao": "Sul",
+    "inferido": false
+  },
+  {
+    "codigo": "2440",
+    "nome": "ÁREA DE TRANSACIONALIDADE NACIONAL",
+    "tipo": "Área",
+    "segmento": "---",
+    "regiao": "Sul",
+    "inferido": false
+  },
+  {
+    "codigo": "2441",
+    "nome": "SERVIÇO DE VALORES",
+    "tipo": "Serviço",
+    "segmento": "---",
+    "regiao": "Sul",
+    "inferido": false
+  },
+  {
+    "codigo": "2442",
+    "nome": "SERVIÇO DE MEIOS DE PAGAMENTO",
+    "tipo": "Serviço",
+    "segmento": "---",
+    "regiao": "Sul",
+    "inferido": false
+  },
+  {
+    "codigo": "2443",
+    "nome": "TESOURARIA CENTRAL",
+    "tipo": "Serviço",
+    "segmento": "Institucional",
+    "regiao": "Sul",
+    "inferido": false
+  },
+  {
+    "codigo": "2444",
+    "nome": "TESOURARIA REGIONAL CENTRO",
+    "tipo": "Serviço",
+    "segmento": "Institucional",
+    "regiao": "Centro",
+    "inferido": false
+  },
+  {
+    "codigo": "2445",
+    "nome": "TESOURARIA REGIONAL NORTE",
+    "tipo": "Serviço",
+    "segmento": "Institucional",
+    "regiao": "Norte",
+    "inferido": false
+  },
+  {
+    "codigo": "2450",
+    "nome": "ÁREA DE CRÉDITO, GARANTIAS E ESTRANGEIRO",
+    "tipo": "Área",
+    "segmento": "---",
+    "regiao": "Sul",
+    "inferido": false
+  },
+  {
+    "codigo": "2451",
+    "nome": "SERVIÇO DE OPERAÇÕES ESTRANGEIRO",
+    "tipo": "Serviço",
+    "segmento": "Corporate",
+    "regiao": "Sul",
+    "inferido": false
+  },
+  {
+    "codigo": "2452",
+    "nome": "SERVIÇO DE TRADE FINANCE",
+    "tipo": "Serviço",
+    "segmento": "---",
+    "regiao": "Sul",
+    "inferido": false
+  },
+  {
+    "codigo": "2453",
+    "nome": "SERVIÇO DE GARANTIAS BANCÁRIAS",
+    "tipo": "Serviço",
+    "segmento": "---",
+    "regiao": "Sul",
+    "inferido": false
+  },
+  {
+    "codigo": "2454",
+    "nome": "SERVIÇO DE CRÉDITO",
+    "tipo": "Serviço",
+    "segmento": "---",
+    "regiao": "Sul",
+    "inferido": false
+  },
+  {
+    "codigo": "2455",
+    "nome": "SERVIÇO DE GARANTIAS RECEBIDAS",
+    "tipo": "Serviço",
+    "segmento": "---",
+    "regiao": "Sul",
+    "inferido": false
+  },
+  {
+    "codigo": "2456",
+    "nome": "SERVIÇO DE BACK OFFICE SALA DE MERCADOS",
+    "tipo": "Serviço",
+    "segmento": "---",
+    "regiao": "Sul",
+    "inferido": false
+  },
+  {
+    "codigo": "2470",
+    "nome": "ÁREA DE APOIO AOS MICRO BALCÕES",
+    "tipo": "Área",
+    "segmento": "Retalho",
+    "regiao": "Todas as Regiões",
+    "inferido": false
+  },
+  {
+    "codigo": "2500",
+    "nome": "DIRECÇÃO RETALHO",
+    "tipo": "Direcção",
+    "segmento": "---",
+    "regiao": "Sul",
+    "inferido": false
+  },
+  {
+    "codigo": "2510",
+    "nome": "DEPARTAMENTO CENTRAL DE SUPORTE",
+    "tipo": "Departamento",
+    "segmento": "---",
+    "regiao": "Sul",
+    "inferido": false
+  },
+  {
+    "codigo": "2568",
+    "nome": "AGÊNCIA CHOKWE",
+    "tipo": "Comissão Executiva",
+    "segmento": "Corporate",
+    "regiao": "Centro",
+    "inferido": false
+  },
+  {
+    "codigo": "2586",
+    "nome": "CHOKWE",
+    "tipo": "Departamento",
+    "segmento": "Institucional",
+    "regiao": "Sul",
+    "inferido": false
+  },
+  {
+    "codigo": "2600",
+    "nome": "DIREÇÃO CORPORATE E INSTITUCIONAIS",
+    "tipo": "Direcção",
+    "segmento": "Corporate",
+    "regiao": "Sul",
+    "inferido": false
+  },
+  {
+    "codigo": "2610",
+    "nome": "DEPARTAMENTO DE GRANDES EMPRESAS",
+    "tipo": "Departamento",
+    "segmento": "---",
+    "regiao": "Sul",
+    "inferido": false
+  },
+  {
+    "codigo": "2620",
+    "nome": "DEPARTAMENTO DE MÉDIAS EMPRESAS",
+    "tipo": "Departamento",
+    "segmento": "---",
+    "regiao": "Sul",
+    "inferido": false
+  },
+  {
+    "codigo": "2630",
+    "nome": "DEPARTAMENTO DE EMPRESAS PROVINCIAIS",
+    "tipo": "Departamento",
+    "segmento": "---",
+    "regiao": "Sul",
+    "inferido": false
+  },
+  {
+    "codigo": "2640",
+    "nome": "DEPARTAMENTO DE INSTITUCIONAIS",
+    "tipo": "Departamento",
+    "segmento": "Institucional",
+    "regiao": "Sul",
+    "inferido": false
+  },
+  {
+    "codigo": "2650",
+    "nome": "DEPARTAMENTO DE TRADE FINANCE",
+    "tipo": "Departamento",
+    "segmento": "---",
+    "regiao": "Sul",
+    "inferido": false
+  },
+  {
+    "codigo": "2700",
+    "nome": "DIRECÇÃO PRIVATE BANKING",
+    "tipo": "Direcção",
+    "segmento": "Private",
+    "regiao": "Sul",
+    "inferido": false
+  },
+  {
+    "codigo": "3000",
+    "nome": "GABINETE DE COMPLIANCE",
+    "tipo": "Gabinete",
+    "segmento": "---",
+    "regiao": "Sul",
+    "inferido": false
+  },
+  {
+    "codigo": "3020",
+    "nome": "ÁREA DE CONTROLO INTERNO",
+    "tipo": "Área",
+    "segmento": "---",
+    "regiao": "Sul",
+    "inferido": false
+  },
+  {
+    "codigo": "3030",
+    "nome": "ÁREA DE AML",
+    "tipo": "Área",
+    "segmento": "---",
+    "regiao": "Sul",
+    "inferido": false
+  },
+  {
+    "codigo": "3040",
+    "nome": "ÁREA DE ÉTICA",
+    "tipo": "Área",
+    "segmento": "---",
+    "regiao": "Sul",
+    "inferido": false
+  },
+  {
+    "codigo": "3100",
+    "nome": "GABINETE DE EXPANSÃO DA REDE",
+    "tipo": "Gabinete",
+    "segmento": "---",
+    "regiao": "Sul",
+    "inferido": false
+  },
+  {
+    "codigo": "3120",
+    "nome": "ÁREA TÉCNICA",
+    "tipo": "Área",
+    "segmento": "---",
+    "regiao": "Sul",
+    "inferido": false
+  },
+  {
+    "codigo": "3200",
+    "nome": "GABINETE MOZA DIGITAL",
+    "tipo": "Gabinete",
+    "segmento": "---",
+    "regiao": "Sul",
+    "inferido": false
+  },
+  {
+    "codigo": "3220",
+    "nome": "ÁREA DE SELF BANKING",
+    "tipo": "Área",
+    "segmento": "---",
+    "regiao": "Sul",
+    "inferido": false
+  },
+  {
+    "codigo": "3230",
+    "nome": "CANAIS E SERVIÇOS DE INTEGRAÇÃO",
+    "tipo": "Área",
+    "segmento": "---",
+    "regiao": "Sul",
+    "inferido": false
+  },
+  {
+    "codigo": "3240",
+    "nome": "ÁREA DE SUPORTE COMERCIAL",
+    "tipo": "Área",
+    "segmento": "---",
+    "regiao": "Sul",
+    "inferido": false
+  },
+  {
+    "codigo": "3300",
+    "nome": "GABINETE DE INVESTIMENTOS",
+    "tipo": "Gabinete",
+    "segmento": "---",
+    "regiao": "Sul",
+    "inferido": false
+  },
+  {
+    "codigo": "3400",
+    "nome": "GABINETE DE RECUPERAÇÃO DE CRÉDITO",
+    "tipo": "Gabinete",
+    "segmento": "---",
+    "regiao": "Sul",
+    "inferido": false
+  },
+  {
+    "codigo": "3500",
+    "nome": "GABINETE DA COMISSÃO EXECUTIVA",
+    "tipo": "Gabinete",
+    "segmento": "---",
+    "regiao": "Sul",
+    "inferido": false
+  },
+  {
+    "codigo": "3600",
+    "nome": "GABINETE DE ESTUDOS",
+    "tipo": "Gabinete",
+    "segmento": "---",
+    "regiao": "Sul",
+    "inferido": false
+  },
+  {
+    "codigo": "3700",
+    "nome": "GABINETE DE MUDANÇA (PMO)",
+    "tipo": "Gabinete",
+    "segmento": "---",
+    "regiao": "Sul",
+    "inferido": false
+  },
+  {
+    "codigo": "3800",
+    "nome": "GABINETE DE SEGURANÇA",
+    "tipo": "Gabinete",
+    "segmento": "---",
+    "regiao": "Sul",
+    "inferido": false
+  },
+  {
+    "codigo": "3820",
+    "nome": "ÁREA DE VIGILÂNCIA FÍSICA",
+    "tipo": "Área",
+    "segmento": "---",
+    "regiao": "Sul",
+    "inferido": false
+  },
+  {
+    "codigo": "3830",
+    "nome": "ÁREA DE VIGILÂNCIA DE SISTEMAS",
+    "tipo": "Área",
+    "segmento": "---",
+    "regiao": "Sul",
+    "inferido": false
+  },
+  {
+    "codigo": "4115",
+    "nome": "GABINETE DE EXPANSÃO E NOVOS NEGÓCIOS",
+    "tipo": "Gabinete",
+    "segmento": "Institucional",
+    "regiao": "Sul",
+    "inferido": false
+  },
+  {
+    "codigo": "4244",
+    "nome": "DEPARTAMENTO COMPRAS",
+    "tipo": "Departamento",
+    "segmento": "Private",
+    "regiao": "Todas as Regiões",
+    "inferido": false
+  },
+  {
+    "codigo": "4470",
+    "nome": "DEPARTAMENTO SOCIAL E DE SAÚDE",
+    "tipo": "Departamento",
+    "segmento": "Institucional",
+    "regiao": "Sul",
+    "inferido": false
+  },
+  {
+    "codigo": "4471",
+    "nome": "DEPARTAMENTO GESTÃO DE CLIENTES INTERNOS",
+    "tipo": "Departamento",
+    "segmento": "Institucional",
+    "regiao": "Sul",
+    "inferido": false
+  },
+  {
+    "codigo": "4472",
+    "nome": "BALCÃO CLIENTES INTERNOS",
+    "tipo": "Área",
+    "segmento": "Institucional",
+    "regiao": "Sul",
+    "inferido": false
+  },
+  {
+    "codigo": "4473",
+    "nome": "ÁREA PLANEAMENTO E INFORMAÇÃO",
+    "tipo": "Área",
+    "segmento": "Institucional",
+    "regiao": "Sul",
+    "inferido": false
+  },
+  {
+    "codigo": "4474",
+    "nome": "ÁREA GESTÃO ADMINISTRATIVA",
+    "tipo": "Área",
+    "segmento": "Institucional",
+    "regiao": "Sul",
+    "inferido": false
+  },
+  {
+    "codigo": "4475",
+    "nome": "DEPARTAMENTO RECRUTAMENTO, FORMAÇÃO E DESENVOLVIMENTO",
+    "tipo": "Departamento",
+    "segmento": "Institucional",
+    "regiao": "Sul",
+    "inferido": false
+  },
+  {
+    "codigo": "4476",
+    "nome": "ÁREA ASSISTÊNCIA SOCIAL, SAÚDE E SEGURANÇA NO TRABALHO",
+    "tipo": "Área",
+    "segmento": "Institucional",
+    "regiao": "Sul",
+    "inferido": true
+  },
+  {
+    "codigo": "4477",
+    "nome": "ÁREA RECRUTAMENTO E SELECÇÃO",
+    "tipo": "Área",
+    "segmento": "Institucional",
+    "regiao": "Sul",
+    "inferido": false
+  },
+  {
+    "codigo": "4478",
+    "nome": "ÁREA FORMAÇÃO E DESENVOLVIMENTO DE COMPETÊNCIAS",
+    "tipo": "Área",
+    "segmento": "Institucional",
+    "regiao": "Sul",
+    "inferido": false
+  },
+  {
+    "codigo": "4495",
+    "nome": "RECURSOS DE NEGOCIOS",
+    "tipo": "Tribo",
+    "segmento": "Institucional",
+    "regiao": "Sul",
+    "inferido": false
+  },
+  {
+    "codigo": "4496",
+    "nome": "CONTABILIDADE E RECUSOS HUMANOS",
+    "tipo": "Squad",
+    "segmento": "Institucional",
+    "regiao": "Sul",
+    "inferido": false
+  },
+  {
+    "codigo": "4497",
+    "nome": "RISCO E COMPLIANCE",
+    "tipo": "Squad",
+    "segmento": "Institucional",
+    "regiao": "Sul",
+    "inferido": false
+  },
+  {
+    "codigo": "4577",
+    "nome": "ÁREA ASSISTÊNCIA MÉDICA",
+    "tipo": "Área",
+    "segmento": "Institucional",
+    "regiao": "Sul",
+    "inferido": false
+  },
+  {
+    "codigo": "4578",
+    "nome": "FACILITADORES",
+    "tipo": "Unidade de Negócio MI",
+    "segmento": "Institucional",
+    "regiao": "Sul",
+    "inferido": false
+  },
+  {
+    "codigo": "4579",
+    "nome": "RECURSOS PARTILHADOS",
+    "tipo": "Tribo",
+    "segmento": "---",
+    "regiao": "Sul",
+    "inferido": false
+  },
+  {
+    "codigo": "5258",
+    "nome": "MM",
+    "tipo": "Departamento",
+    "segmento": "Corporate",
+    "regiao": "Sul",
+    "inferido": false
+  },
+  {
+    "codigo": "9999",
+    "nome": "UO IYAN",
+    "tipo": "Direcção",
+    "segmento": "Institucional",
+    "regiao": "Todas as Regiões",
+    "inferido": false
+  }
+]
