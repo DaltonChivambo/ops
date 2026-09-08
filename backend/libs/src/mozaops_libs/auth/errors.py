@@ -46,13 +46,12 @@ class IdentityUnavailableError(AuthError):
 
 
 class ForbiddenError(AuthError):
-    """A pessoa é quem diz ser, mas não tem papel para isto."""
+    """A pessoa é quem diz ser, mas não é da área a que isto pertence."""
 
     def __init__(
         self,
         message: str = (
-            "Não tem permissão para esta operação. "
-            "Fale com a coordenação do DOP se precisar de acesso."
+            "Esta automação é de outra área. Fale com a coordenação do DOP se precisar de acesso."
         ),
     ):
         super().__init__(message)

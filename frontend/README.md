@@ -96,9 +96,9 @@ lá: `/api` é a fronteira da API, não parte do caminho do serviço.
 | `/pos/closing-credit-validation` | Validação de Crédito de Valores de Fecho de POS |
 | `/atm`, `/kiosks`, `/dashboard` | aviso de «ainda não disponível»: existem na navegação, sem automação construída |
 | `/entrar` | login com as credenciais do banco — fora da casca, que pressupõe sessão |
-| `/sem-permissao` | o que um utilizador sem o papel necessário apanha |
+| `/sem-acesso` | o que apanha quem está autenticado mas não é da área da página |
 
-## Autenticação
+## Autenticação e acesso
 
 As credenciais são as do banco — as mesmas do Windows. Quem autentica é o GEEA;
 o SPA fala só com o serviço `identity`, que lhe devolve um token de acesso e
@@ -109,10 +109,13 @@ põe o de renovação num cookie `HttpOnly`.
 | `core/auth/token.store.ts` | o token de acesso, **só em memória** — nunca `localStorage`, onde um XSS valeria uma sessão inteira |
 | `core/auth/session.store.ts` | quem está do outro lado, em signals; renova o token uma vez por 401, partilhando a renovação |
 | `core/auth/auth.interceptor.ts` | anexa o `Bearer` só a `/api/**`, e repete o pedido depois de renovar |
-| `core/auth/role.guard.ts` | sem sessão manda entrar; com sessão e sem o papel manda a `/sem-permissao` |
+| `core/auth/area.guard.ts` | sem sessão manda entrar; com sessão e sem a área do módulo manda a `/sem-acesso` |
 
-Os papéis vêm do backend (`GET /api/identity/me`), e não do token: mudar quem é
-o quê é mudar configuração do backend, não publicar um SPA novo.
+**O acesso é por área, não por papel.** Quem é da área faz tudo o que a
+automação faz — ver [ADR 0010](../docs/adr/0010-acesso-por-area.md). As áreas de
+cada pessoa vêm do backend (`GET /api/identity/me`), e não do token: abrir uma
+área a mais uma unidade orgânica é mudar configuração do backend, não publicar
+um SPA novo.
 
 ### Sem nada de pé
 
@@ -123,23 +126,23 @@ GEEA em cima (ver o README da raiz).
 Pôr `authDisabled: true` salta o login e injecta a sessão falsa de
 `src/app/core/auth/dev-session.ts`. Existe para desenhar ecrãs sem ter nada de
 pé, e só para isso: **não há token**, logo os pedidos a `/api/**` saem sem
-`Authorization` e o backend recusa-os. Para ver a interface como outro papel,
-trocar os `roles` em `dev-session.ts` — por exemplo `['auditor']`.
+`Authorization` e o backend recusa-os. Para ver o ecrã de «sem acesso», esvaziar
+os `areas` em `dev-session.ts`.
 
 ## Como está organizado
 
 ```
 src/app/
 ├── core/          navegação, sessão, guardas de rota
-│   └── auth/      token, sessão, interceptor e guarda de papel
+│   └── auth/      token, sessão, interceptor e guarda de área
 ├── layout/        a casca: barra lateral, painel do canal, menu do utilizador
 ├── shared/ui/     as peças que as automações reutilizam
-└── features/<departamento>/<ilha>/<automação>/
+└── features/<área>/<ilha>/<automação>/
 ```
 
-As páginas seguem a organização do departamento — departamento, ilha, automação
-— que é a mesma que a barra lateral mostra. Ver o
-[README do departamento](src/app/features/payments-and-channels/README.md).
+As páginas seguem a organização da área — área, ilha, automação — que é a mesma
+que a barra lateral mostra. Ver o
+[README da área](src/app/features/payments-and-channels/README.md).
 
 ### Peças reutilizáveis
 

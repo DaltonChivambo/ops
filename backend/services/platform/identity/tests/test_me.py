@@ -1,4 +1,4 @@
-"""O `/me` — a fonte de verdade dos papéis para o SPA."""
+"""O `/me` — a fonte de verdade das áreas para o SPA."""
 
 import time
 
@@ -14,15 +14,22 @@ class TestComTokenValido:
         assert body["username"] == "m001926"
         assert body["departmentCode"] == "2350"
         assert body["function"] == "Director"
-        assert sorted(body["roles"]) == ["operator", "supervisor"]
+        assert body["areas"] == ["payments-and-channels"]
 
-    def test_quem_nao_esta_no_mapa_entra_sem_papeis(self, client):
+    def test_quem_nao_esta_no_mapa_entra_sem_areas(self, client):
         """Autenticar não é ser autorizado: entra, e a aplicação nega tudo."""
         token = make_token(preferred_username="m009999", departmentCode="1600", function="Técnico")
 
         response = client.get("/identity/me", headers={"Authorization": f"Bearer {token}"})
         assert response.status_code == 200
-        assert response.json()["roles"] == []
+        assert response.json()["areas"] == []
+
+    def test_a_funcao_nao_muda_o_que_se_abre(self, client):
+        """Um técnico da mesma unidade vê exactamente o que o director vê."""
+        token = make_token(preferred_username="m007000", function="Técnico")
+
+        response = client.get("/identity/me", headers={"Authorization": f"Bearer {token}"})
+        assert response.json()["areas"] == ["payments-and-channels"]
 
 
 class TestSemTokenValido:

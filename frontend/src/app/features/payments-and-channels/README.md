@@ -1,6 +1,6 @@
 # Meios de Pagamentos e Canais
 
-Departamento **Meios de Pagamentos e Canais**. As automações agrupam-se por ilha — o
+Área **Meios de Pagamentos e Canais**, do Departamento de Apoio Operacional. É também a unidade de acesso: quem não é da área não vê estas páginas ([ADR 0010](../../../../../docs/adr/0010-acesso-por-area.md)). As automações agrupam-se por ilha — o
 mesmo agrupamento que a barra lateral mostra (`layout/sidebar.ts`) e que
 `core/navigation.ts` descreve (`DEPARTMENTS`, `NavModule.department`).
 

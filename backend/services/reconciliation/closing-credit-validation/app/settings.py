@@ -11,7 +11,7 @@ import logging
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
-from mozaops_libs.auth import RoleMapping, parse_set
+from mozaops_libs.auth import AreaMapping, parse_area_map
 
 
 class Settings(BaseSettings):
@@ -28,27 +28,25 @@ class Settings(BaseSettings):
 
     # ─── Autenticação ────────────────────────────────────────────────────
     # Estas são as MESMAS variáveis que o `platform/identity` declara, e no
-    # compose recebem o mesmo `${...}`. Dois serviços a mapear papéis de
+    # compose recebem o mesmo `${...}`. Dois serviços a mapear áreas de
     # maneira diferente seria uma porta aberta no que ficasse para trás.
     auth_issuer: str = "http://geea-keycloak:8000/auth/realms/QAS"
     auth_jwks_url: str = "http://geea-keycloak:8000/auth/realms/QAS/protocol/openid-connect/certs"
     auth_allowed_azp: str = "qa-workflow-ui"
 
-    auth_supervisor_users: str = ""
-    auth_auditor_users: str = ""
-    auth_operator_users: str = ""
-    auth_operator_departments: str = "2350"
-    auth_supervisor_functions: str = "Director,Chefe"
-    auth_role_claim_prefix: str = "mozaops_"
+    auth_areas: str = "payments-and-channels:2350"
+    auth_area_users: str = ""
 
-    def role_mapping(self) -> RoleMapping:
-        return RoleMapping(
-            supervisor_users=parse_set(self.auth_supervisor_users),
-            auditor_users=parse_set(self.auth_auditor_users),
-            operator_users=parse_set(self.auth_operator_users),
-            operator_departments=parse_set(self.auth_operator_departments),
-            supervisor_functions=parse_set(self.auth_supervisor_functions),
-            role_claim_prefix=self.auth_role_claim_prefix,
+    #: A área a que **esta** automação pertence — a mesma que o `service.yaml`
+    #: declara e que o catálogo do SPA mostra. É a única diferença de
+    #: configuração de autenticação entre os dois serviços, e é o que o router
+    #: exige a quem bate à porta.
+    auth_service_area: str = "payments-and-channels"
+
+    def area_mapping(self) -> AreaMapping:
+        return AreaMapping(
+            by_unit=parse_area_map(self.auth_areas),
+            by_user=parse_area_map(self.auth_area_users),
         )
 
 

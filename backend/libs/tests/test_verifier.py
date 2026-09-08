@@ -134,22 +134,19 @@ class TestJwks:
 
 class TestPrincipal:
     async def test_claims_do_geea_viram_principal(self, issuer):
+        from mozaops_libs.auth.areas import AreaMapping
         from mozaops_libs.auth.fastapi import principal_from_claims
-        from mozaops_libs.auth.mapping import RoleMapping
 
         claims = await build(issuer).verify(issuer.token())
         principal = principal_from_claims(
             claims,
-            RoleMapping(
-                operator_departments=frozenset({"2350"}),
-                supervisor_functions=frozenset({"Director"}),
-            ),
+            AreaMapping(by_unit={"payments-and-channels": frozenset({"2350"})}),
         )
 
         assert principal.username == "m001926"
         assert principal.department == "Departamento de Apoio Operacional"
         assert principal.employee_id == "1926"
-        assert principal.roles == {"supervisor", "operator"}
+        assert principal.areas == {"payments-and-channels"}
 
 
 def test_par_de_chaves_do_teste_e_gerado_e_nao_lido_do_disco():

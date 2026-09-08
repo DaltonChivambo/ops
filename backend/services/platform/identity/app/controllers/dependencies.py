@@ -4,7 +4,7 @@ from typing import Annotated
 
 from fastapi import Depends
 
-from app.infrastructure.auth import auth, role_mapping, verifier
+from app.infrastructure.auth import area_mapping, auth, verifier
 from app.infrastructure.geea_client import GeeaClient
 from app.services.session_service import AttemptLimiter, SessionService
 from app.settings import settings
@@ -24,7 +24,7 @@ _geea = GeeaClient(
 
 
 def get_session_service() -> SessionService:
-    return SessionService(_geea, verifier, role_mapping, _limiter)
+    return SessionService(_geea, verifier, area_mapping, _limiter)
 
 
 SessionServiceDep = Annotated[SessionService, Depends(get_session_service)]

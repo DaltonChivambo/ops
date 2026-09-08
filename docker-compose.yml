@@ -60,17 +60,16 @@ services:
       # serviço rebentar no arranque em vez de usar o default do `settings.py`.
       MAX_UPLOAD_MB: ${MAX_UPLOAD_MB:-64}
       # As mesmas variáveis, e o mesmo valor, que o `identity` recebe — dois
-      # serviços a mapear papéis de maneira diferente seria uma porta aberta no
+      # serviços a mapear áreas de maneira diferente seria uma porta aberta no
       # que ficasse para trás. Ver `app/settings.py` de cada um.
       AUTH_ISSUER: ${AUTH_ISSUER}
       AUTH_JWKS_URL: ${AUTH_JWKS_URL}
       AUTH_ALLOWED_AZP: ${AUTH_ALLOWED_AZP}
-      AUTH_SUPERVISOR_USERS: ${AUTH_SUPERVISOR_USERS:-}
-      AUTH_AUDITOR_USERS: ${AUTH_AUDITOR_USERS:-}
-      AUTH_OPERATOR_USERS: ${AUTH_OPERATOR_USERS:-}
-      AUTH_OPERATOR_DEPARTMENTS: ${AUTH_OPERATOR_DEPARTMENTS:-2350}
-      AUTH_SUPERVISOR_FUNCTIONS: ${AUTH_SUPERVISOR_FUNCTIONS:-Director,Chefe}
-      AUTH_ROLE_CLAIM_PREFIX: ${AUTH_ROLE_CLAIM_PREFIX:-mozaops_}
+      AUTH_AREAS: ${AUTH_AREAS:-payments-and-channels:2350}
+      AUTH_AREA_USERS: ${AUTH_AREA_USERS:-}
+      # A única que difere do `identity`: a área a que ESTA automação pertence,
+      # e que o router exige a quem lhe bate à porta.
+      AUTH_SERVICE_AREA: ${AUTH_SERVICE_AREA:-payments-and-channels}
     networks: [mozaops]
     depends_on:
       postgres:
@@ -88,9 +87,9 @@ services:
       - traefik.http.routers.closing-credit-validation.middlewares=api-strip
       - traefik.http.services.closing-credit-validation.loadbalancer.server.port=8000
 
-  # Sessões e papéis. É quem fala com o GEEA — nenhum outro serviço o faz — e
+  # Sessões e áreas. É quem fala com o GEEA — nenhum outro serviço o faz — e
   # quem diz ao SPA quem está do outro lado. Sem base de dados: a identidade
-  # vem do GEEA a cada login e os papéis saem destas variáveis.
+  # vem do GEEA a cada login e as áreas saem destas variáveis.
   identity:
     build:
       context: ./backend
@@ -105,12 +104,8 @@ services:
       AUTH_ISSUER: ${AUTH_ISSUER}
       AUTH_JWKS_URL: ${AUTH_JWKS_URL}
       AUTH_ALLOWED_AZP: ${AUTH_ALLOWED_AZP}
-      AUTH_SUPERVISOR_USERS: ${AUTH_SUPERVISOR_USERS:-}
-      AUTH_AUDITOR_USERS: ${AUTH_AUDITOR_USERS:-}
-      AUTH_OPERATOR_USERS: ${AUTH_OPERATOR_USERS:-}
-      AUTH_OPERATOR_DEPARTMENTS: ${AUTH_OPERATOR_DEPARTMENTS:-2350}
-      AUTH_SUPERVISOR_FUNCTIONS: ${AUTH_SUPERVISOR_FUNCTIONS:-Director,Chefe}
-      AUTH_ROLE_CLAIM_PREFIX: ${AUTH_ROLE_CLAIM_PREFIX:-mozaops_}
+      AUTH_AREAS: ${AUTH_AREAS:-payments-and-channels:2350}
+      AUTH_AREA_USERS: ${AUTH_AREA_USERS:-}
       GEEA_SSOLOGIN_URL: ${GEEA_SSOLOGIN_URL}
       GEEA_TOKEN_URL: ${GEEA_TOKEN_URL}
       GEEA_REALM: ${GEEA_REALM}

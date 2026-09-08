@@ -40,7 +40,7 @@ def _body(session: Session) -> SessionResponse:
             username=session.principal.username,
             name=session.principal.name,
             email=session.principal.email,
-            roles=sorted(session.principal.roles),
+            areas=sorted(session.principal.areas),
             department_code=session.principal.department_code,
             department=session.principal.department,
             function=session.principal.function,

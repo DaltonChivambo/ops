@@ -16,8 +16,8 @@ import {
   LucideUser,
 } from '@lucide/angular';
 
-import { ROLE_LABELS, type Role } from '../core/auth/roles';
 import { SessionStore } from '../core/auth/session.store';
+import { areaLabel } from '../core/navigation';
 import { AVATAR_CLASS } from '../shared/ui/avatar';
 
 /**
@@ -65,7 +65,7 @@ const SOON_ITEMS = [
       @if (!collapsed()) {
         <span class="min-w-0 flex-1 text-left">
           <span class="block truncate text-sm font-semibold text-gray-900">{{ name() }}</span>
-          <span class="block truncate text-2xs text-gray-400">{{ roleLabels() }}</span>
+          <span class="block truncate text-2xs text-gray-400">{{ areaLabels() }}</span>
         </span>
         <svg
           lucideChevronsUpDown
@@ -87,7 +87,7 @@ const SOON_ITEMS = [
           <!-- Encolhida, o gatilho é só o avatar. -->
           <div class="mb-1 border-b border-gray-100 px-3 pt-1 pb-2">
             <p class="truncate text-sm font-semibold text-gray-900">{{ name() }}</p>
-            <p class="truncate text-2xs text-gray-400">{{ roleLabels() }}</p>
+            <p class="truncate text-2xs text-gray-400">{{ areaLabels() }}</p>
           </div>
         }
 
@@ -147,10 +147,10 @@ export class UserMenuComponent {
 
   protected readonly name = computed(() => this.session.principal()?.name ?? 'Sem sessão');
 
-  protected readonly roleLabels = computed(() => {
-    const roles = this.session.roles();
-    if (roles.length === 0) return 'Sem papel atribuído';
-    return roles.map((role: Role) => ROLE_LABELS[role]).join(' · ');
+  protected readonly areaLabels = computed(() => {
+    const areas = this.session.areas();
+    if (areas.length === 0) return 'Sem área atribuída';
+    return areas.map((area) => areaLabel(area) ?? area).join(' · ');
   });
 
   protected logout(): void {

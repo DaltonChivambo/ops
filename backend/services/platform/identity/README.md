@@ -14,17 +14,22 @@ utilizadores, sem sessão em memória.
 | `POST /api/identity/sessions` | Login. Credenciais **no corpo**; devolve o token de acesso e põe o de renovação num cookie `HttpOnly` |
 | `POST /api/identity/sessions/refresh` | Renova a partir do cookie |
 | `DELETE /api/identity/sessions` | Termina a sessão deste lado |
-| `GET /api/identity/me` | Quem sou eu, já com os papéis do MozaOps |
+| `GET /api/identity/me` | Quem sou eu, já com as áreas do MozaOps |
 
 ## As duas decisões que explicam o resto
 
-**Os papéis não vêm do token.** O GEEA traz os papéis do sistema dele
-(`work_queue`, `manage_employee`, `manage_organicUnit`) e o departamento e a
-função da pessoa — nada que diga «operador do MozaOps». Quem decide isso somos
-nós, em `mozaops_libs.auth.mapping`, por configuração. Daí existir o `/me`: o
-SPA não consegue chegar a esta conclusão sozinho a partir do token, e ter a
-regra no browser significaria publicar o SPA de cada vez que alguém muda de
-funções.
+**As áreas não vêm do token.** O GEEA traz os papéis do sistema dele
+(`work_queue`, `manage_employee`, `manage_organicUnit`) e a unidade orgânica da
+pessoa — nada que diga «isto abre a validação de fechos de POS». Quem decide
+isso somos nós, em `mozaops_libs.auth.areas`, por configuração. Daí existir o
+`/me`: o SPA não consegue chegar a esta conclusão sozinho a partir do token, e
+ter a regra no browser significaria publicar o SPA de cada vez que alguém muda
+de unidade.
+
+Uma nota de vocabulário: a claim do GEEA chama-se `departmentCode`, mas o que lá
+vem é a unidade orgânica — que tanto é um departamento como uma área ou um
+serviço. **Área** é a nossa unidade de acesso, e não há papéis dentro dela: ver
+[ADR 0010](../../../../docs/adr/0010-acesso-por-area.md).
 
 **O token de acesso vai no corpo; o de renovação vai em cookie `HttpOnly`.**
 O SPA guarda o de acesso em memória e envia-o no cabeçalho `Authorization`, que
@@ -55,8 +60,10 @@ evitar assim que a equipa de IAM registar o MozaOps como aplicação no realm
 
 Ver `app/settings.py` — é a lista completa do que o serviço lê. As variáveis
 `AUTH_*` são partilhadas com os outros serviços e vêm do mesmo `${...}` no
-`docker-compose.yml`: dois serviços a mapear papéis de maneira diferente seria
-uma porta aberta no que ficasse para trás.
+`docker-compose.yml`: dois serviços a mapear áreas de maneira diferente seria
+uma porta aberta no que ficasse para trás. A excepção é o `AUTH_SERVICE_AREA`,
+que só a automação declara — é a área a que **ela** pertence, e este serviço não
+pertence a nenhuma.
 
 ## Testes
 

@@ -6,9 +6,9 @@ foram feitas.
 """
 
 from app.settings import settings
-from mozaops_libs.auth import Auth, RoleMapping, TokenVerifier, parse_set
+from mozaops_libs.auth import AreaMapping, Auth, TokenVerifier, parse_set
 
-role_mapping: RoleMapping = settings.role_mapping()
+area_mapping: AreaMapping = settings.area_mapping()
 
 verifier = TokenVerifier(
     jwks_url=settings.auth_jwks_url,
@@ -16,4 +16,4 @@ verifier = TokenVerifier(
     allowed_azp=parse_set(settings.auth_allowed_azp),
 )
 
-auth = Auth(verifier, role_mapping)
+auth = Auth(verifier, area_mapping)

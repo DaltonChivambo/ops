@@ -1,7 +1,7 @@
 """A ponte para o FastAPI: dependências de rota e tradução de erros.
 
 É o único ficheiro da lib que sabe o que é HTTP. As camadas de baixo
-(`verifier`, `mapping`, `principal`) não importam nada daqui, e por isso
+(`verifier`, `areas`, `principal`) não importam nada daqui, e por isso
 testam-se sem cliente nem aplicação.
 
 **O envelope é contrato.** O `HTTPException` do FastAPI responde
@@ -19,14 +19,14 @@ from fastapi import Depends, FastAPI, Request
 from fastapi.responses import JSONResponse
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 
+from mozaops_libs.auth.areas import AreaMapping, map_areas
 from mozaops_libs.auth.errors import (
     AuthError,
     ForbiddenError,
     IdentityUnavailableError,
     UnauthenticatedError,
 )
-from mozaops_libs.auth.mapping import RoleMapping, map_roles
-from mozaops_libs.auth.principal import Principal, Role
+from mozaops_libs.auth.principal import Principal
 from mozaops_libs.auth.verifier import TokenVerifier
 
 # `auto_error=False`: com o erro automático, o FastAPI responderia o seu
@@ -41,13 +41,13 @@ _STATUS_BY_ERROR: tuple[tuple[type[AuthError], int, str], ...] = (
 )
 
 
-def principal_from_claims(claims: dict[str, Any], mapping: RoleMapping) -> Principal:
+def principal_from_claims(claims: dict[str, Any], mapping: AreaMapping) -> Principal:
     return Principal(
         subject=str(claims.get("sub") or ""),
         username=str(claims.get("preferred_username") or ""),
         name=str(claims.get("name") or claims.get("preferred_username") or ""),
         email=str(claims.get("email") or ""),
-        roles=map_roles(claims, mapping),
+        areas=map_areas(claims, mapping),
         department_code=str(claims.get("departmentCode") or ""),
         department=str(claims.get("department") or ""),
         function=str(claims.get("function") or ""),
@@ -59,12 +59,12 @@ def principal_from_claims(claims: dict[str, Any], mapping: RoleMapping) -> Princ
 class Auth:
     """Construída uma vez, no arranque do serviço, a partir da configuração.
 
-    Expõe dependências já ligadas ao verificador e ao mapa de papéis — os
+    Expõe dependências já ligadas ao verificador e ao mapa de áreas — os
     controladores pedem `Depends(auth.principal)` e não conhecem nem um nem
     outro.
     """
 
-    def __init__(self, verifier: TokenVerifier, mapping: RoleMapping):
+    def __init__(self, verifier: TokenVerifier, mapping: AreaMapping):
         self._verifier = verifier
         self._mapping = mapping
 
@@ -78,8 +78,12 @@ class Auth:
         claims = await self._verifier.verify(credentials.credentials)
         return principal_from_claims(claims, self._mapping)
 
-    def require(self, allowed: frozenset[Role]) -> Callable[..., Awaitable[Principal]]:
-        """Dependência que exige um dos papéis dados.
+    def require_area(self, area: str) -> Callable[..., Awaitable[Principal]]:
+        """Dependência que exige acesso a uma área do MozaOps.
+
+        Uma automação pertence a uma área e o serviço que a serve declara qual
+        é — não há aqui uma lista de rotas por permissão, porque dentro da área
+        toda a gente faz o mesmo.
 
         Devolver o `Principal` em vez de `None` deixa a mesma dependência
         servir de guarda e de fonte de quem está a pedir — a rota não precisa
@@ -87,7 +91,7 @@ class Auth:
         """
 
         async def guard(principal: Principal = Depends(self.principal)) -> Principal:
-            if not principal.has_any(allowed):
+            if not principal.has_area(area):
                 raise ForbiddenError
             return principal
 

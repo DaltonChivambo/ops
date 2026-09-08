@@ -1,7 +1,7 @@
 """HTTP das execuções: correr uma validação e consultar o que ela produziu.
 
 Sub-caminhos em português, herdados do MozaOps v1 — é o contrato que o SPA já
-consome, e o `ARCHITECTURE.md` §7 regista-o como a excepção assumida à regra de
+consome, e o `ARCHITECTURE.md` §8 regista-o como a excepção assumida à regra de
 tudo o resto ser em inglês.
 
 Sem base de dados e sem openpyxl aqui: valida o pedido, chama o serviço,
@@ -13,7 +13,7 @@ from typing import Any
 from fastapi import APIRouter, File, Query, Response, UploadFile
 from fastapi.responses import StreamingResponse
 
-from app.controllers.dependencies import ValidationServiceDep, Writer
+from app.controllers.dependencies import ValidationServiceDep
 from app.controllers.schemas import (
     ClosingDetailOut,
     DetailCountsOut,
@@ -36,8 +36,6 @@ REQUIRED_SLOTS = tuple(UploadSlot)
 @router.post("/execucoes", status_code=201)
 async def create_execution(
     service: ValidationServiceDep,
-    # Correr uma validação escreve — não é para quem só audita.
-    _writer: Writer,
     # Os `alias` são os nomes dos campos no formulário — contrato com o SPA.
     pos_list: UploadFile | None = File(default=None, alias="posList"),
     simo_closings: UploadFile | None = File(default=None, alias="simoClosings"),

@@ -1,13 +1,25 @@
 /**
  * O catálogo de módulos e funcionalidades — os `id` são segmentos de URL.
  * Só está aqui o que existe (nada de prometer o que ainda não foi construído).
- * Departamento/ilha espelham `features/<departamento>/<ilha>/`; `department: null` = transversal.
+ * Área/ilha espelham `features/<área>/<ilha>/`; `area: null` = transversal.
  */
 
-export type DepartmentId = 'payments-and-channels';
+/**
+ * A **área** é a unidade de acesso do MozaOps: quem é dela abre as automações
+ * dela, e quem não é nem as vê. Os ids são os mesmos que o backend usa no
+ * `AUTH_AREAS` e que o `/api/identity/me` devolve — mudá-los aqui sem os mudar
+ * lá tira o acesso a toda a gente.
+ *
+ * Área e não departamento porque é o que estas coisas são no organigrama do
+ * banco: «Meios de Pagamentos e Canais» é uma área do Departamento de Apoio
+ * Operacional. O GEEA chama `department` à unidade onde a pessoa está
+ * registada, mas o que lá vem tanto é um departamento como uma área ou um
+ * serviço — ver `docs/adr/0010-acesso-por-area.md`.
+ */
+export type AreaId = 'payments-and-channels';
 
-export interface Department {
-  readonly id: DepartmentId;
+export interface Area {
+  readonly id: AreaId;
   readonly label: string;
 }
 
@@ -16,7 +28,7 @@ export interface Department {
  * «Clientes e Contas» entra aqui — e ganha `features/customers-and-accounts/`
  * com conteúdo — quando tiver a primeira.
  */
-export const DEPARTMENTS: readonly Department[] = [
+export const AREAS: readonly Area[] = [
   { id: 'payments-and-channels', label: 'Meios de Pagamentos e Canais' },
 ];
 
@@ -38,9 +50,10 @@ export type ModuleIcon = 'layout-grid' | 'smartphone-nfc' | 'landmark' | 'store'
 export interface NavModule {
   readonly id: ModuleId;
   readonly label: string;
-  /** null = transversal, não pertence a nenhum departamento (ex: Dashboard). */
-  readonly department: DepartmentId | null;
-  /** A ilha dentro do departamento — ex: "Canais" dentro de Meios de Pagamentos e Canais. */
+  /** null = transversal, não é de nenhuma área (ex: Dashboard). Toda a gente
+      com sessão o abre — o que lá está não é de ninguém em particular. */
+  readonly area: AreaId | null;
+  /** A ilha dentro da área — ex: "Canais" dentro de Meios de Pagamentos e Canais. */
   readonly section: string;
   readonly icon: ModuleIcon;
   readonly features: readonly Feature[];
@@ -66,7 +79,7 @@ export const MODULES: readonly NavModule[] = [
   {
     id: 'dashboard',
     label: 'Dashboard',
-    department: null,
+    area: null,
     section: 'Geral',
     icon: 'layout-grid',
     features: [],
@@ -74,7 +87,7 @@ export const MODULES: readonly NavModule[] = [
   {
     id: 'pos',
     label: 'POS',
-    department: 'payments-and-channels',
+    area: 'payments-and-channels',
     section: 'Canais',
     icon: 'smartphone-nfc',
     features: [CLOSING_VALIDATION],
@@ -82,7 +95,7 @@ export const MODULES: readonly NavModule[] = [
   {
     id: 'atm',
     label: 'ATM',
-    department: 'payments-and-channels',
+    area: 'payments-and-channels',
     section: 'Canais',
     icon: 'landmark',
     features: [],
@@ -90,7 +103,7 @@ export const MODULES: readonly NavModule[] = [
   {
     id: 'kiosks',
     label: 'Quiosques',
-    department: 'payments-and-channels',
+    area: 'payments-and-channels',
     section: 'Canais',
     icon: 'store',
     features: [],
@@ -105,4 +118,8 @@ export function findModule(id: string): NavModule | undefined {
 
 export function modulesOfSection(section: string): readonly NavModule[] {
   return MODULES.filter((module) => module.section === section);
+}
+
+export function areaLabel(id: string): string | undefined {
+  return AREAS.find((area) => area.id === id)?.label;
 }

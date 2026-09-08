@@ -2,7 +2,7 @@
 
 from fastapi import APIRouter
 
-from app.controllers.dependencies import CaseServiceDep, Resolver
+from app.controllers.dependencies import CaseServiceDep
 from app.controllers.schemas import CasePatchIn, CaseUpdateOut, PendingCaseOut
 
 router = APIRouter()
@@ -13,12 +13,9 @@ async def update_case(
     case_id: str,
     service: CaseServiceDep,
     # Marcar um caso como regularizado declara «este dinheiro está apurado» e a
-    # data vai para o relatório do departamento — o único acto do sistema com
-    # significado financeiro, e por isso de supervisor.
-    #
-    # O SPA já esconde o controlo a quem não pode (`canResolve`, em
-    # `session.store.ts`); esconder não é controlo, e é aqui que fica o que é.
-    _resolver: Resolver,
+    # data vai para o relatório do departamento. É o acto com mais significado
+    # do sistema — e, hoje, é de quem for da área, como o resto: dentro da área
+    # não há graus. Quem guarda a porta é o router.
     patch: CasePatchIn | None = None,
 ) -> CaseUpdateOut:
     # Corpo ausente trata-se como «nada a mudar»: é o serviço que decide o que

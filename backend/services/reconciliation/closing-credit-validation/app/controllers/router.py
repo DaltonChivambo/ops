@@ -8,13 +8,14 @@ produção é o Traefik que a corta (`stripprefix`), em desenvolvimento é o
 from fastapi import APIRouter, Depends
 
 from app.controllers import cases, executions
-from app.controllers.dependencies import require_reader
+from app.controllers.dependencies import require_area
 
 # A autenticação está aqui, no router inteiro, e não rota a rota: uma rota
-# acrescentada amanhã nasce fechada. Ver `dependencies.py` para os papéis.
+# acrescentada amanhã nasce fechada. O que se exige é a área da automação —
+# ver `dependencies.py`.
 router = APIRouter(
     prefix="/pos/validacao-credito-fecho",
-    dependencies=[Depends(require_reader)],
+    dependencies=[Depends(require_area)],
 )
 router.include_router(executions.router)
 router.include_router(cases.router)

@@ -79,36 +79,26 @@ cross=$(docker compose exec -T postgres psql -U "${POSTGRES_USER:-postgres}" -tA
 echo
 echo "Identidade"
 
-descoberta="http://127.0.0.1:8100/auth/realms/QAS/.well-known/openid-configuration"
-if config=$(curl -fsS --max-time 10 "$descoberta" 2>/dev/null); then
+if config=$(curl -fsS --max-time 10 "http://127.0.0.1:8100/auth/realms/QAS/.well-known/openid-configuration" 2>/dev/null); then
   ok "o mock do GEEA responde à descoberta OIDC"
-  grep -q 'jwks_uri' <<<"$config" && ok "expõe o jwks_uri (validação local de token)" \
-                                  || fail "sem jwks_uri na descoberta"
+  grep -q 'jwks_uri' <<<"$config" && ok "expõe o jwks_uri (validação local de token)"                                   || fail "sem jwks_uri na descoberta"
 else
-  fail "o mock do GEEA não responde em ${descoberta}"
+  fail "o mock do GEEA não responde — 'docker compose -f external-services/geea-keycloak/docker-compose.yml up -d'"
 fi
 
-# Login de ponta a ponta, pela porta pública: browser -> Traefik -> identity -> GEEA.
-sessao=$(curl -fsS --max-time 10 -X POST \
-  -H 'Content-Type: application/json' \
-  -d "{\"username\":\"${GEEA_USER}\",\"password\":\"${GEEA_PASS}\"}" \
-  "http://${DOMAIN}/api/identity/sessions" 2>/dev/null)
+# Login de ponta a ponta, pela porta pública: browser → Traefik → identity → GEEA.
+sessao=$(curl -fsS --max-time 10 -X POST   -H 'Content-Type: application/json'   -d "{\"username\":\"${GEEA_USER}\",\"password\":\"${GEEA_PASS}\"}"   "http://${DOMAIN}/api/identity/sessions" 2>/dev/null)
 
-if grep -q 'accessToken' <<<"$sessao"; then
-  ok "o login devolve sessão (credenciais -> GEEA -> token)"
-  grep -q 'principal' <<<"$sessao" \
-    && ok "a sessão diz quem está do outro lado" \
-    || fail "a sessão não traz o 'principal'"
+if grep -q '"accessToken"' <<<"$sessao"; then
+  ok "o login devolve sessão (credenciais → GEEA → token)"
+  grep -q '"areas"' <<<"$sessao"     && ok "a sessão traz as áreas do MozaOps (ADR 0010)"     || fail "a sessão não traz 'areas' — o mapa AUTH_AREAS não foi lido"
 else
   fail "o login em http://${DOMAIN}/api/identity/sessions não devolveu sessão"
 fi
 
 # A porta fechada é metade do trabalho; provar que está fechada é a outra.
-estado=$(curl -s -o /dev/null -w '%{http_code}' --max-time 10 \
-         "http://${DOMAIN}/api/pos/validacao-credito-fecho/execucoes/ultima" 2>/dev/null)
-[[ "$estado" == "401" ]] \
-  && ok "a automação recusa quem não traz token (401)" \
-  || fail "a automação respondeu ${estado:-?} sem token — devia ser 401"
+estado=$(curl -s -o /dev/null -w '%{http_code}' --max-time 10          "http://${DOMAIN}/api/pos/validacao-credito-fecho/execucoes/ultima" 2>/dev/null)
+[[ "$estado" == "401" ]]   && ok "a automação recusa quem não traz token (401)"   || fail "a automação respondeu ${estado:-?} sem token — devia ser 401"
 
 # ─── Observabilidade ────────────────────────────────────────────────────────
 echo

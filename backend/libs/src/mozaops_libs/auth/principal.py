@@ -5,25 +5,16 @@ O token do GEEA traz muito mais do que isto — `session_state`, `at_hash`,
 a fronteira para dentro do MozaOps é só o que a aplicação usa, e nada mais:
 assim o dia em que a forma do token mudar mexe num sítio, não em todos.
 
-Os papéis **não vêm do token**: são decididos por `mapping.py`. O GEEA diz
-quem a pessoa é; o MozaOps decide o que ela pode fazer.
+As **áreas não vêm do token**: são decididas por `areas.py`. O GEEA diz a que
+unidade orgânica a pessoa pertence; o MozaOps decide o que essa unidade abre.
+
+Não há papéis. Dentro de uma área, quem opera, quem supervisiona e quem chefia
+fazem hoje exactamente o mesmo trabalho no sistema — inventar três níveis para
+os distinguir era escrever uma regra que ninguém pediu. Ver
+`docs/adr/0010-acesso-por-area.md`.
 """
 
 from dataclasses import dataclass
-from typing import Literal
-
-Role = Literal["operator", "supervisor", "auditor"]
-
-ROLES: tuple[Role, ...] = ("operator", "supervisor", "auditor")
-
-#: Quem pode correr automações e editar casos.
-WRITERS: frozenset[Role] = frozenset({"operator", "supervisor"})
-
-#: Quem pode ver — toda a gente com acesso à plataforma.
-READERS: frozenset[Role] = frozenset({"operator", "supervisor", "auditor"})
-
-#: Marcar um caso como regularizado tem significado financeiro; não é do operador.
-RESOLVERS: frozenset[Role] = frozenset({"supervisor"})
 
 
 @dataclass(frozen=True, slots=True)
@@ -34,11 +25,16 @@ class Principal:
     username: str
     name: str
     email: str
-    roles: frozenset[Role]
+    #: As áreas do MozaOps que esta pessoa pode abrir. Vazio = entra e não vê nada.
+    areas: frozenset[str]
+    #: `department_code` e `department` são os nomes das claims do GEEA. O que
+    #: lá está é a unidade orgânica — que tanto pode ser um departamento como
+    #: uma área, um serviço ou um gabinete. Guardam-se com o nome do contrato
+    #: de quem os emite, para o mapeamento ser o único sítio a interpretá-los.
     department_code: str
     department: str
     function: str
     employee_id: str
 
-    def has_any(self, allowed: frozenset[Role]) -> bool:
-        return bool(self.roles & allowed)
+    def has_area(self, area: str) -> bool:
+        return area in self.areas

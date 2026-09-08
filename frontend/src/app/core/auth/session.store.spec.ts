@@ -9,7 +9,7 @@ const PRINCIPAL: PrincipalDto = {
   username: 'm001926',
   name: 'Dalton Chivambo',
   email: 'dalton.chivambo@mozabanco.co.mz',
-  roles: ['operator', 'supervisor'],
+  areas: ['payments-and-channels'],
   departmentCode: '2350',
   department: 'Departamento de Apoio Operacional',
   function: 'Director',
@@ -60,10 +60,10 @@ describe('SessionStore', () => {
 
   it('começa sem sessão', () => {
     expect(store.isAuthenticated()).toBe(false);
-    expect(store.roles()).toEqual([]);
+    expect(store.areas()).toEqual([]);
   });
 
-  it('guarda quem entrou, com o departamento', async () => {
+  it('guarda quem entrou, com a unidade orgânica', async () => {
     await store.signIn('m001926', 'senha');
 
     expect(store.isAuthenticated()).toBe(true);
@@ -87,43 +87,38 @@ describe('SessionStore', () => {
     expect(store.isAuthenticated()).toBe(false);
   });
 
-  it('ignora papéis que não conhece', async () => {
-    api.loginResult = sessao({ roles: ['operator', 'work_queue', 'kie-server'] });
-
-    await store.signIn('m001926', 'senha');
-
-    expect(store.roles()).toEqual(['operator']);
-  });
-
-  describe('permissões', () => {
-    it('supervisor pode regularizar', async () => {
+  describe('áreas', () => {
+    it('abre a área que o backend concedeu', async () => {
       await store.signIn('m001926', 'senha');
-      expect(store.canResolve()).toBe(true);
-      expect(store.canExecute()).toBe(true);
+
+      expect(store.hasArea('payments-and-channels')).toBe(true);
+      expect(store.hasArea('customers-and-accounts')).toBe(false);
     });
 
-    it('operador executa mas não regulariza', async () => {
-      api.loginResult = sessao({ roles: ['operator'] });
+    it('a função não muda nada', async () => {
+      // Director e técnico da mesma unidade vêem o mesmo: é o ponto do ADR 0010.
+      api.loginResult = sessao({ function: 'Técnico' });
       await store.signIn('m007000', 'senha');
 
-      expect(store.canExecute()).toBe(true);
-      expect(store.canResolve()).toBe(false);
+      expect(store.hasArea('payments-and-channels')).toBe(true);
     });
 
-    it('auditor não faz nem uma coisa nem outra', async () => {
-      api.loginResult = sessao({ roles: ['auditor'] });
-      await store.signIn('m004410', 'senha');
+    it('guarda áreas que o catálogo ainda não conhece', async () => {
+      // Abrir uma área na configuração do backend não devia esperar por um SPA
+      // publicado de novo. Sem módulo, não abre nada — mas o valor não se perde.
+      api.loginResult = sessao({ areas: ['payments-and-channels', 'ainda-nao-existe'] });
+      await store.signIn('m001926', 'senha');
 
-      expect(store.canExecute()).toBe(false);
-      expect(store.canResolve()).toBe(false);
+      expect(store.areas()).toEqual(['payments-and-channels', 'ainda-nao-existe']);
     });
 
-    it('sem papéis, entra e não pode nada', async () => {
-      api.loginResult = sessao({ roles: [] });
+    it('sem áreas, entra e não abre nada', async () => {
+      api.loginResult = sessao({ areas: [] });
       await store.signIn('m009999', 'senha');
 
       expect(store.isAuthenticated()).toBe(true);
-      expect(store.canExecute()).toBe(false);
+      expect(store.hasNoArea()).toBe(true);
+      expect(store.hasArea('payments-and-channels')).toBe(false);
     });
   });
 

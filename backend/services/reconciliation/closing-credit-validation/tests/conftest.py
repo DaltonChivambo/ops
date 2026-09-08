@@ -210,12 +210,12 @@ def service() -> FakeService:
     return FakeService()
 
 
-SUPERVISOR = Principal(
+DA_AREA = Principal(
     subject="6961d9f6-5529-457b-93cb-db82230a00cb",
     username="m001926",
-    name="Supervisor de teste",
-    email="supervisor.teste@mozabanco.co.mz",
-    roles=frozenset({"operator", "supervisor"}),
+    name="Operador de teste",
+    email="operador.teste@mozabanco.co.mz",
+    areas=frozenset({"payments-and-channels"}),
     department_code="2350",
     department="Departamento de Apoio Operacional",
     function="Director",
@@ -231,14 +231,14 @@ def client(service: FakeService) -> Any:
     que ela pára: nada abaixo — repositório, sessão, engine — chega a existir.
 
     A autenticação é substituída **só na leitura do token** — quem está do
-    outro lado — e não nas guardas de papel: essas continuam a correr a sério,
-    contra este supervisor. Substituí-las apagaria a verificação que se quer
+    outro lado — e não na guarda de área: essa continua a correr a sério,
+    contra alguém da área. Substituí-la apagaria a verificação que se quer
     testada. Quem prova que as rotas estão fechadas é o `test_auth.py`, que não
     substitui nada disto.
     """
     app.dependency_overrides[get_validation_service] = lambda: service
     app.dependency_overrides[get_case_service] = lambda: service
-    app.dependency_overrides[auth.principal] = lambda: SUPERVISOR
+    app.dependency_overrides[auth.principal] = lambda: DA_AREA
     with TestClient(app) as cliente:
         yield cliente
     app.dependency_overrides.clear()

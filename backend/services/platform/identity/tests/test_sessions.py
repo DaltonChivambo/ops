@@ -24,7 +24,7 @@ class TestLogin:
         response = client.post(
             "/identity/sessions", json={"username": "m001926", "password": "senha-certa"}
         )
-        assert sorted(response.json()["principal"]["roles"]) == ["operator", "supervisor"]
+        assert response.json()["principal"]["areas"] == ["payments-and-channels"]
 
     def test_token_de_renovacao_vai_em_cookie_inacessivel_ao_javascript(self, client):
         response = client.post(

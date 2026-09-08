@@ -26,7 +26,7 @@ os.environ.setdefault("SESSION_COOKIE_SECURE", "false")
 from cryptography.hazmat.primitives.asymmetric import rsa
 from fastapi.testclient import TestClient
 
-from mozaops_libs.auth import RoleMapping, TokenVerifier
+from mozaops_libs.auth import AreaMapping, TokenVerifier
 
 ISSUER = "http://geea-teste/auth/realms/QAS"
 AZP = "mozaops-web"
@@ -110,16 +110,15 @@ def geea() -> FakeGeea:
 
 
 @pytest.fixture
-def mapping() -> RoleMapping:
-    return RoleMapping(
-        operator_departments=frozenset({"2350"}),
-        supervisor_functions=frozenset({"Director"}),
-        auditor_users=frozenset({"m004410"}),
+def mapping() -> AreaMapping:
+    return AreaMapping(
+        by_unit={"payments-and-channels": frozenset({"2350"})},
+        by_user={"payments-and-channels": frozenset({"m004410"})},
     )
 
 
 @pytest.fixture
-def client(geea: FakeGeea, mapping: RoleMapping) -> TestClient:
+def client(geea: FakeGeea, mapping: AreaMapping) -> TestClient:
     from app.controllers.dependencies import get_session_service
     from app.main import app
     from app.services.session_service import AttemptLimiter, SessionService

@@ -14,13 +14,12 @@ Hoje:
 
 ## Porquê categorias, e porquê estas
 
-A pasta agrupa por **tipo de processo**, não por departamento nem por canal.
+A pasta agrupa por **tipo de processo**, não por área nem por canal.
 
-Um departamento muda de nome e de perímetro mais depressa do que o código, e a
-mesma automação pode servir mais do que um — por isso `departments` é um campo
-do `service.yaml` e não uma pasta. O mesmo vale para o canal: POS, ATM e
-Quiosques são metadado, e a reconciliação de um fecho é o mesmo tipo de trabalho
-nos três. Quem se organiza por departamento e ilha é o frontend, porque é a
+Uma área muda de nome e de perímetro mais depressa do que o código — por isso
+`area` é um campo do `service.yaml` e não uma pasta. O mesmo vale para o canal:
+POS, ATM e Quiosques são metadado, e a reconciliação de um fecho é o mesmo tipo
+de trabalho nos três. Quem se organiza por área e ilha é o frontend, porque é a
 navegação que o operador vê.
 
 O que muda devagar é a natureza do processo — reconciliar é reconciliar. É isso
@@ -86,7 +85,7 @@ de dados; um repositório nunca decide regra de negócio.
 | Campo | O que é |
 |---|---|
 | `dev_port` | a porta publicada em desenvolvimento, se diferente da `port` |
-| `departments` · `channels` | metadado — mudam mais depressa que o código |
+| `area` · `channels` | metadado — mudam mais depressa que o código. A `area` é também a unidade de acesso (ADR 0010) |
 | `routes` | o caminho **público**, com o `/api` que o Traefik corta |
 | `env_prefix` | quando o nome na infraestrutura difere do do serviço |
 | `developed_by` · `requirements_by` | quem fez o trabalho, se não for o `owner` |

@@ -1,7 +1,7 @@
 import { ChangeDetectionStrategy, Component, inject, input } from '@angular/core';
 
-import { ROLE_LABELS, type Role } from '../core/auth/roles';
 import { SessionStore } from '../core/auth/session.store';
+import { areaLabel } from '../core/navigation';
 import { AVATAR_CLASS } from '../shared/ui/avatar';
 
 @Component({
@@ -23,7 +23,7 @@ import { AVATAR_CLASS } from '../shared/ui/avatar';
       <div class="flex shrink-0 items-center gap-3">
         <div class="hidden text-right sm:block">
           <p class="text-sm font-medium text-moza-800">{{ session.principal()?.name }}</p>
-          <p class="text-xs text-moza-500">{{ roleLabels() }}</p>
+          <p class="text-xs text-moza-500">{{ areaLabels() }}</p>
         </div>
 
         <span [class]="avatarClass" [attr.aria-label]="session.principal()?.name">
@@ -49,9 +49,9 @@ export class HeaderComponent {
   readonly heading = input.required<string>();
   readonly subtitle = input<string>('');
 
-  roleLabels(): string {
-    const roles = this.session.roles();
-    if (roles.length === 0) return 'Sem papel atribuído';
-    return roles.map((role: Role) => ROLE_LABELS[role]).join(' · ');
+  areaLabels(): string {
+    const areas = this.session.areas();
+    if (areas.length === 0) return 'Sem área atribuída';
+    return areas.map((area) => areaLabel(area) ?? area).join(' · ');
   }
 }

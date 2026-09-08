@@ -4,13 +4,20 @@ import { firstValueFrom } from 'rxjs';
 
 import { environment } from '../../../environments/environment';
 
-/** O que o serviço `identity` devolve. `function` é o nome da claim no GEEA. */
+/**
+ * O que o serviço `identity` devolve.
+ *
+ * `areas` são as do catálogo do MozaOps — as mesmas ids que o `navigation.ts`
+ * conhece. `department`, `departmentCode` e `function` são as claims do GEEA
+ * com o nome dele: a unidade orgânica onde a pessoa está registada, que serve
+ * para o ecrã de «sem acesso» dizer o que dizer a quem lá cair.
+ */
 export interface PrincipalDto {
   readonly subject: string;
   readonly username: string;
   readonly name: string;
   readonly email: string;
-  readonly roles: readonly string[];
+  readonly areas: readonly string[];
   readonly departmentCode: string;
   readonly department: string;
   readonly function: string;

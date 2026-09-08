@@ -3,24 +3,27 @@ import { computed, inject, Injectable, signal } from '@angular/core';
 import { environment } from '../../../environments/environment';
 import { DEV_PRINCIPAL } from './dev-session';
 import { IdentityApi, type PrincipalDto } from './identity-api.service';
-import { RESOLVERS, ROLES, type Role, WRITERS } from './roles';
 import { TokenStore } from './token.store';
 
 /**
  * O que a aplicação sabe sobre quem está autenticado.
  *
- * Vem do `GET /api/identity/me`, e **não do token**: os papéis do MozaOps não
+ * Vem do `GET /api/identity/me`, e **não do token**: as áreas do MozaOps não
  * estão lá dentro. O GEEA traz os papéis do sistema dele (`work_queue`,
- * `manage_employee`) e o departamento; quem decide `operator`, `supervisor` ou
- * `auditor` é o backend, por configuração. Interpretar isso aqui obrigaria a
- * publicar o SPA de cada vez que alguém mudasse de funções.
+ * `manage_employee`) e a unidade orgânica; quem decide que áreas isso abre é o
+ * backend, por configuração. Interpretar isso aqui obrigaria a publicar o SPA
+ * de cada vez que alguém mudasse de unidade.
+ *
+ * Não há papéis. Dentro da área, quem opera, quem supervisiona e quem chefia
+ * fazem hoje o mesmo — ver `docs/adr/0010-acesso-por-area.md`.
  */
 export interface Principal {
   readonly sub: string;
   readonly username: string;
   readonly name: string;
   readonly email: string;
-  readonly roles: readonly Role[];
+  /** As áreas do catálogo (`navigation.ts`) que esta pessoa pode abrir. */
+  readonly areas: readonly string[];
   readonly departmentCode: string;
   readonly department: string;
   /** O nome da claim é do GEEA: a função da pessoa, não uma função de código. */
@@ -41,13 +44,10 @@ export class SessionStore {
 
   readonly principal = this.principalSignal.asReadonly();
   readonly isAuthenticated = computed(() => this.principalSignal() !== null);
-  readonly roles = computed<readonly Role[]>(() => this.principalSignal()?.roles ?? []);
+  readonly areas = computed<readonly string[]>(() => this.principalSignal()?.areas ?? []);
 
-  /** Pode correr automações e editar casos — protege a interface, não a verdade (isso é o servidor). */
-  readonly canExecute = computed(() => this.hasAny(WRITERS));
-
-  /** Pode marcar um caso como regularizado. */
-  readonly canResolve = computed(() => this.hasAny(RESOLVERS));
+  /** Entrou, mas não é de área nenhuma: vê o Dashboard e mais nada. */
+  readonly hasNoArea = computed(() => this.isAuthenticated() && this.areas().length === 0);
 
   /** Iniciais para o avatar: «Ana Sousa» → «AS». */
   readonly initials = computed(() => {
@@ -111,9 +111,9 @@ export class SessionStore {
     return this.renewal;
   }
 
-  hasAny(allowed: readonly Role[]): boolean {
-    const mine = this.roles();
-    return allowed.some((role) => mine.includes(role));
+  /** Protege a interface, não a verdade — a verdade é a guarda do servidor. */
+  hasArea(area: string): boolean {
+    return this.areas().includes(area);
   }
 
   async logout(): Promise<void> {
@@ -139,9 +139,10 @@ export class SessionStore {
       username: principal.username,
       name: principal.name || principal.username,
       email: principal.email,
-      // Filtra: o backend não manda papéis que não conheçamos, mas o SPA não
-      // tem de acreditar nisso para funcionar.
-      roles: principal.roles.filter(isKnownRole),
+      // Sem filtro por ids conhecidos: uma área acrescentada na configuração
+      // do backend não devia depender de um SPA publicado de novo para valer.
+      // O que o SPA não conhece não abre nada, porque não há módulo para abrir.
+      areas: principal.areas,
       departmentCode: principal.departmentCode,
       department: principal.department,
       function: principal.function,
@@ -152,8 +153,4 @@ export class SessionStore {
     this.tokens.clear();
     this.principalSignal.set(null);
   }
-}
-
-function isKnownRole(role: string): role is Role {
-  return (ROLES as readonly string[]).includes(role);
 }

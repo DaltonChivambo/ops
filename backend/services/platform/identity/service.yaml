@@ -7,12 +7,13 @@
 # `utils/`: o critério é o mesmo de sempre, ter um contexto próprio com dono.
 name: identity
 category: platform
-context: Sessões e papéis — autenticação contra o GEEA
+context: Sessões e áreas — autenticação contra o GEEA
 
 port: 8000
 dev_port: 8002
 
-departments: [Meios de Pagamentos e Canais]
+# Sem `area`: as sessões não são de área nenhuma — é o serviço que diz quais
+# são as de cada pessoa, e toda a gente que se autentica lhe chega.
 routes: [/api/identity]
 
 # ─── Quem responde por isto ──────────────────────────────────────────────────

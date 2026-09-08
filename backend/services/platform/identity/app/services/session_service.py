@@ -7,7 +7,7 @@ from typing import Any
 
 from app.domain.errors import InvalidCredentialsError, TooManyAttemptsError
 from app.infrastructure.geea_client import GeeaClient
-from mozaops_libs.auth import AuthError, Principal, RoleMapping, TokenVerifier
+from mozaops_libs.auth import AreaMapping, AuthError, Principal, TokenVerifier
 from mozaops_libs.auth import principal_from_claims as build_principal
 
 
@@ -52,7 +52,7 @@ class SessionService:
         self,
         geea: GeeaClient,
         verifier: TokenVerifier,
-        mapping: RoleMapping,
+        mapping: AreaMapping,
         limiter: AttemptLimiter,
     ):
         self._geea = geea

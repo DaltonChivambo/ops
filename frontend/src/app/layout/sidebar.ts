@@ -22,7 +22,8 @@ import {
   LucideX,
 } from '@lucide/angular';
 
-import { findModule } from '../core/navigation';
+import { SessionStore } from '../core/auth/session.store';
+import { type AreaId, findModule } from '../core/navigation';
 import { ChannelFlyoutComponent } from './channel-flyout';
 import { UserMenuComponent } from './user-menu';
 
@@ -49,17 +50,24 @@ interface NavItem {
 interface NavSection {
   readonly id: string;
   readonly label?: string;
+  /** A área a que a secção pertence; `null` = transversal, para toda a gente
+      com sessão. Quem não é da área não vê a secção — esconder não é controlo
+      (isso é a guarda de rota e o backend), mas mostrar um menu inteiro que
+      dá «sem acesso» em cada clique também não é interface nenhuma. */
+  readonly area: AreaId | null;
   readonly items: readonly NavItem[];
 }
 
 const SECTIONS: readonly NavSection[] = [
   {
     id: 'geral',
+    area: null,
     items: [{ id: 'dashboard', label: 'Dashboard', icon: 'layout-grid', route: '/dashboard' }],
   },
   {
     id: 'mpc',
     label: 'Meios de Pag. e Canais',
+    area: 'payments-and-channels',
     items: [
       {
         id: 'canais',
@@ -82,7 +90,7 @@ const SECTIONS: readonly NavSection[] = [
         ],
       },
       {
-        // id mantém o nome completo da ilha (ver README do departamento);
+        // id mantém o nome completo da ilha (ver README da área);
         // o label é curto de propósito — a barra lateral não tem largura
         // para "Suporte e Monitorização de Fraudes".
         id: 'suporte-fraudes',
@@ -146,7 +154,7 @@ const SECTIONS: readonly NavSection[] = [
         } @else {
           <span class="min-w-0">
             <img src="mozaops_logo_sem_fundo.svg" alt="MozaOps" class="h-8 w-auto" />
-            <!-- Duas linhas em vez de truncar: cortado, o nome do departamento
+            <!-- Duas linhas em vez de truncar: cortado, o nome da área
                  deixa de dizer de qual se trata. -->
             <span class="mt-1.5 block text-2xs leading-snug text-gray-400">
               Meios de Pagamentos e Canais
@@ -164,7 +172,7 @@ const SECTIONS: readonly NavSection[] = [
       </div>
 
       <nav class="thin-scrollbar min-h-0 flex-1 overflow-y-auto" aria-label="Principal">
-        @for (section of sections; track section.id; let sectionIndex = $index) {
+        @for (section of sections(); track section.id; let sectionIndex = $index) {
           <div>
             @if (section.label && !collapsed()) {
               <p
@@ -311,12 +319,16 @@ const SECTIONS: readonly NavSection[] = [
 })
 export class SidebarComponent {
   private readonly router = inject(Router);
+  private readonly session = inject(SessionStore);
 
   /** `model` porque a shell também os mexe: encolher desloca o conteúdo. */
   readonly collapsed = model(false);
   readonly open = model(false);
 
-  protected readonly sections = SECTIONS;
+  /** Só as secções que esta pessoa abre. Sem área nenhuma, sobra o «Geral». */
+  protected readonly sections = computed(() =>
+    SECTIONS.filter((section) => section.area === null || this.session.hasArea(section.area)),
+  );
 
   /** Canais aberto por omissão: é o único grupo com páginas construídas. */
   protected readonly expandedIds = signal<ReadonlySet<string>>(new Set(['canais']));

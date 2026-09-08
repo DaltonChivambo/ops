@@ -1,9 +1,13 @@
 # Contrato do serviço, legível por máquina. Alimenta o OWNERS.md.
 #
-# `departments` é METADADO, não estrutura de pastas: os departamentos mudam mais
-# depressa que o código, e a mesma automação serve mais do que um. A pasta diz a
-# CATEGORIA do processo (reconciliação), que muda devagar; quem se organiza por
-# departamento é o frontend, porque é a navegação que o operador vê.
+# `area` é METADADO, não estrutura de pastas: as áreas mudam mais depressa que o
+# código. A pasta diz a CATEGORIA do processo (reconciliação), que muda devagar;
+# quem se organiza por área é o frontend, porque é a navegação que o operador vê.
+#
+# Desde o ADR 0010, a área é também a unidade de ACESSO: só entra aqui quem for
+# desta. O valor tem de ser igual ao `AUTH_SERVICE_AREA` do compose e ao id do
+# catálogo do SPA — os três dizem a mesma coisa, e discordarem tira o acesso a
+# toda a gente.
 name: closing-credit-validation
 category: reconciliation
 context: Validação de crédito de valores de fecho
@@ -14,7 +18,7 @@ context: Validação de crédito de valores de fecho
 port: 8000
 dev_port: 8001
 
-departments: [Meios de Pagamentos e Canais]
+area: payments-and-channels
 channels: [POS]
 # O caminho público, visto de fora. O router monta em
 # `/pos/validacao-credito-fecho`: o `/api` é a fronteira da API e é o Traefik

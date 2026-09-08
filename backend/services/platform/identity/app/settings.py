@@ -5,7 +5,7 @@ que o serviço lê está aqui, e o que aqui não está o serviço não lê, porq
 `extra="ignore"` esconde qualquer variável mal escrita.
 
 As variáveis `auth_*` são **as mesmas** que o `closing-credit-validation`
-declara, e no compose recebem o mesmo `${...}`: dois serviços a mapear papéis
+declara, e no compose recebem o mesmo `${...}`: dois serviços a mapear áreas
 de maneira diferente seria uma porta aberta num deles.
 """
 
@@ -13,7 +13,7 @@ import logging
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
-from mozaops_libs.auth import RoleMapping, parse_set
+from mozaops_libs.auth import AreaMapping, parse_area_map
 
 
 class Settings(BaseSettings):
@@ -26,13 +26,15 @@ class Settings(BaseSettings):
     #: outra aplicação do banco não serve para entrar aqui.
     auth_allowed_azp: str = "qa-workflow-ui"
 
-    # ─── Mapa de papéis ──────────────────────────────────────────────────
-    auth_supervisor_users: str = ""
-    auth_auditor_users: str = ""
-    auth_operator_users: str = ""
-    auth_operator_departments: str = "2350"
-    auth_supervisor_functions: str = "Director,Chefe"
-    auth_role_claim_prefix: str = "mozaops_"
+    # ─── Mapa de áreas ───────────────────────────────────────────────────
+    #: `area:unidade,unidade;area:unidade`. A área é a do catálogo do MozaOps
+    #: (a mesma da barra lateral do SPA); as unidades são os códigos que o GEEA
+    #: manda em `departmentCode`. Sem entrada aqui, ninguém entra em lado
+    #: nenhum — é de propósito, ver `mozaops_libs/auth/areas.py`.
+    auth_areas: str = "payments-and-channels:2350"
+    #: `area:username,username`. O acréscimo para quem está registado noutra
+    #: unidade mas trabalha nesta. Vazio é o estado normal.
+    auth_area_users: str = ""
 
     # ─── Ligação ao GEEA ─────────────────────────────────────────────────
     geea_ssologin_url: str = "http://geea-keycloak:8000/geea/idmUtils/SSOLogin"
@@ -62,14 +64,10 @@ class Settings(BaseSettings):
 
     log_level: str = "INFO"
 
-    def role_mapping(self) -> RoleMapping:
-        return RoleMapping(
-            supervisor_users=parse_set(self.auth_supervisor_users),
-            auditor_users=parse_set(self.auth_auditor_users),
-            operator_users=parse_set(self.auth_operator_users),
-            operator_departments=parse_set(self.auth_operator_departments),
-            supervisor_functions=parse_set(self.auth_supervisor_functions),
-            role_claim_prefix=self.auth_role_claim_prefix,
+    def area_mapping(self) -> AreaMapping:
+        return AreaMapping(
+            by_unit=parse_area_map(self.auth_areas),
+            by_user=parse_area_map(self.auth_area_users),
         )
 
 
