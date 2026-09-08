@@ -11,7 +11,7 @@ export const DEV_PRINCIPAL: Principal = {
   username: 'dchivambo',
   name: 'Dalton Chivambo',
   email: 'daltonchivambo@gmail.com',
-  areas: ['canais'],
+  areas: ['channels'],
   departmentCode: '3230',
   department: 'Canais e Serviços de Integração',
   function: 'Director',

@@ -130,7 +130,7 @@ export class SessionStore {
       this.clear();
       // Sem isto, quem sai ficava na mesma página, a ver os dados a
       // desaparecer aos poucos conforme cada pedido levasse 401.
-      await this.router.navigateByUrl('/entrar');
+      await this.router.navigateByUrl('/login');
     }
   }
 

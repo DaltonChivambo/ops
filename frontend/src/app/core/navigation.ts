@@ -14,14 +14,14 @@
  * barra lateral mostra, é um Departamento — e dentro dele há várias unidades
  * reais e distintas no organigrama: `CANAIS E SERVIÇOS DE INTEGRAÇÃO`
  * (código GEEA 3230) é uma, `SERVIÇO DE MEIOS DE PAGAMENTO` (2442) é outra.
- * `canais` é a área de quem trata do POS/ATM/Quiosques — a única com
+ * `channels` é a área de quem trata do POS/ATM/Quiosques — a única com
  * automação construída, por isso a única que existe aqui. O rótulo do
  * departamento é só agrupamento visual (`sidebar.ts`); o acesso é à área.
  *
  * O GEEA chama `department` à unidade onde a pessoa está registada, mas o que
  * lá vem tanto é um departamento como uma área ou um serviço.
  */
-export type AreaId = 'canais';
+export type AreaId = 'channels';
 
 export interface Area {
   readonly id: AreaId;
@@ -33,7 +33,7 @@ export interface Area {
  * «Clientes e Contas» entra aqui — e ganha `features/customers-and-accounts/`
  * com conteúdo — quando tiver a primeira.
  */
-export const AREAS: readonly Area[] = [{ id: 'canais', label: 'Canais' }];
+export const AREAS: readonly Area[] = [{ id: 'channels', label: 'Canais' }];
 
 export type FeatureId = 'closing-credit-validation';
 export type ModuleId = 'dashboard' | 'pos' | 'atm' | 'kiosks';
@@ -92,7 +92,7 @@ export const MODULES: readonly NavModule[] = [
   {
     id: 'pos',
     label: 'POS',
-    area: 'canais',
+    area: 'channels',
     section: 'Canais',
     icon: 'smartphone-nfc',
     features: [CLOSING_VALIDATION],
@@ -100,7 +100,7 @@ export const MODULES: readonly NavModule[] = [
   {
     id: 'atm',
     label: 'ATM',
-    area: 'canais',
+    area: 'channels',
     section: 'Canais',
     icon: 'landmark',
     features: [],
@@ -108,7 +108,7 @@ export const MODULES: readonly NavModule[] = [
   {
     id: 'kiosks',
     label: 'Quiosques',
-    area: 'canais',
+    area: 'channels',
     section: 'Canais',
     icon: 'store',
     features: [],

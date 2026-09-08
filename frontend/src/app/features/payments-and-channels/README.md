@@ -6,7 +6,7 @@ orgânicas reais e distintas, e é a essas que o MozaOps dá acesso — a **áre
 vocabulário do catálogo (`core/navigation.ts`: `AreaId`, `AREAS`, `NavModule.area`).
 
 Hoje só uma ilha tem automação construída, e só ela é área: **Canais**
-(`canais`, código GEEA `3230`, «Canais e Serviços de Integração»). Quem não for
+(`channels`, código GEEA `3230`, «Canais e Serviços de Integração»). Quem não for
 desta área não vê as páginas dela, nem lhe chega pela API. «Meios de
 Pagamentos» (`2442`, «Serviço de Meios de Pagamento») é outra unidade real, e
 ganha a sua própria área no dia em que tiver a primeira automação.
@@ -22,10 +22,10 @@ Três, tal como na barra lateral (`layout/sidebar.ts`):
   Houve aqui um catálogo de canal, com um cartão por automação — deixou de
   fazer sentido com uma automação por canal, e volta a fazer quando algum
   tiver duas.
-- **Pagamentos** (`pagamentos` na barra lateral: Proc. de Salários, Cartões,
+- **Pagamentos** (`payments` na barra lateral: Proc. de Salários, Cartões,
   Cheques) — ainda sem automação construída, por isso ainda sem pasta aqui, e
   ainda sem área própria: fica à boleia do acesso a Canais até ter a primeira.
-- **Suporte e Monitorização de Fraudes** (`suporte-fraudes` na barra lateral,
+- **Suporte e Monitorização de Fraudes** (`fraud-monitoring` na barra lateral,
   mostrado como "Fraudes" — o nome completo não cabe na largura da barra) —
   idem.
 

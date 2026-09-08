@@ -21,7 +21,7 @@ context: Validação de crédito de valores de fecho
 port: 8000
 dev_port: 8001
 
-area: canais
+area: channels
 channels: [POS]
 # O caminho público, visto de fora. O router monta em
 # `/pos/validacao-credito-fecho`: o `/api` é a fronteira da API e é o Traefik

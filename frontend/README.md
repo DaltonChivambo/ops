@@ -95,8 +95,8 @@ lá: `/api` é a fronteira da API, não parte do caminho do serviço.
 | `/` e `/pos` | encaminham para a automação — um canal com automação pronta abre-a directamente |
 | `/pos/closing-credit-validation` | Validação de Crédito de Valores de Fecho de POS |
 | `/atm`, `/kiosks`, `/dashboard` | aviso de «ainda não disponível»: existem na navegação, sem automação construída |
-| `/entrar` | login com as credenciais do banco — fora da casca, que pressupõe sessão |
-| `/sem-acesso` | o que apanha quem está autenticado mas não é da área da página |
+| `/login` | login com as credenciais do banco — fora da casca, que pressupõe sessão |
+| `/forbidden` | o que apanha quem está autenticado mas não é da área da página |
 
 ## Autenticação e acesso
 
@@ -109,7 +109,7 @@ põe o de renovação num cookie `HttpOnly`.
 | `core/auth/token.store.ts` | o token de acesso, **só em memória** — nunca `localStorage`, onde um XSS valeria uma sessão inteira |
 | `core/auth/session.store.ts` | quem está do outro lado, em signals; renova o token uma vez por 401, partilhando a renovação |
 | `core/auth/auth.interceptor.ts` | anexa o `Bearer` só a `/api/**`, e repete o pedido depois de renovar |
-| `core/auth/area.guard.ts` | sem sessão manda entrar; com sessão e sem a área do módulo manda a `/sem-acesso` |
+| `core/auth/area.guard.ts` | sem sessão manda entrar; com sessão e sem a área do módulo manda a `/forbidden` |
 
 **O acesso é por área, não por papel.** Quem é da área faz tudo o que a
 automação faz. As áreas de

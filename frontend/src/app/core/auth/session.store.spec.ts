@@ -10,19 +10,19 @@ const PRINCIPAL: PrincipalDto = {
   username: 'm001926',
   name: 'Dalton Chivambo',
   email: 'dalton.chivambo@mozabanco.co.mz',
-  areas: ['canais'],
+  areas: ['channels'],
   departmentCode: '3230',
   department: 'Canais e Serviços de Integração',
   function: 'Director',
 };
 
-function sessao(overrides: Partial<PrincipalDto> = {}, token = 'token-1'): SessionDto {
+function session(overrides: Partial<PrincipalDto> = {}, token = 'token-1'): SessionDto {
   return { accessToken: token, expiresIn: 18000, principal: { ...PRINCIPAL, ...overrides } };
 }
 
 class FakeIdentityApi {
-  loginResult: SessionDto | Error = sessao();
-  refreshResult: SessionDto | Error = sessao();
+  loginResult: SessionDto | Error = session();
+  refreshResult: SessionDto | Error = session();
   refreshes = 0;
   logouts = 0;
 
@@ -53,7 +53,7 @@ describe('SessionStore', () => {
   beforeEach(() => {
     api = new FakeIdentityApi();
     TestBed.configureTestingModule({
-      providers: [provideRouter([{ path: 'entrar', children: [] }]), { provide: IdentityApi, useValue: api }],
+      providers: [provideRouter([{ path: 'login', children: [] }]), { provide: IdentityApi, useValue: api }],
     });
     store = TestBed.inject(SessionStore);
     tokens = TestBed.inject(TokenStore);
@@ -92,38 +92,38 @@ describe('SessionStore', () => {
     it('abre a área que o backend concedeu', async () => {
       await store.signIn('m001926', 'senha');
 
-      expect(store.hasArea('canais')).toBe(true);
+      expect(store.hasArea('channels')).toBe(true);
       expect(store.hasArea('customers-and-accounts')).toBe(false);
     });
 
     it('a função não muda nada', async () => {
       // Director e técnico da mesma unidade vêem o mesmo.
-      api.loginResult = sessao({ function: 'Técnico' });
+      api.loginResult = session({ function: 'Técnico' });
       await store.signIn('m007000', 'senha');
 
-      expect(store.hasArea('canais')).toBe(true);
+      expect(store.hasArea('channels')).toBe(true);
     });
 
     it('guarda áreas que o catálogo ainda não conhece', async () => {
       // Abrir uma área na configuração do backend não devia esperar por um SPA
       // publicado de novo. Sem módulo, não abre nada — mas o valor não se perde.
-      api.loginResult = sessao({ areas: ['canais', 'ainda-nao-existe'] });
+      api.loginResult = session({ areas: ['channels', 'ainda-nao-existe'] });
       await store.signIn('m001926', 'senha');
 
-      expect(store.areas()).toEqual(['canais', 'ainda-nao-existe']);
+      expect(store.areas()).toEqual(['channels', 'ainda-nao-existe']);
     });
 
     it('sem áreas, não abre nenhuma — defesa, já que o backend nunca chega a devolver isto', async () => {
-      api.loginResult = sessao({ areas: [] });
+      api.loginResult = session({ areas: [] });
       await store.signIn('m009999', 'senha');
 
-      expect(store.hasArea('canais')).toBe(false);
+      expect(store.hasArea('channels')).toBe(false);
     });
   });
 
   describe('renovação', () => {
     it('devolve o token novo', async () => {
-      api.refreshResult = sessao({}, 'token-2');
+      api.refreshResult = session({}, 'token-2');
 
       await expect(store.renew()).resolves.toBe('token-2');
       expect(tokens.accessToken()).toBe('token-2');
@@ -168,7 +168,7 @@ describe('SessionStore', () => {
   });
 
   it('iniciais para o avatar', async () => {
-    api.loginResult = sessao({ name: 'Ana Sousa' });
+    api.loginResult = session({ name: 'Ana Sousa' });
     await store.signIn('asousa', 'senha');
 
     expect(store.initials()).toBe('AS');

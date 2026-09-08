@@ -12,7 +12,7 @@ import { canOpenModule } from './area.guard';
 import { IdentityApi, type SessionDto } from './identity-api.service';
 import { SessionStore } from './session.store';
 
-function sessao(areas: readonly string[]): SessionDto {
+function session(areas: readonly string[]): SessionDto {
   return {
     accessToken: 'token',
     expiresIn: 18000,
@@ -33,8 +33,8 @@ describe('canOpenModule', () => {
   let api: { login: () => Promise<SessionDto> };
   let injector: Injector;
 
-  /** `pos` é da área «canais»; `dashboard` não é de nenhuma. */
-  const abrir = (moduleId: string) =>
+  /** `pos` é da área «channels»; `dashboard` não é de nenhuma. */
+  const open = (moduleId: string) =>
     runInInjectionContext(injector, () =>
       canOpenModule(
         { paramMap: convertToParamMap({ moduleId }) } as ActivatedRouteSnapshot,
@@ -43,44 +43,44 @@ describe('canOpenModule', () => {
     );
 
   beforeEach(() => {
-    api = { login: () => Promise.resolve(sessao(['canais'])) };
+    api = { login: () => Promise.resolve(session(['channels'])) };
     TestBed.configureTestingModule({
       providers: [provideRouter([]), { provide: IdentityApi, useValue: api }],
     });
     injector = TestBed.inject(Injector);
   });
 
-  it('sem sessão, manda entrar — e leva o destino atrás', () => {
-    const resultado = abrir('pos');
+  it('sem sessão, manda para o login — e leva o destino atrás', () => {
+    const result = open('pos');
 
-    expect(resultado).toBeInstanceOf(UrlTree);
-    expect(String(resultado)).toContain('/entrar');
-    expect(String(resultado)).toContain('regressar');
+    expect(result).toBeInstanceOf(UrlTree);
+    expect(String(result)).toContain('/login');
+    expect(String(result)).toContain('returnUrl');
   });
 
   it('com a área do módulo, deixa passar', async () => {
     await TestBed.inject(SessionStore).signIn('m001926', 'senha');
 
-    expect(abrir('pos')).toBe(true);
+    expect(open('pos')).toBe(true);
   });
 
   it('sem a área do módulo, manda ao ecrã de sem acesso', async () => {
     // E não de volta ao login: repetir o login traria as mesmas áreas.
-    api.login = () => Promise.resolve(sessao([]));
+    api.login = () => Promise.resolve(session([]));
     await TestBed.inject(SessionStore).signIn('m009999', 'senha');
 
-    const resultado = abrir('pos');
+    const result = open('pos');
 
-    expect(resultado).toBeInstanceOf(UrlTree);
-    expect(String(resultado)).toContain('/sem-acesso');
-    expect(String(resultado)).not.toContain('/entrar');
+    expect(result).toBeInstanceOf(UrlTree);
+    expect(String(result)).toContain('/forbidden');
+    expect(String(result)).not.toContain('/login');
   });
 
   it('um módulo transversal abre-se sem área nenhuma', async () => {
-    api.login = () => Promise.resolve(sessao([]));
+    api.login = () => Promise.resolve(session([]));
     await TestBed.inject(SessionStore).signIn('m009999', 'senha');
 
-    expect(abrir('dashboard')).toBe(true);
+    expect(open('dashboard')).toBe(true);
   });
 
   it('um módulo que não existe no catálogo trata-se como transversal', async () => {
@@ -88,6 +88,6 @@ describe('canOpenModule', () => {
     // «sem acesso» a um URL inventado dizia à pessoa que o problema era dela.
     await TestBed.inject(SessionStore).signIn('m001926', 'senha');
 
-    expect(abrir('nao-existe')).toBe(true);
+    expect(open('nao-existe')).toBe(true);
   });
 });

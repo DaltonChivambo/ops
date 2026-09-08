@@ -117,8 +117,8 @@ def geea() -> FakeGeea:
 @pytest.fixture
 def mapping() -> AreaMapping:
     return AreaMapping(
-        by_unit={"canais": frozenset({"3230"})},
-        by_user={"canais": frozenset({"m004410"})},
+        by_unit={"channels": frozenset({"3230"})},
+        by_user={"channels": frozenset({"m004410"})},
     )
 
 

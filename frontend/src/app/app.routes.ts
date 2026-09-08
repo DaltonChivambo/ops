@@ -10,7 +10,7 @@ export const routes: Routes = [
     // Fora do `ShellComponent`: a barra lateral e o menu de utilizador
     // pressupõem sessão, e não há nada a mostrar à volta de quem ainda não
     // entrou.
-    path: 'entrar',
+    path: 'login',
     loadComponent: () =>
       import('./features/session/login-page').then((m) => m.LoginPageComponent),
   },
@@ -22,7 +22,7 @@ export const routes: Routes = [
       { path: '', pathMatch: 'full', redirectTo: 'pos' },
 
       {
-        path: 'sem-acesso',
+        path: 'forbidden',
         loadComponent: () =>
           import('./features/session/forbidden-page').then((m) => m.ForbiddenPageComponent),
       },

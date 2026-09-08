@@ -56,7 +56,7 @@ interface NavSection {
    * (isso é a guarda de rota e o backend), mas mostrar um menu inteiro que dá
    * «sem acesso» em cada clique também não é interface nenhuma.
    *
-   * Hoje é a área da única ilha com automação construída (`canais`), e gate a
+   * Hoje é a área da única ilha com automação construída (`channels`), e gate a
    * secção **inteira** — «Pagamentos» e «Fraudes» são placeholders sem rota
    * nem área própria, por isso ficam à boleia. Quando uma delas ganhar a
    * primeira automação, ganha a sua própria área, e este campo desce de
@@ -68,17 +68,17 @@ interface NavSection {
 
 const SECTIONS: readonly NavSection[] = [
   {
-    id: 'geral',
+    id: 'general',
     area: null,
     items: [{ id: 'dashboard', label: 'Dashboard', icon: 'layout-grid', route: '/dashboard' }],
   },
   {
-    id: 'mpc',
+    id: 'payments-and-channels',
     label: 'Meios de Pag. e Canais',
-    area: 'canais',
+    area: 'channels',
     items: [
       {
-        id: 'canais',
+        id: 'channels',
         label: 'Canais',
         icon: 'monitor-smartphone',
         children: [
@@ -88,20 +88,19 @@ const SECTIONS: readonly NavSection[] = [
         ],
       },
       {
-        id: 'pagamentos',
+        id: 'payments',
         label: 'Pagamentos',
         icon: 'banknote',
         children: [
-          { id: 'salarios', label: 'Proc. de Salários' },
-          { id: 'cartoes', label: 'Cartões' },
-          { id: 'cheques', label: 'Cheques' },
+          { id: 'payroll', label: 'Proc. de Salários' },
+          { id: 'cards', label: 'Cartões' },
+          { id: 'checks', label: 'Cheques' },
         ],
       },
       {
-        // id mantém o nome completo da ilha (ver README da área);
-        // o label é curto de propósito — a barra lateral não tem largura
-        // para "Suporte e Monitorização de Fraudes".
-        id: 'suporte-fraudes',
+        // O label é curto de propósito — a barra lateral não tem largura
+        // para "Suporte e Monitorização de Fraudes" (ver README da área).
+        id: 'fraud-monitoring',
         label: 'Fraudes',
         icon: 'shield-alert',
       },
@@ -339,7 +338,7 @@ export class SidebarComponent {
   );
 
   /** Canais aberto por omissão: é o único grupo com páginas construídas. */
-  protected readonly expandedIds = signal<ReadonlySet<string>>(new Set(['canais']));
+  protected readonly expandedIds = signal<ReadonlySet<string>>(new Set(['channels']));
   protected readonly flyoutChannelId = signal<string | null>(null);
 
   protected readonly flyoutModule = computed(() => {

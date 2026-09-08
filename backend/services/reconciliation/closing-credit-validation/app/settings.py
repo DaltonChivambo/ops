@@ -34,14 +34,14 @@ class Settings(BaseSettings):
     auth_jwks_url: str = "http://geea-keycloak:8000/auth/realms/QAS/protocol/openid-connect/certs"
     auth_allowed_azp: str = "qa-workflow-ui"
 
-    auth_areas: str = "canais:3230"
+    auth_areas: str = "channels:3230"
     auth_area_users: str = ""
 
     #: A área a que **esta** automação pertence — a mesma que o `service.yaml`
     #: declara e que o catálogo do SPA mostra. É a única diferença de
     #: configuração de autenticação entre os dois serviços, e é o que o router
     #: exige a quem bate à porta.
-    auth_service_area: str = "canais"
+    auth_service_area: str = "channels"
 
     def area_mapping(self) -> AreaMapping:
         return AreaMapping(

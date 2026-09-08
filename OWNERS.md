@@ -7,7 +7,7 @@ unidade de **acesso**: a tabela de Serviços e o `AUTH_AREAS` do `.env` falam da
 
 **Área não é departamento.** «Meios de Pagamentos e Canais» é um departamento — o
 agrupamento estável que dá nome à pasta do frontend — e dentro dele há várias áreas reais e
-distintas (`canais`, `meios-de-pagamento`). A tabela de Frontend organiza-se por
+distintas (`channels`, `payments`). A tabela de Frontend organiza-se por
 departamento, porque é a pasta que o operador de PR precisa de identificar; a de Serviços
 organiza-se por área, porque é o que o `service.yaml` e o `AUTH_AREAS` declaram.
 

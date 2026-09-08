@@ -52,18 +52,18 @@ import { CardComponent } from '../../shared/ui/card';
             />
           </label>
 
-          @if (erro()) {
+          @if (error()) {
             <p role="alert" class="rounded-lg bg-alert-50 px-3 py-2 text-sm text-alert-700">
-              {{ erro() }}
+              {{ error() }}
             </p>
           }
 
           <button
             type="submit"
-            [disabled]="form.invalid || aEntrar()"
+            [disabled]="form.invalid || signingIn()"
             class="rounded-lg bg-moza-700 px-3 py-2 text-sm font-medium text-white disabled:opacity-50"
           >
-            {{ aEntrar() ? 'A entrar…' : 'Entrar' }}
+            {{ signingIn() ? 'A entrar…' : 'Entrar' }}
           </button>
         </form>
       </section>
@@ -79,14 +79,14 @@ export class LoginPageComponent {
     password: ['', Validators.required],
   });
 
-  protected readonly aEntrar = signal(false);
-  protected readonly erro = signal<string | null>(null);
+  protected readonly signingIn = signal(false);
+  protected readonly error = signal<string | null>(null);
 
   protected async submit(): Promise<void> {
-    if (this.form.invalid || this.aEntrar()) return;
+    if (this.form.invalid || this.signingIn()) return;
 
-    this.aEntrar.set(true);
-    this.erro.set(null);
+    this.signingIn.set(true);
+    this.error.set(null);
 
     const { username, password } = this.form.getRawValue();
 
@@ -94,25 +94,25 @@ export class LoginPageComponent {
       await this.session.signIn(username, password);
       // A password não fica no formulário depois de usada.
       this.form.reset();
-      await this.router.navigateByUrl(this.destino());
+      await this.router.navigateByUrl(this.destination());
     } catch (error) {
       // A mensagem do envelope já vem em português e escrita para o operador —
       // e é deliberadamente igual para utilizador errado e password errada.
-      this.erro.set(
+      this.error.set(
         error instanceof ApiError
           ? error.message
           : 'Não foi possível entrar. Tente novamente.',
       );
     } finally {
-      this.aEntrar.set(false);
+      this.signingIn.set(false);
     }
   }
 
   /** Para onde a pessoa ia antes de a guarda a trazer para aqui. */
-  private destino(): string {
-    const regressar = new URLSearchParams(window.location.search).get('regressar');
-    // Só caminhos desta aplicação: um `regressar` com URL absoluto seria um
+  private destination(): string {
+    const returnUrl = new URLSearchParams(window.location.search).get('returnUrl');
+    // Só caminhos desta aplicação: um `returnUrl` com URL absoluto seria um
     // reencaminhamento aberto, e um convite a phishing a partir de um link nosso.
-    return regressar?.startsWith('/') && !regressar.startsWith('//') ? regressar : '/';
+    return returnUrl?.startsWith('/') && !returnUrl.startsWith('//') ? returnUrl : '/';
   }
 }

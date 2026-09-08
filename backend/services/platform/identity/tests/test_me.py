@@ -14,7 +14,7 @@ class TestComTokenValido:
         assert body["username"] == "m001926"
         assert body["departmentCode"] == "3230"
         assert body["function"] == "Director"
-        assert body["areas"] == ["canais"]
+        assert body["areas"] == ["channels"]
 
     def test_quem_nao_esta_no_mapa_entra_sem_areas(self, client):
         """Autenticar não é ser autorizado: entra, e a aplicação nega tudo."""
@@ -29,7 +29,7 @@ class TestComTokenValido:
         token = make_token(preferred_username="m007000", function="Técnico")
 
         response = client.get("/identity/me", headers={"Authorization": f"Bearer {token}"})
-        assert response.json()["areas"] == ["canais"]
+        assert response.json()["areas"] == ["channels"]
 
 
 class TestSemTokenValido:
