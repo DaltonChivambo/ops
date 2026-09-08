@@ -13,7 +13,7 @@ from typing import Any
 from fastapi import APIRouter, File, Query, Response, UploadFile
 from fastapi.responses import StreamingResponse
 
-from app.controllers.dependencies import ValidationServiceDep
+from app.controllers.dependencies import ValidationServiceDep, Writer
 from app.controllers.schemas import (
     ClosingDetailOut,
     DetailCountsOut,
@@ -36,6 +36,8 @@ REQUIRED_SLOTS = tuple(UploadSlot)
 @router.post("/execucoes", status_code=201)
 async def create_execution(
     service: ValidationServiceDep,
+    # Correr uma validação escreve — não é para quem só audita.
+    _writer: Writer,
     # Os `alias` são os nomes dos campos no formulário — contrato com o SPA.
     pos_list: UploadFile | None = File(default=None, alias="posList"),
     simo_closings: UploadFile | None = File(default=None, alias="simoClosings"),

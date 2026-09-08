@@ -59,6 +59,18 @@ services:
       # resolveria para string vazia, e uma string vazia num campo inteiro faz o
       # serviço rebentar no arranque em vez de usar o default do `settings.py`.
       MAX_UPLOAD_MB: ${MAX_UPLOAD_MB:-64}
+      # As mesmas variáveis, e o mesmo valor, que o `identity` recebe — dois
+      # serviços a mapear papéis de maneira diferente seria uma porta aberta no
+      # que ficasse para trás. Ver `app/settings.py` de cada um.
+      AUTH_ISSUER: ${AUTH_ISSUER}
+      AUTH_JWKS_URL: ${AUTH_JWKS_URL}
+      AUTH_ALLOWED_AZP: ${AUTH_ALLOWED_AZP}
+      AUTH_SUPERVISOR_USERS: ${AUTH_SUPERVISOR_USERS:-}
+      AUTH_AUDITOR_USERS: ${AUTH_AUDITOR_USERS:-}
+      AUTH_OPERATOR_USERS: ${AUTH_OPERATOR_USERS:-}
+      AUTH_OPERATOR_DEPARTMENTS: ${AUTH_OPERATOR_DEPARTMENTS:-2350}
+      AUTH_SUPERVISOR_FUNCTIONS: ${AUTH_SUPERVISOR_FUNCTIONS:-Director,Chefe}
+      AUTH_ROLE_CLAIM_PREFIX: ${AUTH_ROLE_CLAIM_PREFIX:-mozaops_}
     networks: [mozaops]
     depends_on:
       postgres:
@@ -75,6 +87,49 @@ services:
       - traefik.http.middlewares.api-strip.stripprefix.prefixes=/api
       - traefik.http.routers.closing-credit-validation.middlewares=api-strip
       - traefik.http.services.closing-credit-validation.loadbalancer.server.port=8000
+
+  # Sessões e papéis. É quem fala com o GEEA — nenhum outro serviço o faz — e
+  # quem diz ao SPA quem está do outro lado. Sem base de dados: a identidade
+  # vem do GEEA a cada login e os papéis saem destas variáveis.
+  identity:
+    build:
+      context: ./backend
+      args:
+        CATEGORY: platform
+        SERVICE: identity
+    image: mozaops-identity
+    container_name: mozaops-identity
+    restart: unless-stopped
+    environment:
+      LOG_LEVEL: ${LOG_LEVEL}
+      AUTH_ISSUER: ${AUTH_ISSUER}
+      AUTH_JWKS_URL: ${AUTH_JWKS_URL}
+      AUTH_ALLOWED_AZP: ${AUTH_ALLOWED_AZP}
+      AUTH_SUPERVISOR_USERS: ${AUTH_SUPERVISOR_USERS:-}
+      AUTH_AUDITOR_USERS: ${AUTH_AUDITOR_USERS:-}
+      AUTH_OPERATOR_USERS: ${AUTH_OPERATOR_USERS:-}
+      AUTH_OPERATOR_DEPARTMENTS: ${AUTH_OPERATOR_DEPARTMENTS:-2350}
+      AUTH_SUPERVISOR_FUNCTIONS: ${AUTH_SUPERVISOR_FUNCTIONS:-Director,Chefe}
+      AUTH_ROLE_CLAIM_PREFIX: ${AUTH_ROLE_CLAIM_PREFIX:-mozaops_}
+      GEEA_SSOLOGIN_URL: ${GEEA_SSOLOGIN_URL}
+      GEEA_TOKEN_URL: ${GEEA_TOKEN_URL}
+      GEEA_REALM: ${GEEA_REALM}
+      GEEA_CLIENT_ID: ${GEEA_CLIENT_ID}
+      GEEA_CLIENT_SECRET: ${GEEA_CLIENT_SECRET}
+      # `false` só enquanto o Traefik servir em claro. Ver a secção de
+      # segurança no README do serviço.
+      SESSION_COOKIE_SECURE: ${SESSION_COOKIE_SECURE:-true}
+      SESSION_COOKIE_PATH: ${SESSION_COOKIE_PATH:-/api/identity}
+      LOGIN_ATTEMPTS_PER_MINUTE: ${LOGIN_ATTEMPTS_PER_MINUTE:-10}
+    networks: [mozaops]
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.identity.rule=Host(`${DOMAIN}`) && PathPrefix(`/api/identity`)
+      - traefik.http.routers.identity.entrypoints=web
+      # O mesmo middleware do outro serviço: o `/api` é a fronteira da API e
+      # não parte do caminho que o serviço monta.
+      - traefik.http.routers.identity.middlewares=api-strip
+      - traefik.http.services.identity.loadbalancer.server.port=8000
 
   # ─── Base de dados ────────────────────────────────────────────────────────
   # Um servidor, uma base e um role por serviço, com as ligações cruzadas

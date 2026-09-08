@@ -19,8 +19,10 @@ from fastapi.testclient import TestClient
 
 from app.controllers.dependencies import get_case_service, get_validation_service
 from app.domain.errors import InvalidCaseStatusError, NotFoundError, NothingToUpdateError
+from app.infrastructure.auth import auth
 from app.infrastructure.tables import ClosingDetail, CreditMovement, Execution, PendingCase
 from app.main import app
+from mozaops_libs.auth import Principal
 
 EXECUTION_ID = "3f2b1c00-0000-4000-8000-000000000001"
 CASE_ID = "3f2b1c00-0000-4000-8000-000000000002"
@@ -208,15 +210,35 @@ def service() -> FakeService:
     return FakeService()
 
 
+SUPERVISOR = Principal(
+    subject="6961d9f6-5529-457b-93cb-db82230a00cb",
+    username="m001926",
+    name="Supervisor de teste",
+    email="supervisor.teste@mozabanco.co.mz",
+    roles=frozenset({"operator", "supervisor"}),
+    department_code="2350",
+    department="Departamento de Apoio Operacional",
+    function="Director",
+    employee_id="1926",
+)
+
+
 @pytest.fixture
 def client(service: FakeService) -> Any:
     """Cliente HTTP contra a app real, com os dois serviços substituídos.
 
     A substituição é feita na fronteira que o `dependencies.py` declara, e é aí
     que ela pára: nada abaixo — repositório, sessão, engine — chega a existir.
+
+    A autenticação é substituída **só na leitura do token** — quem está do
+    outro lado — e não nas guardas de papel: essas continuam a correr a sério,
+    contra este supervisor. Substituí-las apagaria a verificação que se quer
+    testada. Quem prova que as rotas estão fechadas é o `test_auth.py`, que não
+    substitui nada disto.
     """
     app.dependency_overrides[get_validation_service] = lambda: service
     app.dependency_overrides[get_case_service] = lambda: service
+    app.dependency_overrides[auth.principal] = lambda: SUPERVISOR
     with TestClient(app) as cliente:
         yield cliente
     app.dependency_overrides.clear()

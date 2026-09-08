@@ -1,3 +1,6 @@
 fastapi==0.115.6
 uvicorn[standard]==0.32.1
 PyJWT[crypto]==2.9.0
+# O endpoint de renovação recebe `application/x-www-form-urlencoded`, como
+# manda o OIDC — e o FastAPI só lê `Form(...)` com isto instalado.
+python-multipart==0.0.20

@@ -22,6 +22,7 @@ from app.domain.errors import (
     NothingToUpdateError,
     UploadTooLargeError,
 )
+from mozaops_libs.auth import register_error_handlers
 
 logger = logging.getLogger("closing_credit_validation")
 
@@ -43,6 +44,10 @@ def _envelope(status: int, code: str, message: str) -> JSONResponse:
 
 
 def register(app: FastAPI) -> None:
+    # Os 401/403 da autenticação saem no mesmo envelope, e vêm da lib porque a
+    # forma tem de ser a mesma em todos os serviços — é o que o SPA lê.
+    register_error_handlers(app)
+
     @app.exception_handler(DomainError)
     async def handle_domain_error(_request: Request, error: Exception) -> JSONResponse:
         for tipo, status, code in STATUS_BY_ERROR:

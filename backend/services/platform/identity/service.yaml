@@ -1,0 +1,33 @@
+# Contrato do serviço, legível por máquina. Alimenta o OWNERS.md.
+#
+# `platform` é a primeira categoria que não é um processo de negócio: não há um
+# departamento que peça «sessões», mas há uma capacidade que todos os serviços
+# precisam. A pasta continua a dizer a categoria, como manda a regra — só que
+# desta vez a categoria é uma capacidade. Não é precedente para uma pasta
+# `utils/`: o critério é o mesmo de sempre, ter um contexto próprio com dono.
+name: identity
+category: platform
+context: Sessões e papéis — autenticação contra o GEEA
+
+port: 8000
+dev_port: 8002
+
+departments: [Meios de Pagamentos e Canais]
+routes: [/api/identity]
+
+# ─── Quem responde por isto ──────────────────────────────────────────────────
+owner: Dalton Chivambo
+developed_by: [Dalton Chivambo]
+requirements_by: [Dalton Chivambo]
+
+# ─── Infraestrutura ──────────────────────────────────────────────────────────
+# **Sem base de dados e sem role** — o primeiro serviço assim. Não guarda nada:
+# a identidade vem do GEEA a cada login, e os papéis saem de configuração. Uma
+# base vazia só para cumprir a tabela do README seria uma base para migrar,
+# fazer backup e explicar a quem chegasse.
+#
+# O dia em que o mapa de papéis passar a ser editado pelo próprio DOP, em vez
+# de por variável de ambiente, é o dia em que este serviço ganha base de dados.
+database: null
+role: null
+env_prefix: AUTH

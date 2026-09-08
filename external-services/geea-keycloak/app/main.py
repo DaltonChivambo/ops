@@ -16,7 +16,7 @@ from pathlib import Path
 
 import jwt
 from cryptography.hazmat.primitives.asymmetric import rsa
-from fastapi import FastAPI, Header, HTTPException
+from fastapi import FastAPI, Form, Header, HTTPException
 
 DATA_FILE = Path(__file__).resolve().parent.parent / "data" / "departamentos.json"
 
@@ -226,6 +226,66 @@ def sso_login(
             "errorDescription": None,
         },
         "clientIpAdress": clientIpAdress,
+    }
+
+
+@app.post("/auth/realms/{realm}/protocol/openid-connect/token")
+def token(
+    realm: str,
+    grant_type: str = Form(),
+    refresh_token: str = Form(),
+    client_id: str = Form(),
+    client_secret: str = Form(default=""),
+) -> dict:
+    """A rota normal do OIDC, para renovar.
+
+    O `SSOLogin` devolve um `refreshToken` mas não tem por onde o trocar — quem
+    o aceita é o realm, aqui. Como o serviço `identity` do MozaOps renova por
+    esta rota, sem ela o mock não conseguia exercitar metade do ciclo de vida
+    de uma sessão.
+
+    Responde em snake_case, como um Keycloak — e não no camelCase do wrapper.
+    """
+    if realm != GEEA_REALM or grant_type != "refresh_token" or client_id != GEEA_CLIENT_ID:
+        raise HTTPException(status_code=400, detail="invalid_request")
+    if client_secret != GEEA_CLIENT_SECRET:
+        raise HTTPException(status_code=401, detail="invalid_client")
+
+    try:
+        claims = jwt.decode(
+            refresh_token, _public_key, algorithms=["RS256"], options={"verify_aud": False}
+        )
+    except jwt.PyJWTError as exc:
+        raise HTTPException(status_code=400, detail="invalid_grant") from exc
+
+    if claims.get("typ") != "Refresh":
+        raise HTTPException(status_code=400, detail="invalid_grant")
+
+    iat = int(time.time())
+    exp = iat + TOKEN_TTL_SECONDS
+    session_state = str(claims.get("session_state") or uuid.uuid4())
+    username = str(claims.get("preferred_username") or GEEA_USERNAME)
+
+    headers = {"kid": KID}
+    access_claims = _access_claims(
+        realm, client_id, username, str(uuid.uuid4()), session_state, iat, exp
+    )
+    refresh_claims = _refresh_claims(
+        realm, client_id, str(uuid.uuid4()), session_state, iat, exp
+    )
+
+    return {
+        "access_token": jwt.encode(
+            access_claims, _private_key, algorithm="RS256", headers=headers
+        ),
+        "refresh_token": jwt.encode(
+            refresh_claims, _private_key, algorithm="RS256", headers=headers
+        ),
+        "expires_in": TOKEN_TTL_SECONDS,
+        "refresh_expires_in": TOKEN_TTL_SECONDS,
+        "token_type": "Bearer",
+        "session_state": session_state,
+        "scope": MOCK_SCOPE,
     }
 
 

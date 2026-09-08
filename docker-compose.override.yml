@@ -14,6 +14,10 @@ services:
     ports:
       - "127.0.0.1:8001:8000"
 
+  identity:
+    ports:
+      - "127.0.0.1:8002:8000"
+
   postgres:
     ports:
       # 15432 e não 5432: esta máquina já tem um PostgreSQL do sistema na porta

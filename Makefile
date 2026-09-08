@@ -5,9 +5,11 @@ COMPOSE := docker compose
 
 # O `lint` e o `test` partilham a imagem: é o estágio que traz o pytest, o ruff e
 # o mypy, que a imagem de execução não leva. Construir uma vez serve os dois.
-SERVICE := closing-credit-validation
-CATEGORY := reconciliation
-TEST_IMAGE := mozaops-$(SERVICE):test
+#
+# `SERVICES` é a lista `categoria/serviço`. Estava aqui um serviço fixo, e com o
+# segundo isso deixava metade do backend por testar sem o dizer. Para correr só
+# um: `make test SERVICES=platform/identity`.
+SERVICES := reconciliation/closing-credit-validation platform/identity
 
 .PHONY: help up down restart logs status verify-m0 psql clean migrate test lint test-image
 
@@ -23,21 +25,46 @@ migrate:  ## Aplica as migrações Alembic de cada serviço
 	$(COMPOSE) run --rm closing-credit-validation alembic upgrade head
 
 test-image:
-	docker build --target test \
-		--build-arg CATEGORY=$(CATEGORY) --build-arg SERVICE=$(SERVICE) \
-		-t $(TEST_IMAGE) ./backend
+	@for path in $(SERVICES); do \
+		category=$${path%%/*}; service=$${path##*/}; \
+		docker build --target test \
+			--build-arg CATEGORY=$$category --build-arg SERVICE=$$service \
+			-t mozaops-$$service:test ./backend || exit 1; \
+	done
 
 test: test-image  ## Testes do backend (estágio `test` da imagem — a de execução não traz pytest)
-	docker run --rm $(TEST_IMAGE)
+	@for path in $(SERVICES); do \
+		service=$${path##*/}; \
+		echo "── $$service ─────────────────────────────────────────────"; \
+		docker run --rm mozaops-$$service:test || exit 1; \
+	done
+	@# A lib partilhada tem testes próprios e nenhum serviço os corre: os
+	@# `pytest` de cada serviço param na pasta dele. Correm-se na imagem de um
+	@# deles, que já traz o workspace instalado.
+	@#
+	@# O `cd` vai dentro do `sh` e não num `-w`, pela mesma razão que no `lint`:
+	@# o Git Bash do Windows traduz o caminho do `-w` e o container recebe algo
+	@# como `C:/Program Files/Git/app/libs`.
+	@echo "── mozaops-libs ──────────────────────────────────────────"
+	@docker run --rm mozaops-identity:test sh -c "cd /app/libs && pytest -q"
 
 lint: test-image  ## ruff (regras e formato) e mypy --strict, sobre o backend todo
-	# O `cd /app` vai dentro do `sh` e não num `-w`: é em /app que está o
-	# `pyproject.toml` com a configuração das duas ferramentas — e passá-lo em
-	# `-w` faz o Git Bash do Windows traduzi-lo para um caminho que não existe.
-	docker run --rm $(TEST_IMAGE) sh -c "cd /app && \
-		ruff check . && \
-		ruff format --check . && \
-		mypy services/$(CATEGORY)/$(SERVICE)/app"
+	@# Uma passagem por serviço, e não uma só: a imagem de cada um traz o seu
+	@# código e a `libs/`, mas não o código dos outros — é o preço de o
+	@# contexto de build ser estreito, e correr só numa deixava metade por
+	@# olhar sem o dizer.
+	@#
+	@# O `cd /app` vai dentro do `sh` e não num `-w`: é em /app que está o
+	@# `pyproject.toml` com a configuração das duas ferramentas — e passá-lo em
+	@# `-w` faz o Git Bash do Windows traduzi-lo para um caminho que não existe.
+	@for path in $(SERVICES); do \
+		category=$${path%%/*}; service=$${path##*/}; \
+		echo "── $$service ─────────────────────────────────────────────"; \
+		docker run --rm mozaops-$$service:test sh -c "cd /app && \
+			ruff check . && \
+			ruff format --check . && \
+			mypy libs/src/mozaops_libs services/$$category/$$service/app" || exit 1; \
+	done
 
 down:  ## Pára tudo, mantendo os dados
 	$(COMPOSE) down

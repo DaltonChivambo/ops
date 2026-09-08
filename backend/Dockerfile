@@ -1,4 +1,4 @@
-# syntax=docker/dockerfile:1
+# syntax=docker/dockerfile:1.7-labs
 
 # A imagem de qualquer um dos serviços FastAPI.
 #
@@ -53,9 +53,18 @@ WORKDIR /app
 #
 # `--no-install-workspace` instala as dependências mas não os pacotes do próprio
 # workspace, que é o que permite esta separação em dois passos.
+#
+# Os manifestos são os de TODOS os serviços, e não só o que se está a
+# construir: o `uv.lock` descreve o workspace inteiro, e com um membro
+# ausente o uv conclui que o workspace mudou e recusa o `--locked`. São
+# ficheiros pequenos e mudam raramente, por isso a camada continua a vir da
+# cache quase sempre.
+#
+# O `--parents` preserva o caminho de cada um — sem ele, um `COPY` com
+# padrão achata tudo para o mesmo destino e os manifestos sobrepõem-se.
 COPY pyproject.toml uv.lock ./
 COPY libs/ libs/
-COPY services/${CATEGORY}/${SERVICE}/pyproject.toml services/${CATEGORY}/${SERVICE}/
+COPY --parents services/*/*/pyproject.toml ./
 RUN uv sync --locked --no-dev --no-install-workspace --package mozaops-${SERVICE}
 
 # Agora o código, e o segundo sync só instala os pacotes do workspace.

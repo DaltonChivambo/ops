@@ -7,6 +7,12 @@
     "`/api` é a fronteira da API, não parte do caminho do serviço.",
     "Serviços novos entram aqui quando existirem — o `cases` ainda não existe."
   ],
+  "/api/identity": {
+    "target": "http://localhost:8002",
+    "pathRewrite": { "^/api": "" },
+    "changeOrigin": true,
+    "secure": false
+  },
   "/api/pos/validacao-credito-fecho": {
     "target": "http://localhost:8001",
     "pathRewrite": { "^/api": "" },
