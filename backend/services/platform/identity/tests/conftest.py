@@ -72,6 +72,10 @@ class FakeGeea:
         self.refreshes: list[str] = []
         self.valid = {"m001926": "senha-certa"}
         self.raises: Exception | None = None
+        #: Claims a sobrepor ao token por omissão — para simular alguém que o
+        #: GEEA autentica bem, mas cuja unidade não corresponde a área nenhuma.
+        self.claims_by_user: dict[str, dict[str, Any]] = {}
+        self.refresh_claims: dict[str, Any] | None = None
 
     async def login(self, username: str, password: str, client_ip: str) -> dict[str, Any]:
         self.logins.append((username, password, client_ip))
@@ -81,7 +85,8 @@ class FakeGeea:
             from app.domain.errors import InvalidCredentialsError
 
             raise InvalidCredentialsError
-        return self._output(make_token(preferred_username=username))
+        overrides = self.claims_by_user.get(username, {})
+        return self._output(make_token(preferred_username=username, **overrides))
 
     async def refresh(self, refresh_token: str) -> dict[str, Any]:
         self.refreshes.append(refresh_token)
@@ -91,7 +96,7 @@ class FakeGeea:
             from app.domain.errors import InvalidCredentialsError
 
             raise InvalidCredentialsError
-        return self._output(make_token())
+        return self._output(make_token(**(self.refresh_claims or {})))
 
     def _output(self, access_token: str) -> dict[str, Any]:
         return {

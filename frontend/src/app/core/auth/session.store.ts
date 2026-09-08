@@ -1,4 +1,5 @@
 import { computed, inject, Injectable, signal } from '@angular/core';
+import { Router } from '@angular/router';
 
 import { environment } from '../../../environments/environment';
 import { DEV_PRINCIPAL } from './dev-session';
@@ -35,6 +36,7 @@ export interface Principal {
 export class SessionStore {
   private readonly api = inject(IdentityApi);
   private readonly tokens = inject(TokenStore);
+  private readonly router = inject(Router);
 
   private readonly principalSignal = signal<Principal | null>(null);
 
@@ -45,9 +47,6 @@ export class SessionStore {
   readonly principal = this.principalSignal.asReadonly();
   readonly isAuthenticated = computed(() => this.principalSignal() !== null);
   readonly areas = computed<readonly string[]>(() => this.principalSignal()?.areas ?? []);
-
-  /** Entrou, mas não é de área nenhuma: vê o Dashboard e mais nada. */
-  readonly hasNoArea = computed(() => this.isAuthenticated() && this.areas().length === 0);
 
   /** Iniciais para o avatar: «Ana Sousa» → «AS». */
   readonly initials = computed(() => {
@@ -129,6 +128,9 @@ export class SessionStore {
       // Mesmo que o pedido falhe, deste lado a sessão acabou: deixar o token
       // ficar seria manter aberta uma porta que o operador julga fechada.
       this.clear();
+      // Sem isto, quem sai ficava na mesma página, a ver os dados a
+      // desaparecer aos poucos conforme cada pedido levasse 401.
+      await this.router.navigateByUrl('/entrar');
     }
   }
 

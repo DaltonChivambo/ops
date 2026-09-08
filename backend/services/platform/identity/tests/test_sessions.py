@@ -83,6 +83,54 @@ class TestLogin:
         assert inexistente.status_code == errada.status_code
 
 
+class TestSemArea:
+    """Autenticar não é ser autorizado: sem área nenhuma, nem sessão há."""
+
+    def test_login_de_quem_nao_tem_area_da_credenciais_invalidas(self, client, geea):
+        geea.valid["m009999"] = "senha-certa"
+        geea.claims_by_user["m009999"] = {
+            "departmentCode": "1600",
+            "department": "Direcção qualquer",
+            "function": "Técnico",
+        }
+
+        response = client.post(
+            "/identity/sessions", json={"username": "m009999", "password": "senha-certa"}
+        )
+
+        # A mesma mensagem e o mesmo código de sempre — distinguir «autenticou
+        # mas não tem acesso» de «não autenticou» confirmaria, a quem tenta
+        # adivinhar contas, que esta existe.
+        assert response.status_code == 401
+        assert response.json() == {
+            "error": {
+                "code": "invalid_credentials",
+                "message": "Credenciais inválidas. Verifique o utilizador e a password.",
+            }
+        }
+
+    def test_login_de_quem_nao_tem_area_nao_deixa_cookie(self, client, geea):
+        geea.valid["m009999"] = "senha-certa"
+        geea.claims_by_user["m009999"] = {"departmentCode": "1600"}
+
+        response = client.post(
+            "/identity/sessions", json={"username": "m009999", "password": "senha-certa"}
+        )
+
+        assert "set-cookie" not in response.headers
+
+    def test_renovar_para_quem_perdeu_a_area_tambem_falha(self, client, geea):
+        """A unidade pode deixar de mapear a área entre o login e a renovação —
+        o cookie continua válido, e o `/refresh` é onde isso se apanha."""
+        client.post("/identity/sessions", json={"username": "m001926", "password": "senha-certa"})
+
+        geea.refresh_claims = {"departmentCode": "1600"}
+        response = client.post("/identity/sessions/refresh")
+
+        assert response.status_code == 401
+        assert response.json()["error"]["code"] == "invalid_credentials"
+
+
 class TestPasswordNaoEscapa:
     def test_nao_aparece_na_resposta_de_erro_de_validacao(self, client):
         """O 422 do FastAPI devolveria o corpo do pedido — com a password."""

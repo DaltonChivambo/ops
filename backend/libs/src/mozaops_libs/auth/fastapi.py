@@ -45,7 +45,12 @@ def principal_from_claims(claims: dict[str, Any], mapping: AreaMapping) -> Princ
     return Principal(
         subject=str(claims.get("sub") or ""),
         username=str(claims.get("preferred_username") or ""),
-        name=str(claims.get("name") or claims.get("preferred_username") or ""),
+        # `given_name` e não `name`: o GEEA duplica o apelido no `name`
+        # («Dalton Chivambo Chivambo», quando o apelido já é «Chivambo») — é
+        # como o directório guarda o registo, não como se mostra a alguém.
+        name=str(
+            claims.get("given_name") or claims.get("name") or claims.get("preferred_username") or ""
+        ),
         email=str(claims.get("email") or ""),
         areas=map_areas(claims, mapping),
         department_code=str(claims.get("departmentCode") or ""),

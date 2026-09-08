@@ -1,4 +1,5 @@
 import { TestBed } from '@angular/core/testing';
+import { provideRouter } from '@angular/router';
 
 import { IdentityApi, type PrincipalDto, type SessionDto } from './identity-api.service';
 import { SessionStore } from './session.store';
@@ -52,7 +53,7 @@ describe('SessionStore', () => {
   beforeEach(() => {
     api = new FakeIdentityApi();
     TestBed.configureTestingModule({
-      providers: [{ provide: IdentityApi, useValue: api }],
+      providers: [provideRouter([{ path: 'entrar', children: [] }]), { provide: IdentityApi, useValue: api }],
     });
     store = TestBed.inject(SessionStore);
     tokens = TestBed.inject(TokenStore);
@@ -112,12 +113,10 @@ describe('SessionStore', () => {
       expect(store.areas()).toEqual(['canais', 'ainda-nao-existe']);
     });
 
-    it('sem áreas, entra e não abre nada', async () => {
+    it('sem áreas, não abre nenhuma — defesa, já que o backend nunca chega a devolver isto', async () => {
       api.loginResult = sessao({ areas: [] });
       await store.signIn('m009999', 'senha');
 
-      expect(store.isAuthenticated()).toBe(true);
-      expect(store.hasNoArea()).toBe(true);
       expect(store.hasArea('canais')).toBe(false);
     });
   });

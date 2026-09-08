@@ -80,8 +80,19 @@ class SessionService:
         except AuthError as exc:
             raise InvalidCredentialsError from exc
 
+        principal = build_principal(claims, self._mapping)
+
+        # Sem área nenhuma, esta conta não abre nada no MozaOps — nem o
+        # Dashboard. Não se emite sessão para ela: a mesma mensagem de
+        # credenciais inválidas, e nada mais. Distinguir «autenticou mas não
+        # tem acesso» de «não autenticou» confirmaria, a quem tenta adivinhar
+        # contas, que esta existe — e um token que nada abre não vale a pena
+        # emitir de qualquer forma, porque toda a automação o recusaria.
+        if not principal.areas:
+            raise InvalidCredentialsError
+
         return Session(
-            principal=build_principal(claims, self._mapping),
+            principal=principal,
             access_token=access_token,
             refresh_token=str(output.get("refreshToken") or ""),
             expires_in=_as_int(output.get("expiresIn")),
