@@ -20,6 +20,11 @@ docker compose up -d --build
 
 Fica disponível em `http://localhost:8100`.
 
+O container junta-se à rede `mozaops`, criada pelo `docker-compose.yml`
+principal — é assim que o backend lhe chega em `http://geea-keycloak:8000`
+para ir buscar o JWKS. Por isso, **sobe-se depois do `make up`**; sem a rede
+criada, o compose recusa arrancar.
+
 Sem Docker, basta:
 
 ```bash
@@ -62,11 +67,11 @@ decodificadas, `output` com os JWT já assinados a usar como Bearer):
 }
 ```
 
-Os JWT em `output.accessToken`/`output.refreshToken` são assinados com
-`GEEA_KEYCLOAK_JWT_SECRET` (HS256) — é um segredo só deste mock, não
-precisa de bater certo com nenhuma chave real. As claims do utilizador
-(`name`, `email`, `department`, etc.) vêm de variáveis `GEEA_MOCK_*`, com
-valores por omissão em `.env.example`.
+Os JWT em `output.accessToken`/`output.refreshToken` são assinados em
+**RS256**, como o GEEA real, com um par RSA gerado ao arranque. Quem valida
+vai buscar a chave pública ao JWKS — não há segredo partilhado. As claims do
+utilizador (`name`, `email`, `department`, etc.) vêm de variáveis
+`GEEA_MOCK_*`, com valores por omissão em `.env.example`.
 
 ### `GET /departamentos`
 
@@ -74,6 +79,16 @@ Requer `Authorization: Bearer <output.accessToken>` de um login válido
 (o JWT assinado, não o objeto `accessToken` das claims). Devolve a lista
 completa de unidades organizacionais (o conteúdo de
 `data/departamentos.json`), sem alterações.
+
+### `GET /auth/realms/{realm}/protocol/openid-connect/certs`
+
+O JWKS — as chaves públicas, no mesmo caminho em que um Keycloak as publica.
+É por aqui que o backend do MozaOps valida assinaturas.
+
+### `GET /auth/realms/{realm}/.well-known/openid-configuration`
+
+Documento de descoberta, reduzido ao que interessa a quem valida
+(`issuer`, `jwks_uri`, algoritmos).
 
 ### `GET /health`
 
@@ -99,9 +114,11 @@ Token.
 
 ## Notas
 
-- Tokens são JWT stateless (assinados com `GEEA_KEYCLOAK_JWT_SECRET`) —
-  não há sessão em memória, sobrevivem a reinícios do serviço enquanto o
-  segredo não mudar.
+- Tokens são JWT stateless, sem sessão em memória. **O par de chaves é
+  gerado a cada arranque**, por isso reiniciar o mock invalida os tokens
+  emitidos antes — e é de propósito: obriga quem valida a refrescar o JWKS
+  quando aparece um `kid` que não conhece, em vez de assumir que a chave que
+  leu uma vez serve para sempre.
 - Os dados de `/departamentos` vêm de `data/departamentos.json`; para
   atualizar a lista basta editar esse ficheiro.
 - O perfil de utilizador nas claims (`name`, `email`, `department`,

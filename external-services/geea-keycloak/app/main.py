@@ -15,6 +15,7 @@ import uuid
 from pathlib import Path
 
 import jwt
+from cryptography.hazmat.primitives.asymmetric import rsa
 from fastapi import FastAPI, Header, HTTPException
 
 DATA_FILE = Path(__file__).resolve().parent.parent / "data" / "departamentos.json"
@@ -26,11 +27,13 @@ GEEA_PASSWORD = os.environ.get("GEEA_KEYCLOAK_PASSWORD", "mude-me-em-producao")
 GEEA_CLIENT_ID = os.environ.get("GEEA_KEYCLOAK_CLIENT_ID", "qa-workflow-ui")
 GEEA_CLIENT_SECRET = os.environ.get("GEEA_KEYCLOAK_CLIENT_SECRET", "mude-me-em-producao")
 
-# Assina os JWT de mock. Não precisa de bater certo com a chave real — só
-# quem faz login neste mock é que vai validar tokens deste mock.
-JWT_SECRET = os.environ.get("GEEA_KEYCLOAK_JWT_SECRET", "mude-me-em-producao")
 TOKEN_TTL_SECONDS = int(os.environ.get("GEEA_KEYCLOAK_TOKEN_TTL", "18000"))
-ISS_HOST = os.environ.get("GEEA_KEYCLOAK_ISS_HOST", "svdcpapq70:10080")
+# O `iss` dos tokens e o `jwks_uri` do documento de descoberta. Por omissão é
+# o endereço do próprio mock dentro da rede `mozaops`, e não o do GEEA real
+# (`svdcpapq70:10080`): em desenvolvimento quem emite é este container, e quem
+# valida tem de conseguir lá chegar. Trocar esta variável muda os dois sítios
+# ao mesmo tempo, que é o que os mantém coerentes.
+ISS_HOST = os.environ.get("GEEA_KEYCLOAK_ISS_HOST", "geea-keycloak:8000")
 ALLOWED_ORIGIN = os.environ.get("GEEA_KEYCLOAK_ALLOWED_ORIGIN", "http://svdcpapq51:8085")
 
 # ─── Perfil do utilizador de mock — devolvido nas claims do token ────────
@@ -65,6 +68,30 @@ MOCK_ACCOUNT_ROLES = ["manage-account", "manage-account-links", "view-profile"]
 app = FastAPI(title="GEEA_KEYCLOAK")
 
 DEPARTAMENTOS = json.loads(DATA_FILE.read_text(encoding="utf-8"))
+
+# ─── Chaves de assinatura ────────────────────────────────────────────────
+# RS256 com par gerado ao arranque, e não HS256 com segredo partilhado: é
+# assim que o GEEA real assina, e quem consome valida sempre pelo JWKS. Sem
+# isto, o backend precisaria de um ramo «em dev é de outra maneira» — que é
+# exactamente o que o proxy do frontend e o Traefik evitam ao manterem a
+# mesma topologia dos dois lados.
+#
+# O par muda a cada reinício, e é de propósito: obriga quem valida a
+# refrescar o JWKS quando aparece um `kid` desconhecido, em vez de assumir
+# que a chave que leu uma vez serve para sempre.
+_private_key = rsa.generate_private_key(public_exponent=65537, key_size=2048)
+_public_key = _private_key.public_key()
+KID = uuid.uuid4().hex
+
+_JWK = {
+    **json.loads(jwt.algorithms.RSAAlgorithm.to_jwk(_public_key)),
+    "kid": KID,
+    "use": "sig",
+    "alg": "RS256",
+}
+# O `to_jwk` do PyJWT acrescenta `key_ops`, que um Keycloak não publica — e o
+# RFC 7517 pede que `use` e `key_ops` não apareçam juntos sem necessidade.
+_JWK.pop("key_ops", None)
 
 
 def _issuer(realm: str) -> str:
@@ -178,8 +205,9 @@ def sso_login(
         realm, clientId, str(uuid.uuid4()), session_state, iat, exp
     )
 
-    access_jwt = jwt.encode(access_claims, JWT_SECRET, algorithm="HS256")
-    refresh_jwt = jwt.encode(refresh_claims, JWT_SECRET, algorithm="HS256")
+    headers = {"kid": KID}
+    access_jwt = jwt.encode(access_claims, _private_key, algorithm="RS256", headers=headers)
+    refresh_jwt = jwt.encode(refresh_claims, _private_key, algorithm="RS256", headers=headers)
 
     return {
         "createdOn": None,
@@ -207,7 +235,9 @@ def _require_token(authorization: str | None) -> None:
 
     token = authorization.removeprefix("Bearer ")
     try:
-        jwt.decode(token, JWT_SECRET, algorithms=["HS256"], options={"verify_aud": False})
+        # `verify_aud` desligado: o token traz `aud: "account"`, e o PyJWT
+        # recusa um token com `aud` a quem não lhe passe a audiência esperada.
+        jwt.decode(token, _public_key, algorithms=["RS256"], options={"verify_aud": False})
     except jwt.PyJWTError as exc:
         raise HTTPException(status_code=401, detail="Token inválido ou expirado") from exc
 
@@ -216,6 +246,27 @@ def _require_token(authorization: str | None) -> None:
 def get_departamentos(authorization: str | None = Header(default=None)) -> list[dict]:
     _require_token(authorization)
     return DEPARTAMENTOS
+
+
+@app.get("/auth/realms/{realm}/protocol/openid-connect/certs")
+def jwks(realm: str) -> dict:
+    """As chaves públicas, no caminho em que um Keycloak as publica.
+
+    É por aqui que o backend do MozaOps valida assinaturas — nunca por um
+    segredo partilhado.
+    """
+    return {"keys": [_JWK]}
+
+
+@app.get("/auth/realms/{realm}/.well-known/openid-configuration")
+def discovery(realm: str) -> dict:
+    """O documento de descoberta, reduzido ao que interessa a quem valida."""
+    issuer = _issuer(realm)
+    return {
+        "issuer": issuer,
+        "jwks_uri": f"{issuer}/protocol/openid-connect/certs",
+        "id_token_signing_alg_values_supported": ["RS256"],
+    }
 
 
 @app.get("/health")

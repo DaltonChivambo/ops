@@ -13,4 +13,17 @@ services:
       - path: .env
         required: false
     ports:
+      # Publicada para o `curl` e o Postman a partir do host. Os serviços do
+      # MozaOps não usam esta porta: falam com o container pelo nome, dentro
+      # da rede partilhada.
       - "8100:8000"
+    networks: [mozaops]
+
+networks:
+  # A rede do docker-compose.yml principal, e não uma nossa: o backend
+  # precisa de alcançar este mock em `http://geea-keycloak:8000` para ir
+  # buscar o JWKS. `external` porque quem a cria é o compose do MozaOps —
+  # subir isto sem ele em cima falha, e falha a dizer porquê.
+  mozaops:
+    external: true
+    name: mozaops
