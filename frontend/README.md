@@ -95,29 +95,43 @@ lá: `/api` é a fronteira da API, não parte do caminho do serviço.
 | `/` e `/pos` | encaminham para a automação — um canal com automação pronta abre-a directamente |
 | `/pos/closing-credit-validation` | Validação de Crédito de Valores de Fecho de POS |
 | `/atm`, `/kiosks`, `/dashboard` | aviso de «ainda não disponível»: existem na navegação, sem automação construída |
+| `/entrar` | login com as credenciais do banco — fora da casca, que pressupõe sessão |
 | `/sem-permissao` | o que um utilizador sem o papel necessário apanha |
 
-## Autenticação, em desenvolvimento
+## Autenticação
 
-`src/environments/environment.ts` traz `authDisabled: true`. Com isso o Keycloak
-é saltado e a aplicação injecta a sessão falsa de
-`src/app/core/auth/dev-session.ts` — um utilizador com os papéis `operator` e
-`supervisor`.
+As credenciais são as do banco — as mesmas do Windows. Quem autentica é o GEEA;
+o SPA fala só com o serviço `identity`, que lhe devolve um token de acesso e
+põe o de renovação num cookie `HttpOnly`.
 
-Isto existe para desenhar ecrãs sem ter o SSO de pé, e só para isso: **não há
-token**, logo os pedidos a `/api/**` saem sem `Authorization` e um backend a
-sério recusa-os. Para exercitar o fluxo real, pôr `authDisabled: false` e ter o
-Keycloak a correr (`make up` na raiz, em http://sso.mozaops.localhost, com os
-utilizadores de teste `operator.test` / `supervisor.test` / `auditor.test`).
+| Onde | O que faz |
+|---|---|
+| `core/auth/token.store.ts` | o token de acesso, **só em memória** — nunca `localStorage`, onde um XSS valeria uma sessão inteira |
+| `core/auth/session.store.ts` | quem está do outro lado, em signals; renova o token uma vez por 401, partilhando a renovação |
+| `core/auth/auth.interceptor.ts` | anexa o `Bearer` só a `/api/**`, e repete o pedido depois de renovar |
+| `core/auth/role.guard.ts` | sem sessão manda entrar; com sessão e sem o papel manda a `/sem-permissao` |
 
-Para ver a interface como outro papel, trocar os `roles` em `dev-session.ts` —
-por exemplo `['auditor']`.
+Os papéis vêm do backend (`GET /api/identity/me`), e não do token: mudar quem é
+o quê é mudar configuração do backend, não publicar um SPA novo.
+
+### Sem nada de pé
+
+`src/environments/environment.ts` traz `authDisabled: false`, porque o fluxo
+real já funciona localmente — o `npm start` pressupõe o `make up` e o mock do
+GEEA em cima (ver o README da raiz).
+
+Pôr `authDisabled: true` salta o login e injecta a sessão falsa de
+`src/app/core/auth/dev-session.ts`. Existe para desenhar ecrãs sem ter nada de
+pé, e só para isso: **não há token**, logo os pedidos a `/api/**` saem sem
+`Authorization` e o backend recusa-os. Para ver a interface como outro papel,
+trocar os `roles` em `dev-session.ts` — por exemplo `['auditor']`.
 
 ## Como está organizado
 
 ```
 src/app/
 ├── core/          navegação, sessão, guardas de rota
+│   └── auth/      token, sessão, interceptor e guarda de papel
 ├── layout/        a casca: barra lateral, painel do canal, menu do utilizador
 ├── shared/ui/     as peças que as automações reutilizam
 └── features/<departamento>/<ilha>/<automação>/

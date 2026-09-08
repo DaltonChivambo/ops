@@ -146,8 +146,6 @@ services:
       DB_RECONCILIATION_PASSWORD: ${DB_RECONCILIATION_PASSWORD}
       DB_CASES_USER: ${DB_CASES_USER}
       DB_CASES_PASSWORD: ${DB_CASES_PASSWORD}
-      DB_KEYCLOAK_USER: ${DB_KEYCLOAK_USER}
-      DB_KEYCLOAK_PASSWORD: ${DB_KEYCLOAK_PASSWORD}
     volumes:
       # A partir do PostgreSQL 18 o mount é em /var/lib/postgresql e não em
       # .../data: a imagem passou a guardar os dados numa subpasta por versão
@@ -162,47 +160,6 @@ services:
       interval: 5s
       timeout: 5s
       retries: 20
-
-  # ─── Identidade ───────────────────────────────────────────────────────────
-  keycloak:
-    image: quay.io/keycloak/keycloak:26.5
-    container_name: mozaops-keycloak
-    restart: unless-stopped
-    command: ["start-dev", "--import-realm"]
-    environment:
-      KC_BOOTSTRAP_ADMIN_USERNAME: ${KEYCLOAK_ADMIN}
-      KC_BOOTSTRAP_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD}
-      KC_DB: postgres
-      KC_DB_URL: jdbc:postgresql://postgres:5432/keycloak
-      KC_DB_USERNAME: ${DB_KEYCLOAK_USER}
-      KC_DB_PASSWORD: ${DB_KEYCLOAK_PASSWORD}
-      # Atrás do Traefik: o Keycloak tem de confiar nos cabeçalhos X-Forwarded-*
-      # para emitir um `issuer` com o endereço público, e não com o do container.
-      KC_HTTP_ENABLED: "true"
-      KC_PROXY_HEADERS: xforwarded
-      KC_HOSTNAME: http://${SSO_DOMAIN}
-      KC_HOSTNAME_STRICT: "false"
-      KC_HEALTH_ENABLED: "true"
-    volumes:
-      # O ficheiro, e não a pasta: o Keycloak importa TUDO o que estiver no
-      # directório de import, e um README ao lado seria lido como se fosse realm.
-      - ./infra/keycloak/realm-mozaops.json:/opt/keycloak/data/import/realm-mozaops.json:ro
-    networks: [mozaops]
-    depends_on:
-      postgres:
-        condition: service_healthy
-    labels:
-      - traefik.enable=true
-      - traefik.http.routers.keycloak.rule=Host(`${SSO_DOMAIN}`)
-      - traefik.http.routers.keycloak.entrypoints=web
-      - traefik.http.services.keycloak.loadbalancer.server.port=8080
-    healthcheck:
-      # A imagem não traz curl nem wget; o Keycloak 26 expõe /health no 9000.
-      test: ["CMD-SHELL", "exec 3<>/dev/tcp/127.0.0.1/9000 && echo -e 'GET /health/ready HTTP/1.1\\r\\nHost: localhost\\r\\nConnection: close\\r\\n\\r\\n' >&3 && grep -q 'UP' <&3"]
-      interval: 10s
-      timeout: 5s
-      retries: 30
-      start_period: 40s
 
   # ─── Observabilidade ──────────────────────────────────────────────────────
   # Os serviços exportam para aqui e nunca directamente para o Jaeger: trocar o

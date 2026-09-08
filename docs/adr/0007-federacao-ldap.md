@@ -3,7 +3,7 @@
 > Veio do repositório de origem do MozaOps, onde estava numerado 0006. Renumerado ao entrar
 > neste monorepo, onde o 0006 já estava tomado.
 
-**Estado:** aceite, por aplicar (bloqueado por dados que não temos)
+**Estado:** substituído por [0009](0009-autenticacao-contra-o-geea.md)
 **Data:** 2026-08-02
 
 ## Contexto

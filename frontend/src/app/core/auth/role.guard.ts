@@ -1,29 +1,31 @@
 import { inject } from '@angular/core';
 import { type CanActivateFn, Router } from '@angular/router';
-import { createAuthGuard } from 'keycloak-angular';
 
-import { environment } from '../../../environments/environment';
 import type { Role } from './roles';
 import { SessionStore } from './session.store';
 
-/** Guarda de rota por papel — usa `keycloak-angular` em vez de interpretar `realm_access.roles` à mão. */
+/**
+ * Guarda de rota por papel.
+ *
+ * Lê da sessão e não do token: os papéis do MozaOps são decididos pelo backend
+ * (ver `session.store.ts`), e o token do GEEA não os traz.
+ *
+ * As duas saídas são diferentes de propósito. Sem sessão manda-se entrar; com
+ * sessão e sem papel manda-se ao ecrã de «sem permissão», porque repetir o
+ * login não mudava nada — a pessoa voltaria com os mesmos papéis.
+ */
 export const canAccess = (...allowed: readonly Role[]): CanActivateFn => {
-  // Sem Keycloak lê-se da sessão de dev, a sério (não `true` a seco): trocar os
-  // papéis em dev-session.ts continua a exercitar o guarda e o ecrã /sem-permissao.
-  if (environment.authDisabled) {
-    return () => {
-      const session = inject(SessionStore);
-      return session.hasAny(allowed) || inject(Router).createUrlTree(['/sem-permissao']);
-    };
-  }
+  return (_route, state) => {
+    const session = inject(SessionStore);
+    const router = inject(Router);
 
-  return createAuthGuard<CanActivateFn>(async (_route, _state, { authenticated, grantedRoles }) => {
-    if (!authenticated) return false;
+    if (!session.isAuthenticated()) {
+      // O destino vai atrás para o login o devolver onde a pessoa ia.
+      return router.createUrlTree(['/entrar'], {
+        queryParams: { regressar: state.url },
+      });
+    }
 
-    const mine = grantedRoles.realmRoles ?? [];
-    if (allowed.some((role) => mine.includes(role))) return true;
-
-    // Sem o papel, não de login — mandá-lo de novo ao Keycloak dava um ciclo infinito.
-    return inject(Router).createUrlTree(['/sem-permissao']);
-  });
+    return session.hasAny(allowed) || router.createUrlTree(['/sem-permissao']);
+  };
 };

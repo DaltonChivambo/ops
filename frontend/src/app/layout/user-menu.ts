@@ -22,8 +22,8 @@ import { AVATAR_CLASS } from '../shared/ui/avatar';
 
 /**
  * Entradas por construir: à vista e desactivadas, em vez de clicáveis e sem
- * efeito. Quem é dono da identidade é o Keycloak, não esta aplicação, portanto
- * o destino provável é a consola de conta dele.
+ * efeito. Quem é dono da identidade é o GEEA, não esta aplicação — a password
+ * é a do domínio, e alterá-la aqui nunca vai ser possível.
  */
 const SOON_ITEMS = [
   { id: 'profile', label: 'Perfil', icon: 'user' },

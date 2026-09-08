@@ -9,8 +9,11 @@ cd "$(dirname "$0")/.."
 [[ -f .env ]] && set -a && source .env && set +a
 
 DOMAIN="${DOMAIN:-mozaops.localhost}"
-SSO_DOMAIN="${SSO_DOMAIN:-sso.mozaops.localhost}"
-REALM="${KEYCLOAK_REALM:-mozaops}"
+# As credenciais do mock do GEEA. Em produção não há aqui login nenhum a fazer:
+# este script é do ambiente local, e é o único sítio onde uma password de mock
+# é aceitável.
+GEEA_USER="${GEEA_KEYCLOAK_USERNAME:-geea.integracao}"
+GEEA_PASS="${GEEA_KEYCLOAK_PASSWORD:-mude-me-em-producao}"
 
 failures=0
 ok()   { printf '  \033[32m✓\033[0m %s\n' "$1"; }
@@ -47,7 +50,7 @@ else fail "Docker inacessível — falta 'sudo usermod -aG docker \$USER' e volt
 # ─── Containers ─────────────────────────────────────────────────────────────
 echo
 echo "Containers"
-for service in traefik postgres keycloak otel-collector jaeger; do
+for service in traefik postgres identity otel-collector jaeger; do
   state=$(docker compose ps --format '{{.State}}' "$service" 2>/dev/null | head -1)
   [[ "$state" == "running" ]] && ok "$service" || fail "$service (estado: ${state:-ausente})"
 done
@@ -57,7 +60,7 @@ echo
 echo "Bases de dados"
 databases=$(docker compose exec -T postgres psql -U "${POSTGRES_USER:-postgres}" -tAc \
             'SELECT datname FROM pg_database' 2>/dev/null)
-for database in mozaops_closing_reconciliation mozaops_cases keycloak; do
+for database in mozaops_closing_reconciliation mozaops_cases; do
   grep -qx "$database" <<<"$databases" && ok "$database" || fail "$database em falta"
 done
 
@@ -68,43 +71,44 @@ cross=$(docker compose exec -T postgres psql -U "${POSTGRES_USER:-postgres}" -tA
   && ok "o role '${DB_CASES_USER:-cases}' NÃO se liga à base da reconciliação" \
   || fail "isolamento cruzado falhou (has_database_privilege devolveu '${cross:-?}')"
 
-# ─── Keycloak ───────────────────────────────────────────────────────────────
+# ─── Identidade ─────────────────────────────────────────────────────────────
+# O MozaOps não tem servidor de identidade próprio (ADR 0009): autentica contra
+# o GEEA e valida os tokens dele localmente. O que se verifica aqui é a cadeia
+# inteira — o mock emite, o `identity` troca credenciais por sessão, e a
+# automação recusa quem não traz token.
 echo
-echo "Keycloak"
-discovery="http://${SSO_DOMAIN}/realms/${REALM}/.well-known/openid-configuration"
-if config=$(curl -fsS --max-time 10 "$discovery" 2>/dev/null); then
-  ok "descoberta OIDC responde no realm '${REALM}'"
+echo "Identidade"
+
+descoberta="http://127.0.0.1:8100/auth/realms/QAS/.well-known/openid-configuration"
+if config=$(curl -fsS --max-time 10 "$descoberta" 2>/dev/null); then
+  ok "o mock do GEEA responde à descoberta OIDC"
   grep -q 'jwks_uri' <<<"$config" && ok "expõe o jwks_uri (validação local de token)" \
                                   || fail "sem jwks_uri na descoberta"
 else
-  fail "descoberta OIDC não responde em ${discovery}"
+  fail "o mock do GEEA não responde em ${descoberta}"
 fi
 
-# Login real de ponta a ponta. O direct grant está desligado no mozaops-web (e
-# bem), por isso usa-se a conta de serviço para provar que o realm emite tokens.
-token=$(curl -fsS --max-time 10 \
-  -d 'grant_type=client_credentials' \
-  -d 'client_id=closing-reconciliation' \
-  -d "client_secret=${CLIENT_RECONCILIATION_SECRET:-dev-only-closing-reconciliation-change-in-production}" \
-  "http://${SSO_DOMAIN}/realms/${REALM}/protocol/openid-connect/token" 2>/dev/null \
-  | grep -o '"access_token":"[^"]*"' | cut -d'"' -f4)
+# Login de ponta a ponta, pela porta pública: browser -> Traefik -> identity -> GEEA.
+sessao=$(curl -fsS --max-time 10 -X POST \
+  -H 'Content-Type: application/json' \
+  -d "{\"username\":\"${GEEA_USER}\",\"password\":\"${GEEA_PASS}\"}" \
+  "http://${DOMAIN}/api/identity/sessions" 2>/dev/null)
 
-if [[ -n "$token" ]]; then
-  ok "a conta de serviço obtém token (client credentials)"
-  payload=$(cut -d. -f2 <<<"$token" | tr '_-' '/+')
-  payload=$(printf '%s' "$payload$(printf '=%.0s' $(seq $(( (4 - ${#payload} % 4) % 4 ))))" | base64 -d 2>/dev/null)
-  grep -q 'write-batch' <<<"$payload" \
-    && ok "o token traz o papel 'cases:write-batch'" \
-    || fail "o token não traz 'write-batch' — a conta de serviço não ficou com o papel"
+if grep -q 'accessToken' <<<"$sessao"; then
+  ok "o login devolve sessão (credenciais -> GEEA -> token)"
+  grep -q 'principal' <<<"$sessao" \
+    && ok "a sessão diz quem está do outro lado" \
+    || fail "a sessão não traz o 'principal'"
 else
-  fail "não foi possível obter token de conta de serviço"
+  fail "o login em http://${DOMAIN}/api/identity/sessions não devolveu sessão"
 fi
 
-for username in operator.test supervisor.test auditor.test; do
-  exists=$(docker compose exec -T postgres psql -U "${DB_KEYCLOAK_USER:-keycloak}" -d keycloak -tAc \
-           "SELECT 1 FROM user_entity WHERE username = '${username}'" 2>/dev/null | tr -d '[:space:]')
-  [[ "$exists" == "1" ]] && ok "utilizador ${username}" || fail "utilizador ${username} em falta"
-done
+# A porta fechada é metade do trabalho; provar que está fechada é a outra.
+estado=$(curl -s -o /dev/null -w '%{http_code}' --max-time 10 \
+         "http://${DOMAIN}/api/pos/validacao-credito-fecho/execucoes/ultima" 2>/dev/null)
+[[ "$estado" == "401" ]] \
+  && ok "a automação recusa quem não traz token (401)" \
+  || fail "a automação respondeu ${estado:-?} sem token — devia ser 401"
 
 # ─── Observabilidade ────────────────────────────────────────────────────────
 echo

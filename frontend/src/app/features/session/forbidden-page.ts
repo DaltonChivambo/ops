@@ -7,9 +7,9 @@ import { HeaderComponent } from '../../layout/header';
 /**
  * Autenticado, mas sem o papel necessário.
  *
- * Distinto de «não autenticado»: mandar esta pessoa de volta ao Keycloak não
- * resolveria nada — entraria com os mesmos papéis e voltaria aqui. O que ela
- * precisa de saber é a quem pedir.
+ * Distinto de «não autenticado»: mandar esta pessoa entrar de novo não
+ * resolveria nada — voltaria com os mesmos papéis e cairia aqui outra vez. O
+ * que ela precisa de saber é a quem pedir.
  */
 @Component({
   selector: 'app-forbidden-page',
@@ -33,7 +33,8 @@ import { HeaderComponent } from '../../layout/header';
           Papel actual: <span class="font-medium text-moza-700">{{ roles() }}</span>
         </p>
         <p class="mt-4 text-xs text-moza-400">
-          Os papéis são atribuídos pelos grupos do directório. Fale com a coordenação do DOP.
+          Os papéis são atribuídos pelo departamento e função registados no GEEA. Fale com a
+          coordenação do DOP.
         </p>
       </div>
     </div>

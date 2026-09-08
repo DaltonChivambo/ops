@@ -34,9 +34,9 @@ requirements_by: [Dalton Chivambo]
 # por comentários.
 #
 # Não é descuido: renomear obriga a migrar a base que já tem as execuções reais
-# (18 138 fechos), a reimportar o realm do Keycloak e a editar o `.env` de quem
-# já corre isto. O nome do serviço mudou; o do armazenamento fica até haver uma
-# janela para o migrar, e então corre-se isto:
+# (18 138 fechos) e a editar o `.env` de quem já corre isto. O nome do serviço
+# mudou; o do armazenamento fica até haver uma janela para o migrar, e então
+# corre-se isto:
 #
 #   ALTER DATABASE mozaops_closing_reconciliation
 #     RENAME TO mozaops_closing_credit_validation;
@@ -44,8 +44,7 @@ requirements_by: [Dalton Chivambo]
 #     RENAME TO closing_credit_validation;
 #
 # ... e mudam-se, a par, o `DB_RECONCILIATION_*` do `.env`, o `DATABASE_URL` do
-# `docker-compose.yml`, o `create_database` do initdb e o clientId no realm.
+# `docker-compose.yml` e o `create_database` do initdb.
 database: mozaops_closing_reconciliation
 role: closing_reconciliation
-keycloak_client: closing-reconciliation
 env_prefix: DB_RECONCILIATION

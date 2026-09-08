@@ -15,15 +15,16 @@ com `VLOOKUP` — por execuções auditáveis e persistidas. Cada processo do de
 
 Monorepo. Backend FastAPI em workspace `uv`, com uma base de dados e um role por serviço, sem
 acesso à do outro. Frontend Angular 22. Traefik como entrada única — o que faz com que o SPA e
-a API partilhem origem e não exista CORS nenhum para configurar. Keycloak para identidade, já
-de pé mas **ainda não ligado**. Tudo em Docker Compose.
+a API partilhem origem e não exista CORS nenhum para configurar. Identidade no GEEA — o
+Keycloak corporativo, já federado com o AD. Tudo em Docker Compose.
 
 ## Estado
 
 | | |
 |---|---|
 | `reconciliation/closing-credit-validation` (POS) | construído — parse, reconciliação, persistência e relatório |
-| Autenticação | **por ligar**: as rotas estão abertas e o frontend corre com sessão de desenvolvimento |
+| `platform/identity` | construído — sessões contra o GEEA, com as rotas das automações fechadas |
+| Autenticação | ligada: credenciais do domínio ([ADR 0009](docs/adr/0009-autenticacao-contra-o-geea.md)) |
 | Canais ATM e Quiosques | por fazer (é a mesma automação, muda o ficheiro de entrada) |
 | Serviço `cases` | por fazer |
 | CI | por fazer |
@@ -39,8 +40,11 @@ de pé mas **ainda não ligado**. Tudo em Docker Compose.
 
 ```bash
 cp .env.example .env     # ajustar as senhas
-make up                  # traefik, postgres, keycloak, otel, jaeger e os serviços
+make up                  # traefik, postgres, identity, otel, jaeger e os serviços
 make migrate             # alembic upgrade head
+
+# Em desenvolvimento o GEEA é simulado, e sobe à parte — não é um serviço nosso:
+docker compose -f external-services/geea-keycloak/docker-compose.yml up -d
 ```
 
 E o frontend, noutro terminal:
@@ -55,7 +59,7 @@ cd frontend && npm install && npm start   # http://localhost:4200
 |---|---|
 | Aplicação (dev) | http://localhost:4200 |
 | API (dev, direto) | http://localhost:8001 |
-| Keycloak | http://sso.mozaops.localhost |
+| GEEA (mock) | http://127.0.0.1:8100 |
 | Jaeger | http://jaeger.mozaops.localhost |
 | Painel do Traefik | http://127.0.0.1:8080 |
 

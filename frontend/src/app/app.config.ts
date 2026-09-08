@@ -1,91 +1,36 @@
 import {
   type ApplicationConfig,
   inject,
-  type EnvironmentProviders,
   provideAppInitializer,
   provideBrowserGlobalErrorListeners,
   provideZonelessChangeDetection,
 } from '@angular/core';
 import { provideHttpClient, withFetch, withInterceptors } from '@angular/common/http';
 import { provideRouter, withComponentInputBinding, withInMemoryScrolling } from '@angular/router';
-import {
-  AutoRefreshTokenService,
-  createInterceptorCondition,
-  INCLUDE_BEARER_TOKEN_INTERCEPTOR_CONFIG,
-  includeBearerTokenInterceptor,
-  type IncludeBearerTokenCondition,
-  provideKeycloak,
-  UserActivityService,
-  withAutoRefreshToken,
-} from 'keycloak-angular';
 
-import { environment } from '../environments/environment';
 import { routes } from './app.routes';
+import { authInterceptor } from './core/auth/auth.interceptor';
 import { SessionStore } from './core/auth/session.store';
 import { errorInterceptor } from './core/http/error.interceptor';
-
-/** O bearer só vai para `/api/**` — sem isto, o token viajaria para qualquer domínio de terceiros. */
-const apiOnly = createInterceptorCondition<IncludeBearerTokenCondition>({
-  urlPattern: /^(https?:\/\/[^/]+)?\/api\//i,
-  bearerPrefix: 'Bearer',
-});
-
-/**
- * Numa função para, com `authDisabled`, nada disto entrar no injector — não basta
- * ignorar o resultado: `provideKeycloak` inicializa e redirecciona ao SSO de qualquer forma.
- */
-function keycloakProviders(): EnvironmentProviders[] {
-  return [
-    provideKeycloak({
-      config: {
-        url: environment.keycloakUrl,
-        realm: environment.keycloakRealm,
-        clientId: environment.keycloakClientId,
-      },
-      initOptions: {
-        // Não há área pública: redirecciona já, em vez de piscar um ecrã vazio.
-        onLoad: 'login-required',
-        pkceMethod: 'S256',
-        // Bloqueado por browsers que recusam cookies de terceiros; o refresh por actividade cobre.
-        checkLoginIframe: false,
-      },
-      features: [
-        withAutoRefreshToken({
-          // Tem de bater certo com o `ssoSessionIdleTimeout` do realm.
-          sessionTimeout: 30 * 60_000,
-          onInactivityTimeout: 'logout',
-        }),
-      ],
-      providers: [
-        AutoRefreshTokenService,
-        UserActivityService,
-        { provide: INCLUDE_BEARER_TOKEN_INTERCEPTOR_CONFIG, useValue: [apiOnly] },
-      ],
-    }),
-  ];
-}
-
-/** Sem Keycloak, `includeBearerTokenInterceptor` não tem config registada — sai da lista, não corre a seco. */
-function interceptors() {
-  return environment.authDisabled
-    ? [errorInterceptor]
-    : // A ordem importa: primeiro anexa o token, depois traduz o erro.
-      [includeBearerTokenInterceptor, errorInterceptor];
-}
 
 export const appConfig: ApplicationConfig = {
   providers: [
     provideBrowserGlobalErrorListeners(),
     provideZonelessChangeDetection(),
 
-    ...(environment.authDisabled ? [] : keycloakProviders()),
+    /**
+     * Recupera a sessão antes de a primeira rota ser avaliada.
+     *
+     * O `return` não é decorativo: sem ele o Angular não espera, e a guarda de
+     * rota corria com a sessão ainda por carregar — mandando para o ecrã de
+     * login quem já tinha sessão válida no cookie.
+     */
+    provideAppInitializer(() => inject(SessionStore).restore()),
 
-    // Enche a sessão a partir do token já validado, para os componentes lerem signals.
-    provideAppInitializer(() => {
-      inject(SessionStore).refreshFromToken();
-    }),
-
-    provideHttpClient(withFetch(), withInterceptors(interceptors())),
+    // A ordem importa, e é o inverso da de leitura: o `authInterceptor` fica
+    // por fora, por isso o erro que lhe chega já foi traduzido em `ApiError`
+    // pelo de dentro — que é a forma que ele espera para decidir renovar.
+    provideHttpClient(withFetch(), withInterceptors([authInterceptor, errorInterceptor])),
 
     provideRouter(
       routes,

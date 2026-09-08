@@ -1,8 +1,13 @@
 /**
- * Os papéis do realm `mozaops`. Espelham `infra/keycloak/realm-mozaops.json`.
+ * Os papéis do MozaOps. Espelham `mozaops_libs/auth/principal.py`, que é onde
+ * o backend os decide.
  *
- * `supervisor` é composto sobre `operator` no Keycloak — quem é supervisor traz
- * os dois papéis no token, por isso aqui não é preciso hierarquia nenhuma.
+ * **Não vêm do token do GEEA**: lá estão os papéis do sistema dele
+ * (`work_queue`, `manage_employee`). Estes são atribuídos pelo backend a
+ * partir do departamento e da função, e chegam ao SPA pelo `GET /identity/me`.
+ *
+ * Quem é supervisor traz também `operator`, por isso aqui não é preciso
+ * hierarquia nenhuma.
  */
 export const ROLES = ['operator', 'supervisor', 'auditor'] as const;
 

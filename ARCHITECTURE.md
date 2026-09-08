@@ -21,10 +21,12 @@ flowchart LR
 
     TR -- "/" --> FE["mozaops-web<br/>(nginx)"]
     TR -- "/api/pos/validacao-credito-fecho<br/>(stripprefix /api)" --> CR["closing-credit-validation<br/>FastAPI"]
-    TR -- "sso.*" --> KC["Keycloak"]
+    TR -- "/api/identity<br/>(stripprefix /api)" --> ID["identity<br/>FastAPI"]
+
+    ID -- "SSOLogin · JWKS" --> GE["GEEA<br/>(Keycloak do banco)"]
+    CR -. "JWKS" .-> GE
 
     CR --> PG[("PostgreSQL<br/>1 base + 1 role por serviço")]
-    KC --> PG
 
     TR -. "traces" .-> OT["OTel Collector"]
     CR -. "traces" .-> OT
@@ -46,7 +48,7 @@ testa em dev é a topologia que corre em produção.
 | ORM / Migrações | SQLAlchemy 2 (async, asyncpg), Alembic |
 | Base de dados | PostgreSQL 18 |
 | Entrada / routing | Traefik v3 |
-| Identidade | Keycloak (**ainda não ligado** — ver §6) |
+| Identidade | GEEA — o Keycloak corporativo, já federado com o AD ([ADR 0009](docs/adr/0009-autenticacao-contra-o-geea.md)) |
 | Observabilidade | OpenTelemetry Collector → Jaeger |
 | Contentores | Docker Engine, Docker Compose |
 
@@ -61,6 +63,7 @@ automação serve mais do que um.
 | Serviço | Responsabilidade | Estado |
 |---|---|---|
 | `reconciliation/closing-credit-validation` | Validação de crédito de valores de fecho: parse dos ficheiros, reconciliação, persistência e relatório | **construído** (POS) |
+| `platform/identity` | Sessões e papéis: fala com o GEEA, devolve token e cookie de renovação, e diz ao SPA quem está do outro lado | **construído** |
 | `cases` | Gestão dos casos de divergência, quando deixar de ser suficiente vivê-los dentro da reconciliação | por fazer |
 
 A mesma automação serve os três canais — POS, ATM e Quiosques. Muda o ficheiro de entrada,
@@ -112,8 +115,10 @@ partilha a transacção.
 camelCase. A ponte é o nome explícito na coluna (`mapped_column("posId", …)`) e o alias no
 schema (`alias_generator=to_camel`) — nenhum dos dois contratos se dobra ao outro.
 
-**`libs/` está vazio, e é de propósito.** Utilitários técnicos partilhados entram no dia em
-que houver um segundo consumidor — nunca tabelas, nunca regra de negócio.
+**`libs/` só tem o que tem dois consumidores.** Hoje é o `mozaops_libs/auth`: validar tokens
+do GEEA e decidir papéis, partilhado pelo `identity` e pela automação. Autenticação diferente
+entre dois serviços da mesma aplicação não é diferença de estilo — é a porta que fica aberta
+no que ficou para trás. Nunca tabelas, nunca regra de negócio.
 
 ---
 
@@ -127,14 +132,16 @@ ops/
 │   ├── pyproject.toml         workspace uv (membros: libs, services/*)
 │   ├── uv.lock                um lock para todo o backend
 │   ├── Dockerfile             um para todos os serviços, via --build-arg SERVICE
-│   ├── libs/                  mozaops_libs — vazio até ao 2.º consumidor
+│   ├── libs/                  mozaops_libs — auth: tokens do GEEA e mapa de papéis
 │   └── services/
+│       ├── platform/identity/
 │       └── reconciliation/closing-credit-validation/
+├── external-services/
+│   └── geea-keycloak/         mock do GEEA para desenvolvimento (NÃO é serviço nosso)
 ├── frontend/                 SPA Angular (features por departamento → ilha)
 ├── infra/
 │   ├── postgres/initdb/       cria base + role por serviço, com REVOKE cruzado
 │   ├── traefik/               configuração estática (as rotas são labels no compose)
-│   ├── keycloak/              realm exportado
 │   └── otel/                  collector
 ├── scripts/verify-m0.sh
 └── docs/adr/
@@ -166,13 +173,54 @@ docker compose exec postgres psql -U closing_reconciliation -d mozaops_cases
 
 ---
 
-## 6. O que ainda não está feito
+## 6. Autenticação
+
+**Quem autentica é o GEEA** — o Keycloak corporativo, já federado com o Active Directory. O
+MozaOps não tem servidor de identidade próprio, nem tabela de utilizadores, nem password para
+gerir: as credenciais são as do Windows. Ver
+[ADR 0009](docs/adr/0009-autenticacao-contra-o-geea.md).
+
+```mermaid
+sequenceDiagram
+    participant B as Browser (SPA)
+    participant I as identity
+    participant G as GEEA
+    participant A as automação
+
+    B->>I: POST /api/identity/sessions (credenciais no corpo)
+    I->>G: SSOLogin
+    G-->>I: accessToken + refreshToken (JWT assinado)
+    I-->>B: accessToken no corpo · refresh em cookie HttpOnly
+    B->>A: GET /api/pos/... (Authorization: Bearer)
+    A->>G: JWKS (em cache)
+    A-->>B: 200 · 401 · 403
+```
+
+Três regras que sustentam o resto:
+
+1. **Emitir é do GEEA; validar é de cada serviço.** Só o `identity` fala com o GEEA; todos os
+   outros verificam a assinatura localmente pelo JWKS em cache. Uma queda do GEEA impede
+   logins novos, não o trabalho de quem já entrou.
+2. **O token de acesso vive em memória no browser**, nunca em `localStorage` — aí, um XSS
+   valeria uma sessão inteira em vez de um pedido. O que sobrevive ao recarregar é o cookie
+   `HttpOnly` de renovação, que o JavaScript da página não lê.
+3. **Os papéis não vêm do token.** O GEEA traz os papéis do sistema dele; quem decide
+   `operator`, `supervisor` e `auditor` é o backend, a partir do departamento e da função, e
+   o SPA fica a sabê-lo pelo `GET /api/identity/me`.
+
+Em desenvolvimento, o GEEA é simulado por `external-services/geea-keycloak`, que assina RS256
+com uma chave própria e publica o JWKS. Vive fora de `backend/` de propósito: não é um serviço
+nosso.
+
+---
+
+## 7. O que ainda não está feito
 
 Registado aqui para não passar por esquecimento:
 
-- **Autenticação.** O backend não valida nada — todas as rotas estão abertas — e o frontend
-  corre com `authDisabled: true`, a injetar uma sessão de desenvolvimento. O Keycloak já sobe
-  e já tem o realm importado, mas nada o consulta. **Não é estado para produção.**
+- **Login por reencaminhamento.** O SPA recolhe a password e o `identity` entrega-a ao
+  `SSOLogin` — é o contrato que o GEEA expõe hoje. O fluxo `authorization_code`, em que o
+  MozaOps nunca vê a password, espera pelo registo do `redirect_uri` no realm QAS.
 - **Tracing.** O Traefik exporta para o collector; os serviços ainda não instrumentam.
 - **Execução assíncrona.** A reconciliação corre dentro do request. Um ficheiro grande o
   suficiente vai bater no timeout antes de a fila existir.
@@ -180,7 +228,7 @@ Registado aqui para não passar por esquecimento:
 
 ---
 
-## 7. Convenções
+## 8. Convenções
 
 **Tudo em inglês, excepto o que o operador lê.** Pastas, ficheiros, classes, funções,
 variáveis de ambiente, tabelas e papéis são ingleses. Fica em português apenas o **conteúdo**:
@@ -220,11 +268,13 @@ os dois lados da reconciliação.
 
 ---
 
-## 8. Arrancar e verificar
+## 9. Arrancar e verificar
 
 ```bash
 cp .env.example .env     # ajustar as senhas
-make up                  # traefik, postgres, keycloak, otel, jaeger e os serviços
+make up                  # traefik, postgres, identity, otel, jaeger e os serviços
+# o GEEA simulado sobe à parte — não é um serviço nosso:
+docker compose -f external-services/geea-keycloak/docker-compose.yml up -d
 make migrate             # alembic upgrade head
 make lint                # ruff (regras e formato) e mypy --strict
 make test                # testes do backend
@@ -234,7 +284,7 @@ make test                # testes do backend
 |---|---|
 | Frontend (dev) | `cd frontend && npm start` → http://localhost:4200 |
 | API (dev, direto) | http://localhost:8001 |
-| Keycloak | http://sso.mozaops.localhost |
+| GEEA (mock) | http://127.0.0.1:8100 |
 | Jaeger | http://jaeger.mozaops.localhost |
 | Painel do Traefik | http://127.0.0.1:8080 |
 
@@ -250,7 +300,7 @@ curl -i http://localhost:4200/api/pos/validacao-credito-fecho/execucoes/ultima
 
 ---
 
-## 9. Aviso
+## 10. Aviso
 
 Os ficheiros `.xlsx` do departamento são **dados bancários reais** e estão excluídos do
 controlo de versões (`.gitignore`). Não os commitar, em circunstância nenhuma.

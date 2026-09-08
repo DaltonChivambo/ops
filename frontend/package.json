@@ -19,8 +19,6 @@
     "@angular/router": "^22.1.0",
     "@lucide/angular": "^1.28.0",
     "@tailwindcss/postcss": "^4.3.3",
-    "keycloak-angular": "^22.0.0",
-    "keycloak-js": "^26.2.4",
     "postcss": "^8.5.25",
     "rxjs": "~7.8.0",
     "tailwindcss": "^4.3.3",

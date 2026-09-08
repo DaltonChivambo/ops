@@ -26,10 +26,6 @@ services:
       # o psql e o Alembic corridos a partir do host.
       - "127.0.0.1:15432:5432"
 
-  keycloak:
-    ports:
-      - "127.0.0.1:8081:8080"
-
   otel-collector:
     ports:
       - "127.0.0.1:4317:4317"

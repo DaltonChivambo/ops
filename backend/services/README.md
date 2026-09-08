@@ -88,7 +88,7 @@ de dados; um repositório nunca decide regra de negócio.
 | `dev_port` | a porta publicada em desenvolvimento, se diferente da `port` |
 | `departments` · `channels` | metadado — mudam mais depressa que o código |
 | `routes` | o caminho **público**, com o `/api` que o Traefik corta |
-| `keycloak_client` · `env_prefix` | quando o nome na infraestrutura difere do do serviço |
+| `env_prefix` | quando o nome na infraestrutura difere do do serviço |
 | `developed_by` · `requirements_by` | quem fez o trabalho, se não for o `owner` |
 
 O `service.yaml` alimenta o [`OWNERS.md`](../../OWNERS.md) da raiz: ao mudar um

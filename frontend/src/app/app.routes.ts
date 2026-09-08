@@ -8,6 +8,15 @@ import { ShellComponent } from './layout/shell';
 /** Rotas reais, com URL: os ids dos módulos são os segmentos. */
 export const routes: Routes = [
   {
+    // Fora do `ShellComponent`: a barra lateral e o menu de utilizador
+    // pressupõem sessão, e não há nada a mostrar à volta de quem ainda não
+    // entrou.
+    path: 'entrar',
+    loadComponent: () =>
+      import('./features/session/login-page').then((m) => m.LoginPageComponent),
+  },
+
+  {
     path: '',
     component: ShellComponent,
     children: [

@@ -52,7 +52,6 @@ create_database "mozaops_closing_reconciliation" "$DB_RECONCILIATION_USER" "$DB_
 # à base da reconciliação, a regra do ARCHITECTURE.md §5 não se prova. É isto
 # que o scripts/verify-m0.sh testa.
 create_database "mozaops_cases"                  "$DB_CASES_USER"          "$DB_CASES_PASSWORD"
-create_database "keycloak"                       "$DB_KEYCLOAK_USER"       "$DB_KEYCLOAK_PASSWORD"
 
 create_test_database "mozaops_closing_reconciliation_test" "$DB_RECONCILIATION_USER"
 create_test_database "mozaops_cases_test"                  "$DB_CASES_USER"
