@@ -65,11 +65,11 @@ services:
       AUTH_ISSUER: ${AUTH_ISSUER}
       AUTH_JWKS_URL: ${AUTH_JWKS_URL}
       AUTH_ALLOWED_AZP: ${AUTH_ALLOWED_AZP}
-      AUTH_AREAS: ${AUTH_AREAS:-payments-and-channels:2350}
+      AUTH_AREAS: ${AUTH_AREAS:-canais:3230}
       AUTH_AREA_USERS: ${AUTH_AREA_USERS:-}
       # A única que difere do `identity`: a área a que ESTA automação pertence,
       # e que o router exige a quem lhe bate à porta.
-      AUTH_SERVICE_AREA: ${AUTH_SERVICE_AREA:-payments-and-channels}
+      AUTH_SERVICE_AREA: ${AUTH_SERVICE_AREA:-canais}
     networks: [mozaops]
     depends_on:
       postgres:
@@ -104,7 +104,7 @@ services:
       AUTH_ISSUER: ${AUTH_ISSUER}
       AUTH_JWKS_URL: ${AUTH_JWKS_URL}
       AUTH_ALLOWED_AZP: ${AUTH_ALLOWED_AZP}
-      AUTH_AREAS: ${AUTH_AREAS:-payments-and-channels:2350}
+      AUTH_AREAS: ${AUTH_AREAS:-canais:3230}
       AUTH_AREA_USERS: ${AUTH_AREA_USERS:-}
       GEEA_SSOLOGIN_URL: ${GEEA_SSOLOGIN_URL}
       GEEA_TOKEN_URL: ${GEEA_TOKEN_URL}

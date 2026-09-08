@@ -22,8 +22,8 @@ function sessao(areas: readonly string[]): SessionDto {
       name: 'Dalton Chivambo',
       email: 'd@mozabanco.co.mz',
       areas,
-      departmentCode: '2350',
-      department: 'Departamento de Apoio Operacional',
+      departmentCode: '3230',
+      department: 'Canais e Serviços de Integração',
       function: 'Director',
     },
   };
@@ -33,7 +33,7 @@ describe('canOpenModule', () => {
   let api: { login: () => Promise<SessionDto> };
   let injector: Injector;
 
-  /** `pos` é da área «payments-and-channels»; `dashboard` não é de nenhuma. */
+  /** `pos` é da área «canais»; `dashboard` não é de nenhuma. */
   const abrir = (moduleId: string) =>
     runInInjectionContext(injector, () =>
       canOpenModule(
@@ -43,7 +43,7 @@ describe('canOpenModule', () => {
     );
 
   beforeEach(() => {
-    api = { login: () => Promise.resolve(sessao(['payments-and-channels'])) };
+    api = { login: () => Promise.resolve(sessao(['canais'])) };
     TestBed.configureTestingModule({
       providers: [provideRouter([]), { provide: IdentityApi, useValue: api }],
     });

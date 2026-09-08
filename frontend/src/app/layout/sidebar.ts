@@ -50,10 +50,18 @@ interface NavItem {
 interface NavSection {
   readonly id: string;
   readonly label?: string;
-  /** A área a que a secção pertence; `null` = transversal, para toda a gente
-      com sessão. Quem não é da área não vê a secção — esconder não é controlo
-      (isso é a guarda de rota e o backend), mas mostrar um menu inteiro que
-      dá «sem acesso» em cada clique também não é interface nenhuma. */
+  /**
+   * A área que abre a secção; `null` = transversal, para toda a gente com
+   * sessão. Quem não é da área não vê a secção — esconder não é controlo
+   * (isso é a guarda de rota e o backend), mas mostrar um menu inteiro que dá
+   * «sem acesso» em cada clique também não é interface nenhuma.
+   *
+   * Hoje é a área da única ilha com automação construída (`canais`), e gate a
+   * secção **inteira** — «Pagamentos» e «Fraudes» são placeholders sem rota
+   * nem área própria, por isso ficam à boleia. Quando uma delas ganhar a
+   * primeira automação, ganha a sua própria área, e este campo desce de
+   * secção para item — ver `docs/adr/0010-acesso-por-area.md`.
+   */
   readonly area: AreaId | null;
   readonly items: readonly NavItem[];
 }
@@ -67,7 +75,7 @@ const SECTIONS: readonly NavSection[] = [
   {
     id: 'mpc',
     label: 'Meios de Pag. e Canais',
-    area: 'payments-and-channels',
+    area: 'canais',
     items: [
       {
         id: 'canais',

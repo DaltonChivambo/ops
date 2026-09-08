@@ -37,9 +37,9 @@ TECNICO_DA_AREA = Principal(
     username="m007000",
     name="Técnico de teste",
     email="tecnico.teste@mozabanco.co.mz",
-    areas=frozenset({"payments-and-channels"}),
-    department_code="2350",
-    department="Departamento de Apoio Operacional",
+    areas=frozenset({"canais"}),
+    department_code="3230",
+    department="Canais e Serviços de Integração",
     function="Técnico",
     employee_id="7000",
 )

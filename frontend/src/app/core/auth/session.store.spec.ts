@@ -9,9 +9,9 @@ const PRINCIPAL: PrincipalDto = {
   username: 'm001926',
   name: 'Dalton Chivambo',
   email: 'dalton.chivambo@mozabanco.co.mz',
-  areas: ['payments-and-channels'],
-  departmentCode: '2350',
-  department: 'Departamento de Apoio Operacional',
+  areas: ['canais'],
+  departmentCode: '3230',
+  department: 'Canais e Serviços de Integração',
   function: 'Director',
 };
 
@@ -68,7 +68,7 @@ describe('SessionStore', () => {
 
     expect(store.isAuthenticated()).toBe(true);
     expect(store.principal()?.username).toBe('m001926');
-    expect(store.principal()?.department).toBe('Departamento de Apoio Operacional');
+    expect(store.principal()?.department).toBe('Canais e Serviços de Integração');
     expect(tokens.accessToken()).toBe('token-1');
   });
 
@@ -91,7 +91,7 @@ describe('SessionStore', () => {
     it('abre a área que o backend concedeu', async () => {
       await store.signIn('m001926', 'senha');
 
-      expect(store.hasArea('payments-and-channels')).toBe(true);
+      expect(store.hasArea('canais')).toBe(true);
       expect(store.hasArea('customers-and-accounts')).toBe(false);
     });
 
@@ -100,16 +100,16 @@ describe('SessionStore', () => {
       api.loginResult = sessao({ function: 'Técnico' });
       await store.signIn('m007000', 'senha');
 
-      expect(store.hasArea('payments-and-channels')).toBe(true);
+      expect(store.hasArea('canais')).toBe(true);
     });
 
     it('guarda áreas que o catálogo ainda não conhece', async () => {
       // Abrir uma área na configuração do backend não devia esperar por um SPA
       // publicado de novo. Sem módulo, não abre nada — mas o valor não se perde.
-      api.loginResult = sessao({ areas: ['payments-and-channels', 'ainda-nao-existe'] });
+      api.loginResult = sessao({ areas: ['canais', 'ainda-nao-existe'] });
       await store.signIn('m001926', 'senha');
 
-      expect(store.areas()).toEqual(['payments-and-channels', 'ainda-nao-existe']);
+      expect(store.areas()).toEqual(['canais', 'ainda-nao-existe']);
     });
 
     it('sem áreas, entra e não abre nada', async () => {
@@ -118,7 +118,7 @@ describe('SessionStore', () => {
 
       expect(store.isAuthenticated()).toBe(true);
       expect(store.hasNoArea()).toBe(true);
-      expect(store.hasArea('payments-and-channels')).toBe(false);
+      expect(store.hasArea('canais')).toBe(false);
     });
   });
 

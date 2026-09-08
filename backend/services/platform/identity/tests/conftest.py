@@ -53,8 +53,8 @@ def make_token(**overrides: Any) -> str:
         "preferred_username": "m001926",
         "name": "Dalton Chivambo",
         "email": "dalton.chivambo@mozabanco.co.mz",
-        "departmentCode": "2350",
-        "department": "Departamento de Apoio Operacional",
+        "departmentCode": "3230",
+        "department": "Canais e Serviços de Integração",
         "function": "Director",
         "Employee ID": "1926",
         "realm_access": {"roles": ["work_queue"]},
@@ -112,8 +112,8 @@ def geea() -> FakeGeea:
 @pytest.fixture
 def mapping() -> AreaMapping:
     return AreaMapping(
-        by_unit={"payments-and-channels": frozenset({"2350"})},
-        by_user={"payments-and-channels": frozenset({"m004410"})},
+        by_unit={"canais": frozenset({"3230"})},
+        by_user={"canais": frozenset({"m004410"})},
     )
 
 

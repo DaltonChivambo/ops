@@ -31,7 +31,7 @@ class Settings(BaseSettings):
     #: (a mesma da barra lateral do SPA); as unidades são os códigos que o GEEA
     #: manda em `departmentCode`. Sem entrada aqui, ninguém entra em lado
     #: nenhum — é de propósito, ver `mozaops_libs/auth/areas.py`.
-    auth_areas: str = "payments-and-channels:2350"
+    auth_areas: str = "canais:3230"
     #: `area:username,username`. O acréscimo para quem está registado noutra
     #: unidade mas trabalha nesta. Vazio é o estado normal.
     auth_area_users: str = ""

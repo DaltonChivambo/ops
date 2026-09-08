@@ -204,12 +204,16 @@ Três regras que sustentam o resto:
 2. **O token de acesso vive em memória no browser**, nunca em `localStorage` — aí, um XSS
    valeria uma sessão inteira em vez de um pedido. O que sobrevive ao recarregar é o cookie
    `HttpOnly` de renovação, que o JavaScript da página não lê.
-3. **O acesso é por área, e não por papel.** A área é a unidade do MozaOps (hoje
-   `payments-and-channels`); cada automação pertence a uma, e quem for da área faz tudo o que
-   ela faz. O mapa unidade-do-GEEA → área está em `AUTH_AREAS`, e a decisão em
-   [ADR 0010](docs/adr/0010-acesso-por-area.md).
+3. **O acesso é por área, e não por papel.** A área é a unidade do MozaOps — hoje
+   `canais` (código GEEA `3230`, «Canais e Serviços de Integração»); cada automação pertence
+   a uma, e quem for da área faz tudo o que ela faz. O mapa unidade-do-GEEA → área está em
+   `AUTH_AREAS`, e a decisão em [ADR 0010](docs/adr/0010-acesso-por-area.md).
 
-**Vocabulário, porque é onde isto se confunde:** no nosso código `area` é a área do MozaOps;
+**Vocabulário, porque é onde isto se confunde:** no nosso código `area` é a área do MozaOps —
+uma unidade orgânica real, não um departamento inteiro. «Meios de Pagamentos e Canais» é o
+Departamento de Apoio Operacional visto por fora; lá dentro há várias áreas distintas
+(`canais`, e «Serviço de Meios de Pagamento», código `2442`, ainda sem automação). O
+departamento é agrupamento visual da barra lateral; a área é a unidade de acesso.
 `department`/`departmentCode` são as claims do GEEA — a unidade orgânica onde a pessoa está
 registada, que tanto pode ser um departamento como uma área ou um serviço.
 

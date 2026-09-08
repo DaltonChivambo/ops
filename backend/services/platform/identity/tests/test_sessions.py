@@ -17,14 +17,14 @@ class TestLogin:
         assert body["accessToken"]
         assert body["expiresIn"] == 18000
         assert body["principal"]["username"] == "m001926"
-        assert body["principal"]["department"] == "Departamento de Apoio Operacional"
+        assert body["principal"]["department"] == "Canais e Serviços de Integração"
 
     def test_papeis_vem_do_nosso_mapa_e_nao_do_token(self, client):
         """O token só traz `work_queue`; quem decide `supervisor` somos nós."""
         response = client.post(
             "/identity/sessions", json={"username": "m001926", "password": "senha-certa"}
         )
-        assert response.json()["principal"]["areas"] == ["payments-and-channels"]
+        assert response.json()["principal"]["areas"] == ["canais"]
 
     def test_token_de_renovacao_vai_em_cookie_inacessivel_ao_javascript(self, client):
         response = client.post(
