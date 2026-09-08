@@ -1,7 +1,7 @@
 import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
-import { LucideLoaderCircle, LucideLock, LucideUser } from '@lucide/angular';
+import { LucideLifeBuoy, LucideLoaderCircle, LucideLock, LucideUser } from '@lucide/angular';
 
 import { SessionStore } from '../../core/auth/session.store';
 import { ApiError } from '../../core/http/api-error';
@@ -21,7 +21,14 @@ import { CardComponent } from '../../shared/ui/card';
 @Component({
   selector: 'app-login-page',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [ReactiveFormsModule, CardComponent, LucideUser, LucideLock, LucideLoaderCircle],
+  imports: [
+    ReactiveFormsModule,
+    CardComponent,
+    LucideUser,
+    LucideLock,
+    LucideLoaderCircle,
+    LucideLifeBuoy,
+  ],
   template: `
     <div
       class="grid min-h-dvh place-items-center bg-gradient-to-br from-moza-50 via-white to-moza-100 p-6"
@@ -87,6 +94,16 @@ import { CardComponent } from '../../shared/ui/card';
               {{ signingIn() ? 'A entrar…' : 'Entrar' }}
             </button>
           </form>
+
+          <div class="mt-6 flex items-center justify-center gap-2 border-t border-gray-100 pt-5">
+            <svg lucideLifeBuoy [size]="15" [strokeWidth]="1.9" class="shrink-0 text-moza-400"></svg>
+            <a
+              [href]="supportMailto"
+              class="text-xs font-medium text-moza-500 hover:text-moza-700 hover:underline"
+            >
+              Precisa de assistência? Contacte o suporte técnico
+            </a>
+          </div>
         </section>
 
         <p class="mt-6 text-xs text-moza-400">Desenvolvido por DOP - Direção de Operações</p>
@@ -105,6 +122,11 @@ export class LoginPageComponent {
 
   protected readonly signingIn = signal(false);
   protected readonly error = signal<string | null>(null);
+
+  /** O assunto já vem preenchido — quem escreve não começa da folha em branco. */
+  protected readonly supportMailto =
+    'mailto:dalton.chivambo@mozabanco.co.mz?subject=' +
+    encodeURIComponent('MozaOps — Pedido de suporte técnico');
 
   protected async submit(): Promise<void> {
     if (this.form.invalid || this.signingIn()) return;
