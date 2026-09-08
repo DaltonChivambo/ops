@@ -1,6 +1,7 @@
 import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
+import { LucideLoaderCircle, LucideLock, LucideUser } from '@lucide/angular';
 
 import { SessionStore } from '../../core/auth/session.store';
 import { ApiError } from '../../core/http/api-error';
@@ -13,60 +14,83 @@ import { CardComponent } from '../../shared/ui/card';
  * pressupõem sessão, e não há nada de útil a mostrar à volta de quem ainda não
  * entrou.
  *
- * As credenciais são as do GEEA — as mesmas do Windows. O ecrã diz isso, para
- * ninguém procurar uma password que não existe; e o formulário não guarda nada,
- * nem oferece «lembrar-me», porque o que ficaria guardado era a senha do
- * domínio.
+ * As credenciais são as do GEEA — as mesmas do Windows. Por isso o formulário
+ * não guarda nada, nem oferece «lembrar-me»: o que ficaria guardado era a
+ * senha do domínio.
  */
 @Component({
   selector: 'app-login-page',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [ReactiveFormsModule, CardComponent],
+  imports: [ReactiveFormsModule, CardComponent, LucideUser, LucideLock, LucideLoaderCircle],
   template: `
-    <div class="grid min-h-dvh place-items-center bg-moza-50 p-6">
-      <section appCard class="w-full max-w-sm">
-        <h1 class="text-lg font-semibold text-moza-800">MozaOps</h1>
-        <p class="mt-1 text-sm text-moza-500">
-          Entre com as suas credenciais do banco — as mesmas do Windows.
-        </p>
+    <div
+      class="grid min-h-dvh place-items-center bg-gradient-to-br from-moza-50 via-white to-moza-100 p-6"
+    >
+      <div class="flex w-full max-w-md flex-col items-center">
+        <section appCard class="w-full p-8 shadow-lg sm:p-10">
+          <div class="text-center">
+            <img src="mozaops_logo_sem_fundo.svg" alt="MozaOps" class="mx-auto h-8 w-auto" />
+          </div>
 
-        <form class="mt-6 flex flex-col gap-4" [formGroup]="form" (ngSubmit)="submit()">
-          <label class="flex flex-col gap-1.5">
-            <span class="text-xs font-medium text-moza-600">Utilizador</span>
-            <input
-              formControlName="username"
-              autocomplete="username"
-              autocapitalize="none"
-              spellcheck="false"
-              class="rounded-lg border border-gray-200 px-3 py-2 text-sm text-moza-800 outline-none focus:border-moza-400"
-            />
-          </label>
+          <form class="mt-8 flex flex-col gap-4" [formGroup]="form" (ngSubmit)="submit()">
+            <label class="flex flex-col gap-1.5">
+              <span class="text-xs font-medium text-moza-600">Utilizador</span>
+              <div class="relative">
+                <svg
+                  lucideUser
+                  [size]="16"
+                  [strokeWidth]="1.8"
+                  class="pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-moza-300"
+                ></svg>
+                <input
+                  formControlName="username"
+                  autocomplete="username"
+                  autocapitalize="none"
+                  spellcheck="false"
+                  class="w-full rounded-lg border border-gray-200 py-2 pr-3 pl-9 text-sm text-moza-800 outline-none transition-colors focus:border-moza-400 focus:ring-4 focus:ring-moza-100"
+                />
+              </div>
+            </label>
 
-          <label class="flex flex-col gap-1.5">
-            <span class="text-xs font-medium text-moza-600">Password</span>
-            <input
-              type="password"
-              formControlName="password"
-              autocomplete="current-password"
-              class="rounded-lg border border-gray-200 px-3 py-2 text-sm text-moza-800 outline-none focus:border-moza-400"
-            />
-          </label>
+            <label class="flex flex-col gap-1.5">
+              <span class="text-xs font-medium text-moza-600">Password</span>
+              <div class="relative">
+                <svg
+                  lucideLock
+                  [size]="16"
+                  [strokeWidth]="1.8"
+                  class="pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-moza-300"
+                ></svg>
+                <input
+                  type="password"
+                  formControlName="password"
+                  autocomplete="current-password"
+                  class="w-full rounded-lg border border-gray-200 py-2 pr-3 pl-9 text-sm text-moza-800 outline-none transition-colors focus:border-moza-400 focus:ring-4 focus:ring-moza-100"
+                />
+              </div>
+            </label>
 
-          @if (error()) {
-            <p role="alert" class="rounded-lg bg-alert-50 px-3 py-2 text-sm text-alert-700">
-              {{ error() }}
-            </p>
-          }
+            @if (error()) {
+              <p role="alert" class="rounded-lg bg-alert-50 px-3 py-2 text-sm text-alert-700">
+                {{ error() }}
+              </p>
+            }
 
-          <button
-            type="submit"
-            [disabled]="form.invalid || signingIn()"
-            class="rounded-lg bg-moza-700 px-3 py-2 text-sm font-medium text-white disabled:opacity-50"
-          >
-            {{ signingIn() ? 'A entrar…' : 'Entrar' }}
-          </button>
-        </form>
-      </section>
+            <button
+              type="submit"
+              [disabled]="form.invalid || signingIn()"
+              class="mt-1 flex items-center justify-center gap-2 rounded-lg bg-moza-700 px-3 py-2.5 text-sm font-medium text-white transition-colors hover:bg-moza-800 disabled:opacity-50 disabled:hover:bg-moza-700"
+            >
+              @if (signingIn()) {
+                <svg lucideLoaderCircle [size]="16" [strokeWidth]="2" class="animate-spin"></svg>
+              }
+              {{ signingIn() ? 'A entrar…' : 'Entrar' }}
+            </button>
+          </form>
+        </section>
+
+        <p class="mt-6 text-xs text-moza-400">Desenvolvido por DOP - Direção de Operações</p>
+      </div>
     </div>
   `,
 })
