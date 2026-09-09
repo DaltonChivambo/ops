@@ -53,7 +53,7 @@ const COLLAPSE_BELOW_PX = 1536;
            e partia o «position: sticky» dos cabeçalhos das tabelas; «clip»
            não. -->
       <main
-        class="group/shell overflow-x-clip px-4 py-5 transition-[margin] duration-200 sm:px-6 lg:px-8 lg:py-6"
+        class="group/shell overflow-x-clip px-4 py-5 transition-[margin] duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] sm:px-6 lg:px-8 lg:py-6"
         [attr.data-sidebar]="collapsed() ? 'collapsed' : 'expanded'"
         [class]="collapsed() ? 'lg:ml-[4.75rem]' : 'lg:ml-[16.5rem]'"
       >
