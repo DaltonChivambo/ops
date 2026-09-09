@@ -34,12 +34,12 @@ import { ApiError } from '../../core/http/api-error';
     LucideLifeBuoy,
   ],
   template: `
-    <div class="grid min-h-dvh lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)]">
+    <div class="grid min-h-dvh overflow-x-hidden lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)]">
       <!-- Painel de marca: gradiente vermelho da marca a esmorecer para quase-preto,
            tal como a referência. Só em ecrãs largos — a duas colunas num telemóvel
            sobrava o formulário sem espaço. -->
       <div
-        class="relative hidden overflow-hidden bg-gradient-to-br from-alert-500 via-alert-700 to-[#1a0604] lg:flex lg:flex-col lg:p-11"
+        class="relative hidden overflow-hidden bg-gradient-to-br from-alert-500 via-alert-700 to-[#1a0604] lg:flex lg:flex-col lg:p-8 xl:p-11 2xl:p-16"
       >
         <div
           aria-hidden="true"
@@ -85,37 +85,44 @@ import { ApiError } from '../../core/http/api-error';
         <div
           class="relative mt-auto motion-safe:animate-[card-in_400ms_cubic-bezier(0.22,1,0.36,1)]"
         >
-          <p class="text-xl leading-snug font-bold text-white">
+          <p class="text-lg leading-snug font-bold text-white xl:text-xl">
             A plataforma de operações do Moza.
           </p>
-          <p class="mt-3 max-w-sm text-sm text-white/70">
+          <p class="mt-2.5 max-w-sm text-xs text-white/70 sm:text-sm">
             Centraliza, acompanha e automatiza operações, num só lugar.
           </p>
         </div>
       </div>
 
       <!-- Formulário: ocupa o ecrã todo, sem cartão — a moldura já é a página. -->
-      <div class="flex flex-col justify-center px-6 py-12 sm:px-12 lg:px-20 xl:px-28">
+      <div
+        class="flex flex-col justify-center px-5 py-8 sm:px-10 sm:py-12 lg:px-16 xl:px-24 2xl:px-32"
+      >
         <div
           class="mx-auto w-full max-w-sm motion-safe:animate-[card-in_400ms_cubic-bezier(0.22,1,0.36,1)]"
         >
           <img
             src="mozaops_logo_sem_fundo.svg"
             alt="MozaOps"
-            class="mx-auto h-8 w-auto lg:hidden"
+            class="mx-auto h-7 w-auto sm:h-8 lg:hidden"
           />
 
-          <h1 class="mt-8 text-center text-2xl leading-tight font-bold text-gray-900 lg:mt-0">
+          <!-- text-xl é o token "título da página" (18px) — não o de baixo, «indicadores»,
+               nem o do meio da rosca. É o mesmo em todas as larguras: um ecrã maior dá mais
+               espaço à volta, não letras maiores. -->
+          <h1
+            class="mt-6 text-center text-xl leading-tight font-bold text-gray-900 sm:mt-8 lg:mt-0"
+          >
             Iniciar sessão
           </h1>
-          <p class="mt-2 text-center text-sm text-gray-500">
+          <p class="mt-1.5 text-center text-xs text-gray-500 sm:mt-2 sm:text-sm">
             Introduza as suas credenciais para continuar.
           </p>
 
           @if (error()) {
             <p
               role="alert"
-              class="mt-6 flex items-start gap-2 rounded-xl bg-alert-50 px-3.5 py-2.5 text-sm text-alert-700 ring-1 ring-alert-100 motion-safe:animate-[toast-in_220ms_cubic-bezier(0.16,1,0.3,1)]"
+              class="mt-4 flex items-start gap-2 rounded-xl bg-alert-50 px-3 py-2 text-xs text-alert-700 ring-1 ring-alert-100 motion-safe:animate-[toast-in_220ms_cubic-bezier(0.16,1,0.3,1)] sm:mt-6 sm:px-3.5 sm:py-2.5 sm:text-sm"
             >
               <svg
                 lucideTriangleAlert
@@ -127,7 +134,11 @@ import { ApiError } from '../../core/http/api-error';
             </p>
           }
 
-          <form class="mt-8 flex flex-col gap-4" [formGroup]="form" (ngSubmit)="submit()">
+          <form
+            class="mt-6 flex flex-col gap-3.5 sm:mt-8 sm:gap-4"
+            [formGroup]="form"
+            (ngSubmit)="submit()"
+          >
             <label class="flex flex-col gap-1.5">
               <span class="text-xs font-semibold text-gray-600">Utilizador</span>
               <div class="group relative">
@@ -195,7 +206,7 @@ import { ApiError } from '../../core/http/api-error';
             <!-- Mesmo efeito do cartão do logótipo, aplicado ao botão principal —
                  é a única acção desta página, por isso é a que mais o merece. -->
             <div
-              class="relative mt-2 overflow-hidden rounded-xl bg-gradient-to-b from-alert-500 to-alert-600 p-[1.25px] shadow-xl shadow-alert-700/30 transition-transform duration-150 hover:scale-[1.01] active:scale-[0.97]"
+              class="relative mt-2 overflow-hidden rounded-xl bg-gradient-to-b from-alert-500 to-alert-600 p-[1.25px] shadow-xl shadow-alert-700/30 transition-transform duration-150 active:scale-[0.97]"
             >
               <div
                 aria-hidden="true"
@@ -228,7 +239,7 @@ import { ApiError } from '../../core/http/api-error';
             </div>
           </form>
 
-          <div class="mt-8 flex items-center gap-2">
+          <div class="mt-6 flex items-center gap-2 sm:mt-8">
             <svg
               lucideLifeBuoy
               [size]="15"
