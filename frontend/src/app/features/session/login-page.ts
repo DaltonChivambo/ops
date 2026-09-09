@@ -35,11 +35,11 @@ import { ApiError } from '../../core/http/api-error';
   ],
   template: `
     <div class="grid min-h-dvh overflow-x-hidden lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)]">
-      <!-- Painel de marca: gradiente vermelho da marca a esmorecer para quase-preto,
-           tal como a referência. Só em ecrãs largos — a duas colunas num telemóvel
-           sobrava o formulário sem espaço. -->
+      <!-- Painel de marca: escurece nas duas pontas da diagonal (canto superior
+           esquerdo e canto inferior direito) e o vermelho fica só no meio — em vez
+           de vermelho vivo só num canto. -->
       <div
-        class="relative hidden overflow-hidden bg-gradient-to-br from-alert-500 via-alert-700 to-[#1a0604] lg:flex lg:flex-col lg:p-8 xl:p-11 2xl:p-16"
+        class="relative hidden overflow-hidden bg-gradient-to-br from-[#1a0604] via-alert-600 to-[#1a0604] lg:flex lg:flex-col lg:p-8 xl:p-11 2xl:p-16"
       >
         <div
           aria-hidden="true"
@@ -56,7 +56,7 @@ import { ApiError } from '../../core/http/api-error';
         ></div>
 
         <div
-          class="relative inline-flex w-fit overflow-hidden rounded-xl bg-gradient-to-b from-alert-500 to-alert-600 p-[1.25px] shadow-lg shadow-black/30 motion-safe:animate-[card-in_400ms_cubic-bezier(0.22,1,0.36,1)]"
+          class="relative inline-flex w-fit overflow-hidden rounded-xl bg-gradient-to-b from-alert-500 to-alert-600 p-[3.5px] shadow-xl shadow-black/50 motion-safe:animate-[card-in_400ms_cubic-bezier(0.22,1,0.36,1)]"
         >
           <!-- O gradiente cónico é maior do que a moldura e roda por baixo dela; o
                "overflow-hidden" acima recorta-o na forma arredondada, deixando só a
@@ -65,16 +65,16 @@ import { ApiError } from '../../core/http/api-error';
                não se perder contra o vermelho. -->
           <div
             aria-hidden="true"
-            class="absolute inset-[-60%] blur-sm motion-safe:animate-[border-beam-spin_2.2s_linear_infinite]"
-            style="background-image: conic-gradient(from 0deg, transparent 0%, rgba(255,255,255,0.55) 6%, transparent 18%)"
+            class="absolute inset-[-60%] blur-lg motion-safe:animate-[border-beam-spin_1.8s_linear_infinite]"
+            style="background-image: conic-gradient(from 0deg, transparent 0%, #fff 18%, transparent 42%)"
           ></div>
           <div
             aria-hidden="true"
-            class="absolute inset-[-60%] motion-safe:animate-[border-beam-spin_2.2s_linear_infinite]"
-            style="background-image: conic-gradient(from 0deg, transparent 0%, rgba(255,255,255,0.75) 5%, transparent 14%)"
+            class="absolute inset-[-60%] motion-safe:animate-[border-beam-spin_1.8s_linear_infinite]"
+            style="background-image: conic-gradient(from 0deg, transparent 0%, #fff 13%, transparent 28%)"
           ></div>
           <div
-            class="relative inline-flex items-center rounded-[calc(0.75rem-1.25px)] bg-white px-3.5 py-2.5"
+            class="relative inline-flex items-center rounded-[calc(0.75rem-3.5px)] bg-white px-3.5 py-2.5"
           >
             <img src="mozaops_logo_sem_fundo.svg" alt="MozaOps" class="h-5 w-auto" />
           </div>
@@ -94,12 +94,19 @@ import { ApiError } from '../../core/http/api-error';
         </div>
       </div>
 
-      <!-- Formulário: ocupa o ecrã todo, sem cartão — a moldura já é a página. -->
+      <!-- Formulário: ocupa o ecrã todo, sem cartão — a moldura já é a página. A
+           textura de pontos (a mesma do painel de marca, mas quase invisível) e a
+           entrada em cascata dão-lhe vida sem tocar em cor nenhuma. -->
       <div
-        class="flex flex-col justify-center px-5 py-8 sm:px-10 sm:py-12 lg:px-16 xl:px-24 2xl:px-32"
+        class="relative flex flex-col justify-center overflow-hidden px-6 py-8 sm:px-10 sm:py-12 lg:px-14 xl:px-20 2xl:px-24"
       >
         <div
-          class="mx-auto w-full max-w-sm motion-safe:animate-[card-in_400ms_cubic-bezier(0.22,1,0.36,1)]"
+          aria-hidden="true"
+          class="pointer-events-none absolute inset-0"
+          style="background-image: radial-gradient(circle at 1px 1px, var(--color-moza-200) 1px, transparent 0); background-size: 28px 28px; mask-image: radial-gradient(60% 55% at 50% 40%, #000 0%, transparent 75%)"
+        ></div>
+        <div
+          class="relative mx-auto w-full max-w-sm lg:max-w-md motion-safe:animate-[card-in_400ms_cubic-bezier(0.22,1,0.36,1)]"
         >
           <img
             src="mozaops_logo_sem_fundo.svg"
@@ -135,12 +142,14 @@ import { ApiError } from '../../core/http/api-error';
           }
 
           <form
-            class="mt-6 flex flex-col gap-3.5 sm:mt-8 sm:gap-4"
+            class="mt-6 flex flex-col gap-3.5 motion-safe:animate-[card-in_400ms_cubic-bezier(0.22,1,0.36,1)_90ms_both] sm:mt-8 sm:gap-4"
             [formGroup]="form"
             (ngSubmit)="submit()"
           >
             <label class="flex flex-col gap-1.5">
-              <span class="text-xs font-semibold text-gray-600">Utilizador</span>
+              <span class="text-2xs font-bold tracking-widest text-gray-400 uppercase"
+                >Utilizador</span
+              >
               <div class="group relative">
                 <svg
                   lucideUser
@@ -154,14 +163,16 @@ import { ApiError } from '../../core/http/api-error';
                   autocapitalize="none"
                   spellcheck="false"
                   autofocus
-                  placeholder="m00xxxx"
-                  class="w-full rounded-xl border border-gray-200 bg-gray-50/60 py-3 pr-3 pl-10 text-sm text-gray-900 outline-none transition-all placeholder:text-gray-400 hover:border-gray-300 focus:border-moza-400 focus:bg-white focus:ring-4 focus:ring-moza-100"
+                  placeholder="Introduza o seu utilizador"
+                  class="w-full rounded-2xl border-2 border-gray-200 bg-gray-50 py-3 pr-3 pl-10 text-sm text-gray-900 outline-none transition-all placeholder:text-gray-400 hover:border-gray-300 focus:border-moza-400 focus:bg-white focus:ring-4 focus:ring-moza-100"
                 />
               </div>
             </label>
 
             <label class="flex flex-col gap-1.5">
-              <span class="text-xs font-semibold text-gray-600">Palavra-passe</span>
+              <span class="text-2xs font-bold tracking-widest text-gray-400 uppercase"
+                >Palavra-passe</span
+              >
               <div class="group relative">
                 <svg
                   lucideLock
@@ -176,7 +187,7 @@ import { ApiError } from '../../core/http/api-error';
                   (keyup)="trackCapsLock($event)"
                   (keydown)="trackCapsLock($event)"
                   placeholder="Introduza a sua palavra-passe"
-                  class="w-full rounded-xl border border-gray-200 bg-gray-50/60 py-3 pr-10 pl-10 text-sm text-gray-900 outline-none transition-all placeholder:text-gray-400 hover:border-gray-300 focus:border-moza-400 focus:bg-white focus:ring-4 focus:ring-moza-100"
+                  class="w-full rounded-2xl border-2 border-gray-200 bg-gray-50 py-3 pr-10 pl-10 text-sm text-gray-900 outline-none transition-all placeholder:text-gray-400 hover:border-gray-300 focus:border-moza-400 focus:bg-white focus:ring-4 focus:ring-moza-100"
                 />
                 <button
                   type="button"
@@ -239,7 +250,9 @@ import { ApiError } from '../../core/http/api-error';
             </div>
           </form>
 
-          <div class="mt-6 flex items-center gap-2 sm:mt-8">
+          <div
+            class="mt-6 flex items-center gap-2 motion-safe:animate-[card-in_400ms_cubic-bezier(0.22,1,0.36,1)_160ms_both] sm:mt-8"
+          >
             <svg
               lucideLifeBuoy
               [size]="15"
