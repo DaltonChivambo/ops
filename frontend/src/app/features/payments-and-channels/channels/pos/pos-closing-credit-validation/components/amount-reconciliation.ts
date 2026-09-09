@@ -111,7 +111,7 @@ type Source = 'simo' | 'banka' | 'difference';
                     @if (row.description) {
                       <!-- Título só no ícone: passar pelo rótulo não deve acender a
                            explicação, só passar mesmo pelo "i". -->
-                      <span [attr.title]="description(row)" class="inline-flex align-middle">
+                      <span [attr.title]="row.description" class="inline-flex align-middle">
                         <svg
                           lucideInfo
                           [size]="11"
@@ -146,7 +146,7 @@ type Source = 'simo' | 'banka' | 'difference';
               <td class="py-3 pr-3 pl-1.5">
                 <span class="inline-flex items-center gap-2">
                   Total
-                  <span [attr.title]="totalDescription()" class="inline-flex align-middle">
+                  <span [attr.title]="totalDescription" class="inline-flex align-middle">
                     <svg
                       lucideInfo
                       [size]="11"
@@ -241,7 +241,7 @@ export class AmountReconciliationComponent {
         banka: 0,
         barClass: 'bg-moza-500',
         dotClass: 'bg-moza-500',
-        description: 'Ainda sem crédito correspondente no Banka.',
+        description: 'Apurado na SIMO, mas sem crédito correspondente no Banka.',
       },
       // Banka duplica tal como a SIMO aqui; dar o lado por zero punha esse dinheiro como em falta.
       {
@@ -313,11 +313,8 @@ export class AmountReconciliationComponent {
     this.rows().reduce((total, row) => total + row.banka, 0),
   );
 
-  protected readonly totalDescription = computed(
-    () =>
-      `Apurado na SIMO: ${this.amount(this.totalSimo())} MZN. ` +
-      `Creditado no Banka: ${this.amount(this.totalBanka())} MZN.`,
-  );
+  protected readonly totalDescription =
+    'Soma de todos os fechos processados nesta execução, em todos os estados.';
 
   /**
    * Quota de cada estado no total do lado escolhido — o que a barra desenha.
@@ -334,14 +331,6 @@ export class AmountReconciliationComponent {
 
   protected share(row: Row): string {
     return this.sharesByKey().get(row.key) ?? '0%';
-  }
-
-  /** A razão do estado, seguida dos montantes reais — é isso que o "i" mostra. */
-  protected description(row: Row): string {
-    const simoText = `Apurado na SIMO: ${this.amount(row.simo)} MZN.`;
-    if (row.key === 'missing') return `${row.description} ${simoText}`;
-    const bankaText = `Creditado no Banka: ${this.amount(row.banka)} MZN.`;
-    return `${row.description} ${simoText} ${bankaText}`;
   }
 
   protected widthOf(row: Row): number {
