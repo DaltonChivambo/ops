@@ -31,18 +31,27 @@ export class DiscrepancySourceDonutComponent {
   protected readonly slices = computed<readonly DonutSlice[]>(() => {
     const s = this.summary();
     return [
-      { name: 'Não creditado', short: 'não creditados', count: s.missingCount, color: '#57617a' },
+      {
+        name: 'Não creditado',
+        short: 'não creditados',
+        count: s.missingCount,
+        color: '#57617a',
+        description: 'Apurado na SIMO, mas sem crédito correspondente no Banka.',
+      },
       {
         name: 'Creditado incorrectamente',
         short: 'creditados a mais ou a menos',
         count: s.mismatchCount,
         color: '#e8342a',
+        description: 'Foi creditado no Banka, mas o valor não bate certo com o apurado na SIMO.',
       },
       {
         name: 'Períodos duplicados',
         short: 'em períodos duplicados',
         count: s.duplicatedPeriods,
         color: '#fe9a00',
+        description:
+          'A mesma chave (POS + período) aparece mais do que uma vez — não se sabe se confere enquanto isso não se resolver.',
       },
     ];
   });

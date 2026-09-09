@@ -1,4 +1,5 @@
 import { ChangeDetectionStrategy, Component, computed, input, signal } from '@angular/core';
+import { LucideInfo } from '@lucide/angular';
 
 import { numberFormatter, percentageShares } from '../format';
 
@@ -22,6 +23,8 @@ export interface DonutSlice {
   readonly count: number;
   /** Hexadecimal: entra em SVG e em drop-shadow, onde classes não servem. */
   readonly color: string;
+  /** Uma frase a explicar o que o estado quer dizer — o "i" da legenda só aparece com isto. */
+  readonly description?: string;
 }
 
 interface Arc extends DonutSlice {
@@ -40,6 +43,7 @@ interface Arc extends DonutSlice {
 @Component({
   selector: 'app-donut-chart',
   changeDetection: ChangeDetectionStrategy.OnPush,
+  imports: [LucideInfo],
   // O cartão que o recebe é flex em coluna; sem isto o anel não esticava.
   host: { class: 'flex flex-1' },
   template: `
@@ -144,8 +148,21 @@ interface Arc extends DonutSlice {
                 [style.backgroundColor]="arc.color"
                 aria-hidden="true"
               ></span>
-              <span class="min-w-0 flex-1 truncate" [class.font-semibold]="on">
+              <span
+                class="min-w-0 flex-1 truncate"
+                [class.font-semibold]="on"
+                [attr.title]="arc.description || null"
+              >
                 {{ arc.name }}
+                @if (arc.description) {
+                  <svg
+                    lucideInfo
+                    [size]="11"
+                    [strokeWidth]="2"
+                    class="mb-0.5 inline-block shrink-0 text-gray-300"
+                    aria-hidden="true"
+                  ></svg>
+                }
               </span>
               <span class="shrink-0 text-2xs tabular-nums text-gray-400">
                 {{ arc.share }}
