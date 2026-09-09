@@ -54,6 +54,12 @@ export class InfoTooltipComponent {
 
   private readonly host = inject(ElementRef<HTMLElement>);
   private tooltipEl: HTMLElement | null = null;
+  /**
+   * Fecha ao rolar em vez de seguir o ícone: presa ao `<body>`, a posição
+   * fica onde nasceu — sem isto, "arrastava-se" ecrã afora até a rolagem
+   * parar e um novo hit-test finalmente disparar o `mouseleave`.
+   */
+  private readonly onScroll = () => this.hide();
 
   constructor() {
     inject(DestroyRef).onDestroy(() => this.hide());
@@ -86,9 +92,13 @@ export class InfoTooltipComponent {
     el.style.left = `${left}px`;
 
     this.tooltipEl = el;
+    // `capture: true` apanha o scroll de qualquer contentor (tabelas com
+    // scroll próprio incluídas) — o evento não sobe por bolha, só por captura.
+    window.addEventListener('scroll', this.onScroll, true);
   }
 
   protected hide(): void {
+    window.removeEventListener('scroll', this.onScroll, true);
     this.tooltipEl?.remove();
     this.tooltipEl = null;
   }
