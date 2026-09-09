@@ -4,6 +4,7 @@ import {
   formatAmount,
   formatMzn,
   formatSignedAmount,
+  formatSignedMzn,
   numberFormatter,
   percentageShares,
 } from '../../../../../../shared/format';
@@ -21,6 +22,8 @@ interface Row {
   readonly dotClass: string;
 }
 
+type Source = 'simo' | 'banka' | 'difference';
+
 /** Reconciliação de montantes — não quantos fechos divergem, mas quanto dinheiro está em cada estado. */
 @Component({
   selector: 'app-amount-reconciliation',
@@ -31,6 +34,31 @@ interface Row {
       <p cardAside class="text-xs text-gray-400">Apurado na SIMO vs creditado no Banka · MZN</p>
 
       <div class="flex flex-col gap-2">
+        <!-- Interruptor simples: a barra e a legenda por baixo dela mudam de lado
+             consoante o que se escolhe — o resto (a tabela) já mostra os dois. -->
+        <div
+          role="tablist"
+          aria-label="Lado da barra"
+          class="ml-auto inline-flex gap-1 rounded-lg bg-moza-100 p-0.5"
+        >
+          @for (option of sources; track option) {
+            <button
+              type="button"
+              role="tab"
+              [attr.aria-selected]="source() === option"
+              (click)="source.set(option)"
+              class="rounded-md px-2.5 py-1 text-2xs font-bold transition-colors"
+              [class]="
+                source() === option
+                  ? 'bg-white text-moza-800 shadow-sm'
+                  : 'text-moza-500 hover:text-moza-800'
+              "
+            >
+              {{ sourceLabel(option) }}
+            </button>
+          }
+        </div>
+
         <app-stacked-bar [segments]="barSegments()" [(active)]="active" />
 
         <!-- Reserva a altura sempre, para a barra não saltar quando isto aparece. -->
@@ -38,9 +66,9 @@ interface Row {
           @if (activeRow(); as row) {
             <span class="size-2 shrink-0 rounded-full" [class]="row.dotClass"></span>
             <span class="font-semibold text-gray-900">{{ row.label }}</span>
-            <span class="text-gray-400">{{ share(row) }} do apurado na SIMO</span>
+            <span class="text-gray-400">{{ share(row) }} {{ sourceCaption() }}</span>
             <span class="ml-auto font-semibold whitespace-nowrap tabular-nums text-gray-900">
-              {{ amount(row.simo) }} <span class="font-normal text-gray-400">MZN</span>
+              {{ displayAmount(row) }} <span class="font-normal text-gray-400">MZN</span>
             </span>
           }
         </p>
@@ -127,6 +155,32 @@ export class AmountReconciliationComponent {
   /** Estado em destaque — vindo da barra ou da linha da tabela, indiferentemente. */
   protected readonly active = signal<string | null>(null);
 
+  /** De que lado a barra desenha as proporções — a tabela mostra sempre os dois. */
+  protected readonly sources: readonly Source[] = ['simo', 'banka', 'difference'];
+  protected readonly source = signal<Source>('simo');
+
+  protected sourceLabel(option: Source): string {
+    switch (option) {
+      case 'simo':
+        return 'SIMO';
+      case 'banka':
+        return 'Banka';
+      case 'difference':
+        return 'Diferença';
+    }
+  }
+
+  protected readonly sourceCaption = computed(() => {
+    switch (this.source()) {
+      case 'simo':
+        return 'do apurado na SIMO';
+      case 'banka':
+        return 'do creditado no Banka';
+      case 'difference':
+        return 'da diferença total entre SIMO e Banka';
+    }
+  });
+
   protected readonly rows = computed<readonly Row[]>(() => {
     const s = this.summary();
     return [
@@ -171,19 +225,47 @@ export class AmountReconciliationComponent {
   });
 
   /**
+   * O valor do lado escolhido no interruptor. Na diferença é o absoluto — a
+   * barra é proporções, e um estado a dever (Banka abaixo da SIMO) não pode
+   * "descontar" largura a outro que sobra; `displayAmount` é que mostra o
+   * sinal, esse sim.
+   */
+  protected valueOf(row: Row): number {
+    switch (this.source()) {
+      case 'simo':
+        return row.simo;
+      case 'banka':
+        return row.banka;
+      case 'difference':
+        return Math.abs(row.banka - row.simo);
+    }
+  }
+
+  /** O que se lê ao lado da barra — na diferença, com sinal, o resto sem. */
+  protected displayAmount(row: Row): string {
+    return this.source() === 'difference'
+      ? this.signedAmount(row.banka - row.simo)
+      : this.amount(this.valueOf(row));
+  }
+
+  /**
    * Os segmentos para a barra. O rótulo acessível é montado aqui e não no
-   * gráfico: é deste lado que se sabe que os valores são meticais e que a quota
-   * é sobre o apurado na SIMO.
+   * gráfico: é deste lado que se sabe que os valores são meticais e de que
+   * lado (SIMO ou Banka) é a quota.
    */
   protected readonly barSegments = computed<readonly BarSegment[]>(() =>
     this.rows()
-      .filter((row) => row.simo > 0)
+      .filter((row) => this.valueOf(row) > 0)
       .map((row) => ({
         key: row.key,
         label: row.label,
-        value: row.simo,
+        value: this.valueOf(row),
         className: row.barClass,
-        ariaLabel: `${row.label}: ${this.mzn(row.simo)}, ${this.share(row)}`,
+        ariaLabel: `${row.label}: ${
+          this.source() === 'difference'
+            ? this.signedMzn(row.banka - row.simo)
+            : this.mzn(this.valueOf(row))
+        }, ${this.share(row)}`,
       })),
   );
 
@@ -198,7 +280,7 @@ export class AmountReconciliationComponent {
   );
 
   /**
-   * Quota de cada estado no total apurado na SIMO — o que a barra desenha.
+   * Quota de cada estado no total do lado escolhido — o que a barra desenha.
    *
    * Calculadas todas de uma vez, e não uma a uma: arredondadas isoladamente não
    * fechariam 100%. Aqui só se mostra uma de cada vez, na legenda por baixo da
@@ -206,7 +288,7 @@ export class AmountReconciliationComponent {
    */
   private readonly sharesByKey = computed(() => {
     const rows = this.rows();
-    const shares = percentageShares(rows.map((row) => row.simo));
+    const shares = percentageShares(rows.map((row) => this.valueOf(row)));
     return new Map(rows.map((row, index) => [row.key, shares[index]]));
   });
 
@@ -220,6 +302,7 @@ export class AmountReconciliationComponent {
   }
 
   protected mzn = formatMzn;
+  protected signedMzn = formatSignedMzn;
   protected amount = formatAmount;
   protected signedAmount = formatSignedAmount;
   protected count = (value: number) => numberFormatter.format(value);
