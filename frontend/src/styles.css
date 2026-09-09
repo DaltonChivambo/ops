@@ -23,14 +23,14 @@
 
      É uma escala densa de propósito: isto é uma ferramenta de operação que mostra
      18 mil linhas, não uma página de marketing. Corpo a 14px, tabelas a 13px. */
-  --text-2xs: 0.6875rem;  /* 11px — rótulos maiúsculos, contadores, badges */
-  --text-xs: 0.75rem;     /* 12px — chips de estado, notas de rodapé */
-  --text-sm: 0.8125rem;   /* 13px — corpo das tabelas */
-  --text-base: 0.875rem;  /* 14px — corpo */
-  --text-lg: 1rem;        /* 16px — títulos de cartão */
-  --text-xl: 1.125rem;    /* 18px — título da página */
-  --text-2xl: 1.375rem;   /* 22px — indicadores */
-  --text-3xl: 1.75rem;    /* 28px — o número ao centro do anel, e mais nada */
+  --text-2xs: 0.6875rem; /* 11px — rótulos maiúsculos, contadores, badges */
+  --text-xs: 0.75rem; /* 12px — chips de estado, notas de rodapé */
+  --text-sm: 0.8125rem; /* 13px — corpo das tabelas */
+  --text-base: 0.875rem; /* 14px — corpo */
+  --text-lg: 1rem; /* 16px — títulos de cartão */
+  --text-xl: 1.125rem; /* 18px — título da página */
+  --text-2xl: 1.375rem; /* 22px — indicadores */
+  --text-3xl: 1.75rem; /* 28px — o número ao centro do anel, e mais nada */
 
   /* Moza navy — cor primária de marca, usada em toda a chrome estrutural
      (navegação, ícones, ligações). */
@@ -60,21 +60,59 @@
 
 /* Entrada do aviso flutuante — desliza a partir do topo. */
 @keyframes toast-in {
-  from { opacity: 0; transform: translateY(-0.75rem) scale(0.98); }
-  to   { opacity: 1; transform: translateY(0) scale(1); }
+  from {
+    opacity: 0;
+    transform: translateY(-0.75rem) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
 }
 
 /* Barra de contagem decrescente do aviso flutuante. */
 @keyframes toast-progress {
-  from { transform: scaleX(1); }
-  to   { transform: scaleX(0); }
+  from {
+    transform: scaleX(1);
+  }
+  to {
+    transform: scaleX(0);
+  }
+}
+
+/* Entrada do cartão de login: sobe um pouco e assenta. É o primeiro ecrã do
+   dia, e é o único sítio onde há tempo para uma entrada — dentro da aplicação
+   não há. */
+@keyframes card-in {
+  from {
+    opacity: 0;
+    transform: translateY(0.75rem);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 /* Entrada do anel: roda um oitavo e assenta. Curta e uma só vez — num ecrã que
    se abre dezenas de vezes por dia, uma animação longa passa a estorvo. */
 @keyframes donut-in {
-  from { opacity: 0; transform: rotate(-45deg) scale(0.94); }
-  to   { opacity: 1; transform: rotate(0) scale(1); }
+  from {
+    opacity: 0;
+    transform: rotate(-45deg) scale(0.94);
+  }
+  to {
+    opacity: 1;
+    transform: rotate(0) scale(1);
+  }
+}
+
+/* Linha de luz a rodar à volta do cartão do logótipo no ecrã de login — o
+   cartão fica fixo; só o gradiente cónico por baixo roda, ad infinitum. */
+@keyframes border-beam-spin {
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 html,
