@@ -45,8 +45,15 @@ const COLLAPSE_BELOW_PX = 1536;
            depende também da barra: a 1280px sobram 1140px com ela encolhida e
            só 952px com ela aberta. Sem isto, abrir a barra apertava a página
            sem que nenhum breakpoint desse por isso. -->
+      <!-- overflow-x-clip, não overflow-x-hidden: um portátil de 1024px com a
+           barra aberta só deixa ~696px de conteúdo, e nem tudo lá dentro cede
+           essa largura de bom grado (uma tabela larga, por exemplo) — isto
+           corta o excesso aqui, antes de empurrar a página inteira para o
+           lado. «hidden» faria o mesmo, mas emparelha overflow-y para «auto»
+           e partia o «position: sticky» dos cabeçalhos das tabelas; «clip»
+           não. -->
       <main
-        class="group/shell px-4 py-5 transition-[margin] duration-200 sm:px-6 lg:px-8 lg:py-6"
+        class="group/shell overflow-x-clip px-4 py-5 transition-[margin] duration-200 sm:px-6 lg:px-8 lg:py-6"
         [attr.data-sidebar]="collapsed() ? 'collapsed' : 'expanded'"
         [class]="collapsed() ? 'lg:ml-[4.75rem]' : 'lg:ml-[16.5rem]'"
       >

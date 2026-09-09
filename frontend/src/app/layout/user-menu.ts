@@ -9,25 +9,17 @@ import {
 } from '@angular/core';
 import {
   LucideChevronsUpDown,
-  LucideKeyRound,
   LucideLifeBuoy,
   LucideLogOut,
   LucideSettings,
-  LucideUser,
 } from '@lucide/angular';
 
 import { SessionStore } from '../core/auth/session.store';
 import { areaLabel } from '../core/navigation';
 import { AVATAR_CLASS } from '../shared/ui/avatar';
 
-/**
- * Entradas por construir: à vista e desactivadas, em vez de clicáveis e sem
- * efeito. Quem é dono da identidade é o GEEA, não esta aplicação — a password
- * é a do domínio, e alterá-la aqui nunca vai ser possível.
- */
+/** Entradas por construir: à vista e desactivadas, em vez de clicáveis e sem efeito. */
 const SOON_ITEMS = [
-  { id: 'profile', label: 'Perfil', icon: 'user' },
-  { id: 'password', label: 'Alterar palavra-passe', icon: 'key' },
   { id: 'settings', label: 'Definições', icon: 'settings' },
   { id: 'support', label: 'Suporte', icon: 'life-buoy' },
 ] as const;
@@ -36,14 +28,7 @@ const SOON_ITEMS = [
 @Component({
   selector: 'app-user-menu',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [
-    LucideChevronsUpDown,
-    LucideKeyRound,
-    LucideLifeBuoy,
-    LucideLogOut,
-    LucideSettings,
-    LucideUser,
-  ],
+  imports: [LucideChevronsUpDown, LucideLifeBuoy, LucideLogOut, LucideSettings],
   host: {
     class: 'relative block',
     '(document:mousedown)': 'onDocumentMouseDown($event)',
@@ -77,11 +62,10 @@ const SOON_ITEMS = [
     </button>
 
     @if (open()) {
-      <!-- Abre para cima: vive no fundo da barra. A w-72 é o que "Alterar
-           palavra-passe" mais a etiqueta pedem sem cortar. -->
+      <!-- Abre para cima: vive no fundo da barra. -->
       <div
         role="menu"
-        class="absolute bottom-full left-0 z-50 mb-2 w-72 rounded-xl border border-gray-100 bg-white py-1.5 shadow-lg"
+        class="absolute bottom-full left-0 z-50 mb-2 w-64 rounded-xl border border-gray-100 bg-white py-1.5 shadow-lg"
       >
         @if (collapsed()) {
           <!-- Encolhida, o gatilho é só o avatar. -->
@@ -98,12 +82,6 @@ const SOON_ITEMS = [
             class="flex cursor-not-allowed items-center gap-2.5 px-3 py-2 text-sm text-gray-400"
           >
             @switch (item.icon) {
-              @case ('user') {
-                <svg lucideUser [size]="15" [strokeWidth]="1.9" class="shrink-0"></svg>
-              }
-              @case ('key') {
-                <svg lucideKeyRound [size]="15" [strokeWidth]="1.9" class="shrink-0"></svg>
-              }
               @case ('settings') {
                 <svg lucideSettings [size]="15" [strokeWidth]="1.9" class="shrink-0"></svg>
               }
