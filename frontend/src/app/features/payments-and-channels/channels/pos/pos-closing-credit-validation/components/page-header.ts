@@ -1,13 +1,13 @@
 import { ChangeDetectionStrategy, Component, computed, input, output } from '@angular/core';
 import {
   LucideDownload,
-  LucideInfo,
   LucideLoaderCircle,
   LucideRefreshCw,
   LucideShieldCheck,
 } from '@lucide/angular';
 
 import { formatInterval } from '../../../../../../shared/format';
+import { InfoTooltipComponent } from '../../../../../../shared/ui/info-tooltip';
 import type { ValidationResult } from '../data/models';
 
 const dateTimeFormatter = new Intl.DateTimeFormat('pt-PT', {
@@ -21,7 +21,13 @@ const dateTimeFormatter = new Intl.DateTimeFormat('pt-PT', {
 @Component({
   selector: 'app-page-header',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [LucideDownload, LucideInfo, LucideLoaderCircle, LucideRefreshCw, LucideShieldCheck],
+  imports: [
+    InfoTooltipComponent,
+    LucideDownload,
+    LucideLoaderCircle,
+    LucideRefreshCw,
+    LucideShieldCheck,
+  ],
   template: `
     <header class="flex flex-wrap items-start justify-between gap-x-6 gap-y-4">
       <div class="flex min-w-0 items-start gap-3.5">
@@ -38,21 +44,11 @@ const dateTimeFormatter = new Intl.DateTimeFormat('pt-PT', {
             <h1 class="text-xl leading-tight font-bold text-gray-900">{{ heading() }}</h1>
 
             <!-- A descrição é longa; fica arrumada num "i" e só aparece a pedido. -->
-            <span class="group relative inline-flex">
-              <button
-                type="button"
-                aria-label="Sobre esta funcionalidade"
-                class="inline-flex size-6 shrink-0 items-center justify-center rounded-full text-gray-400 transition-colors hover:bg-moza-50 hover:text-moza-700 focus-visible:bg-moza-50 focus-visible:text-moza-700 focus-visible:outline-none"
-              >
-                <svg lucideInfo [size]="16" [strokeWidth]="2"></svg>
-              </button>
-              <span
-                role="tooltip"
-                class="pointer-events-none absolute top-full left-0 z-20 mt-2 w-72 rounded-xl bg-moza-800 px-3.5 py-2.5 text-xs leading-relaxed text-white opacity-0 shadow-lg transition-opacity duration-150 group-hover:opacity-100 group-focus-within:opacity-100 sm:w-80"
-              >
-                {{ description() }}
-              </span>
-            </span>
+            <app-info-tooltip
+              [text]="description()"
+              label="Sobre esta funcionalidade"
+              [size]="16"
+            />
           </div>
 
           @if (result(); as r) {
