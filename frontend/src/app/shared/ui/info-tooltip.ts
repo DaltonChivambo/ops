@@ -26,7 +26,7 @@ import { LucideInfo } from '@lucide/angular';
       </button>
       <span
         role="tooltip"
-        class="pointer-events-none absolute z-20 w-64 rounded-xl bg-moza-800 px-3.5 py-2.5 text-xs leading-relaxed font-normal text-white opacity-0 shadow-lg transition-opacity duration-150 group-hover:opacity-100 group-focus-within:opacity-100 sm:w-72"
+        class="pointer-events-none absolute z-20 w-56 max-w-[80vw] rounded-xl bg-moza-800 px-3.5 py-2.5 text-xs leading-relaxed font-normal text-white opacity-0 shadow-lg transition-opacity duration-150 group-hover:opacity-100 group-focus-within:opacity-100 sm:w-64"
         [class]="position()"
       >
         {{ text() }}
@@ -40,13 +40,17 @@ export class InfoTooltipComponent {
   /** Tamanho do ícone — o botão cresce à volta dele, sempre com a mesma folga. */
   readonly size = input(11);
   /**
-   * Onde o popover se abre a partir do ícone. Por omissão, abaixo e à
-   * esquerda — junto a uma linha perto do fundo de um contentor com scroll
-   * (a tabela da Reconciliação de Montantes, por exemplo), passa-se `up`
-   * para abrir por cima e não ficar cortado.
+   * Abre por baixo e centrado no ícone, por omissão — centrado porque o
+   * ícone raramente está a meio da tela, e um popover ancorado só de um
+   * lado (ex.: `left-0`) cortava-se na borda de tabelas com scroll
+   * horizontal (`overflow-x-auto`), como a da Reconciliação de Montantes.
+   * Junto ao fundo de um contentor (a última linha de uma tabela, o Total),
+   * passa-se `true` para abrir por cima em vez de por baixo.
    */
   readonly openUpward = input(false);
 
   protected readonly position = () =>
-    this.openUpward() ? 'bottom-full left-0 mb-2' : 'top-full left-0 mt-2';
+    this.openUpward()
+      ? 'bottom-full left-1/2 mb-2 -translate-x-1/2'
+      : 'top-full left-1/2 mt-2 -translate-x-1/2';
 }
