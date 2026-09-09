@@ -43,7 +43,7 @@ export class DiscrepancySourceDonutComponent {
         short: 'creditados a mais ou a menos',
         count: s.mismatchCount,
         color: '#e8342a',
-        description: 'Foi creditado no Banka, mas o valor não bate certo com o apurado na SIMO.',
+        description: 'Foi creditado no Banka, mas o valor não corresponde ao apurado na SIMO.',
       },
       {
         name: 'Períodos duplicados',

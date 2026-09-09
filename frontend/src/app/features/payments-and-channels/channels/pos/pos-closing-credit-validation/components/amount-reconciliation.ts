@@ -1,4 +1,5 @@
 import { ChangeDetectionStrategy, Component, computed, input, signal } from '@angular/core';
+import { LucideInfo } from '@lucide/angular';
 
 import {
   formatAmount,
@@ -20,6 +21,8 @@ interface Row {
   readonly banka: number;
   readonly barClass: string;
   readonly dotClass: string;
+  /** Uma frase a explicar o estado — o "i" ao lado do rótulo só aparece com isto. */
+  readonly description?: string;
 }
 
 type Source = 'simo' | 'banka' | 'difference';
@@ -28,7 +31,7 @@ type Source = 'simo' | 'banka' | 'difference';
 @Component({
   selector: 'app-amount-reconciliation',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [CollapsibleCardComponent, StackedBarComponent],
+  imports: [CollapsibleCardComponent, StackedBarComponent, LucideInfo],
   template: `
     <app-collapsible-card heading="Reconciliação de Montantes" storageKey="reconciliacao-montantes">
       <p cardAside class="text-xs text-gray-400">Apurado na SIMO vs creditado no Banka · MZN</p>
@@ -105,6 +108,19 @@ type Source = 'simo' | 'banka' | 'difference';
                       aria-hidden="true"
                     ></span>
                     <span class="font-semibold text-gray-900">{{ row.label }}</span>
+                    @if (row.description) {
+                      <!-- Título só no ícone: passar pelo rótulo não deve acender a
+                           explicação, só passar mesmo pelo "i". -->
+                      <span [attr.title]="description(row)" class="inline-flex align-middle">
+                        <svg
+                          lucideInfo
+                          [size]="11"
+                          [strokeWidth]="2"
+                          class="shrink-0 text-gray-300"
+                          aria-hidden="true"
+                        ></svg>
+                      </span>
+                    }
                   </span>
                 </td>
                 <td class="px-4 py-3 text-right whitespace-nowrap tabular-nums">
@@ -127,7 +143,20 @@ type Source = 'simo' | 'banka' | 'difference';
             }
 
             <tr class="font-semibold text-gray-900">
-              <td class="py-3 pr-3 pl-1.5">Total</td>
+              <td class="py-3 pr-3 pl-1.5">
+                <span class="inline-flex items-center gap-2">
+                  Total
+                  <span [attr.title]="totalDescription()" class="inline-flex align-middle">
+                    <svg
+                      lucideInfo
+                      [size]="11"
+                      [strokeWidth]="2"
+                      class="shrink-0 text-gray-300"
+                      aria-hidden="true"
+                    ></svg>
+                  </span>
+                </span>
+              </td>
               <td class="px-4 py-3 text-right whitespace-nowrap tabular-nums">
                 {{ count(summary().processed) }}
               </td>
@@ -192,6 +221,7 @@ export class AmountReconciliationComponent {
         banka: s.bankaAmountMatched,
         barClass: 'bg-emerald-500',
         dotClass: 'bg-emerald-500',
+        description: 'O valor creditado no Banka corresponde ao apurado na SIMO.',
       },
       {
         key: 'mismatch',
@@ -201,6 +231,7 @@ export class AmountReconciliationComponent {
         banka: s.bankaAmountMismatched,
         barClass: 'bg-alert-500',
         dotClass: 'bg-alert-500',
+        description: 'Foi creditado no Banka, mas o valor não corresponde ao apurado na SIMO.',
       },
       {
         key: 'missing',
@@ -210,6 +241,7 @@ export class AmountReconciliationComponent {
         banka: 0,
         barClass: 'bg-moza-500',
         dotClass: 'bg-moza-500',
+        description: 'Ainda sem crédito correspondente no Banka.',
       },
       // Banka duplica tal como a SIMO aqui; dar o lado por zero punha esse dinheiro como em falta.
       {
@@ -220,6 +252,8 @@ export class AmountReconciliationComponent {
         banka: s.bankaAmountDuplicated,
         barClass: 'bg-amber-500',
         dotClass: 'bg-amber-500',
+        description:
+          'A mesma chave (POS + período) aparece mais do que uma vez — não se sabe se confere enquanto isso não se resolver.',
       },
     ];
   });
@@ -279,6 +313,12 @@ export class AmountReconciliationComponent {
     this.rows().reduce((total, row) => total + row.banka, 0),
   );
 
+  protected readonly totalDescription = computed(
+    () =>
+      `Apurado na SIMO: ${this.amount(this.totalSimo())} MZN. ` +
+      `Creditado no Banka: ${this.amount(this.totalBanka())} MZN.`,
+  );
+
   /**
    * Quota de cada estado no total do lado escolhido — o que a barra desenha.
    *
@@ -294,6 +334,14 @@ export class AmountReconciliationComponent {
 
   protected share(row: Row): string {
     return this.sharesByKey().get(row.key) ?? '0%';
+  }
+
+  /** A razão do estado, seguida dos montantes reais — é isso que o "i" mostra. */
+  protected description(row: Row): string {
+    const simoText = `Apurado na SIMO: ${this.amount(row.simo)} MZN.`;
+    if (row.key === 'missing') return `${row.description} ${simoText}`;
+    const bankaText = `Creditado no Banka: ${this.amount(row.banka)} MZN.`;
+    return `${row.description} ${simoText} ${bankaText}`;
   }
 
   protected widthOf(row: Row): number {

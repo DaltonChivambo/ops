@@ -148,20 +148,20 @@ interface Arc extends DonutSlice {
                 [style.backgroundColor]="arc.color"
                 aria-hidden="true"
               ></span>
-              <span
-                class="min-w-0 flex-1 truncate"
-                [class.font-semibold]="on"
-                [attr.title]="arc.description || null"
-              >
+              <span class="min-w-0 flex-1 truncate" [class.font-semibold]="on">
                 {{ arc.name }}
                 @if (arc.description) {
-                  <svg
-                    lucideInfo
-                    [size]="11"
-                    [strokeWidth]="2"
-                    class="mb-0.5 inline-block shrink-0 text-gray-300"
-                    aria-hidden="true"
-                  ></svg>
+                  <!-- O título fica só no ícone: passar pelo nome inteiro não deve
+                       acender a explicação, só passar mesmo pelo "i". -->
+                  <span [attr.title]="arc.description" class="inline-flex align-middle">
+                    <svg
+                      lucideInfo
+                      [size]="11"
+                      [strokeWidth]="2"
+                      class="mb-0.5 inline-block shrink-0 text-gray-300"
+                      aria-hidden="true"
+                    ></svg>
+                  </span>
                 }
               </span>
               <span class="shrink-0 text-2xs tabular-nums text-gray-400">
