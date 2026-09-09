@@ -7,7 +7,7 @@ import {
   LucideX,
 } from '@lucide/angular';
 
-import { CardComponent } from '../../../../../shared/ui/card';
+import { CardComponent } from '../../../../../../shared/ui/card';
 import type { ProgressPhase, UploadSlotId } from '../data/models';
 
 interface SlotConfig {

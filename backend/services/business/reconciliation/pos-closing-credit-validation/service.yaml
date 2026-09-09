@@ -11,9 +11,9 @@
 # INTEGRAÇÃO`, código GEEA 3230. O valor tem de ser igual ao `AUTH_SERVICE_AREA`
 # do compose e ao id do catálogo do SPA — os três dizem a mesma coisa, e
 # discordarem tira o acesso a toda a gente.
-name: closing-credit-validation
-category: reconciliation
-context: Validação de crédito de valores de fecho
+name: pos-closing-credit-validation
+category: business/reconciliation
+context: Validação de crédito de valores de fecho do POS
 
 # `port` é a que o contentor escuta — a mesma do EXPOSE, do gunicorn e do
 # `loadbalancer.server.port` do Traefik. A 8001 é só a publicação em
@@ -36,22 +36,9 @@ developed_by: [Dalton Chivambo]
 requirements_by: [Dalton Chivambo]
 
 # ─── Infraestrutura ──────────────────────────────────────────────────────────
-# TUDO o que ainda diz `closing_reconciliation`, o nome antigo do serviço, está
-# nesta lista — e é de propósito que está toda num sítio só, em vez de espalhada
-# por comentários.
-#
-# Não é descuido: renomear obriga a migrar a base que já tem as execuções reais
-# (18 138 fechos) e a editar o `.env` de quem já corre isto. O nome do serviço
-# mudou; o do armazenamento fica até haver uma janela para o migrar, e então
-# corre-se isto:
-#
-#   ALTER DATABASE mozaops_closing_reconciliation
-#     RENAME TO mozaops_closing_credit_validation;
-#   ALTER ROLE closing_reconciliation
-#     RENAME TO closing_credit_validation;
-#
-# ... e mudam-se, a par, o `DB_RECONCILIATION_*` do `.env`, o `DATABASE_URL` do
-# `docker-compose.yml` e o `create_database` do initdb.
-database: mozaops_closing_reconciliation
-role: closing_reconciliation
+# Nome do serviço, da base e do role já dizem todos a mesma coisa — não há um
+# nome antigo por migrar. (Houve, no serviço anterior — `closing_reconciliation`
+# — e migrou-se junto com este rename, com os dados reais preservados.)
+database: mozaops_pos_closing_credit_validation
+role: pos_closing_credit_validation
 env_prefix: DB_RECONCILIATION

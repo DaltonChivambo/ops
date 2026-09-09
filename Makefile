@@ -6,10 +6,12 @@ COMPOSE := docker compose
 # O `lint` e o `test` partilham a imagem: é o estágio que traz o pytest, o ruff e
 # o mypy, que a imagem de execução não leva. Construir uma vez serve os dois.
 #
-# `SERVICES` é a lista `categoria/serviço`. Estava aqui um serviço fixo, e com o
-# segundo isso deixava metade do backend por testar sem o dizer. Para correr só
-# um: `make test SERVICES=platform/identity`.
-SERVICES := reconciliation/closing-credit-validation platform/identity
+# `SERVICES` é a lista de caminhos completos até cada serviço (o `business/`
+# tem uma subcategoria a mais, por isso os caminhos não têm todos a mesma
+# profundidade). Estava aqui um serviço fixo, e com o segundo isso deixava
+# metade do backend por testar sem o dizer. Para correr só um:
+# `make test SERVICES=platform/identity`.
+SERVICES := business/reconciliation/pos-closing-credit-validation platform/identity
 
 .PHONY: help up down restart logs status verify-m0 psql clean migrate test lint test-image
 
@@ -22,11 +24,11 @@ up:  ## Sobe a infraestrutura e os serviços
 	$(COMPOSE) up -d --build
 
 migrate:  ## Aplica as migrações Alembic de cada serviço
-	$(COMPOSE) run --rm closing-credit-validation alembic upgrade head
+	$(COMPOSE) run --rm pos-closing-credit-validation alembic upgrade head
 
 test-image:
 	@for path in $(SERVICES); do \
-		category=$${path%%/*}; service=$${path##*/}; \
+		category=$${path%/*}; service=$${path##*/}; \
 		docker build --target test \
 			--build-arg CATEGORY=$$category --build-arg SERVICE=$$service \
 			-t mozaops-$$service:test ./backend || exit 1; \
@@ -58,7 +60,7 @@ lint: test-image  ## ruff (regras e formato) e mypy --strict, sobre o backend to
 	@# `pyproject.toml` com a configuração das duas ferramentas — e passá-lo em
 	@# `-w` faz o Git Bash do Windows traduzi-lo para um caminho que não existe.
 	@for path in $(SERVICES); do \
-		category=$${path%%/*}; service=$${path##*/}; \
+		category=$${path%/*}; service=$${path##*/}; \
 		echo "── $$service ─────────────────────────────────────────────"; \
 		docker run --rm mozaops-$$service:test sh -c "cd /app && \
 			ruff check . && \

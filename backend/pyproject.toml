@@ -6,8 +6,11 @@ requires-python = ">=3.12"
 dependencies = []
 
 [tool.uv.workspace]
-# Dois niveis: os servicos agrupam-se por categoria (services/<categoria>/<servico>).
-members = ["libs", "services/*/*"]
+# Dois niveis por omissao: services/<categoria>/<servico>. O `business/` tem uma
+# subcategoria a mais — services/business/<subcategoria>/<servico> — daí o
+# terceiro padrao. Explicitos e nao um `*/*/*` generico, para nao apanhar uma
+# pasta de subcategoria vazia como se fosse um pacote.
+members = ["libs", "services/platform/*", "services/business/*/*"]
 
 [tool.uv]
 # `mozaops-libs` é resolvido a partir do workspace e não do índice público.

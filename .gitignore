@@ -33,6 +33,7 @@ test-results/
 staging/
 postgres-data/
 keycloak-data/
+data/
 
 # Ficheiros de trabalho do DOP (dados bancários — nunca versionar)
 docs/sample-reports/

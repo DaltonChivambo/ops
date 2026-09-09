@@ -18,8 +18,8 @@ class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_prefix="", extra="ignore")
 
     database_url: str = (
-        "postgresql+asyncpg://closing_reconciliation:mude-me-em-producao"
-        "@127.0.0.1:15432/mozaops_closing_reconciliation"
+        "postgresql+asyncpg://pos_closing_credit_validation:mude-me-em-producao"
+        "@127.0.0.1:15432/mozaops_pos_closing_credit_validation"
     )
     # Tamanho máximo de cada ficheiro carregado, verificado em
     # `controllers/executions.py` antes de o openpyxl lhe tocar.

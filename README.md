@@ -23,10 +23,10 @@ Compose.
 
 | | |
 |---|---|
-| `reconciliation/closing-credit-validation` (POS) | construído — parse, reconciliação, persistência e relatório |
+| `business/reconciliation/pos-closing-credit-validation` (POS) | construído — parse, reconciliação, persistência e relatório |
 | `platform/identity` | construído — sessões contra o GEEA, com as rotas das automações fechadas |
 | Autenticação | ligada: credenciais do domínio, acesso por área |
-| Canais ATM e Quiosques | por fazer (é a mesma automação, muda o ficheiro de entrada) |
+| Canais ATM e Quiosques | por fazer — serviços próprios, independentes do POS |
 | Serviço `cases` | por fazer |
 | CI | por fazer |
 

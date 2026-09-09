@@ -12,7 +12,7 @@ DOMAIN="${DOMAIN:-mozaops.localhost}"
 # As credenciais do mock do GEEA. Em produção não há aqui login nenhum a fazer:
 # este script é do ambiente local, e é o único sítio onde uma password de mock
 # é aceitável.
-GEEA_USER="${GEEA_KEYCLOAK_USERNAME:-geea.integracao}"
+GEEA_USER="${GEEA_KEYCLOAK_USERNAME:-m002000}"
 GEEA_PASS="${GEEA_KEYCLOAK_PASSWORD:-mude-me-em-producao}"
 
 failures=0
@@ -60,13 +60,13 @@ echo
 echo "Bases de dados"
 databases=$(docker compose exec -T postgres psql -U "${POSTGRES_USER:-postgres}" -tAc \
             'SELECT datname FROM pg_database' 2>/dev/null)
-for database in mozaops_closing_reconciliation mozaops_cases; do
+for database in mozaops_pos_closing_credit_validation mozaops_cases; do
   grep -qx "$database" <<<"$databases" && ok "$database" || fail "$database em falta"
 done
 
 # O REVOKE não é opcional: é ele que faz «database per service» significar algo.
 cross=$(docker compose exec -T postgres psql -U "${POSTGRES_USER:-postgres}" -tAc \
-        "SELECT has_database_privilege('${DB_CASES_USER:-cases}', 'mozaops_closing_reconciliation', 'CONNECT')" 2>/dev/null | tr -d '[:space:]')
+        "SELECT has_database_privilege('${DB_CASES_USER:-cases}', 'mozaops_pos_closing_credit_validation', 'CONNECT')" 2>/dev/null | tr -d '[:space:]')
 [[ "$cross" == "f" ]] \
   && ok "o role '${DB_CASES_USER:-cases}' NÃO se liga à base da reconciliação" \
   || fail "isolamento cruzado falhou (has_database_privilege devolveu '${cross:-?}')"

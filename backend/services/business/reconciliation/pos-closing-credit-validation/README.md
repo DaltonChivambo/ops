@@ -1,4 +1,4 @@
-# closing-credit-validation
+# pos-closing-credit-validation
 
 Validação de crédito de valores de fecho de POS.
 
@@ -6,9 +6,12 @@ Confirma que os valores de fecho dos POS apurados no Portal SIMO foram
 efectivamente creditados nas contas à ordem dos comerciantes no Banka,
 classifica as divergências e gera o relatório do departamento.
 
+Específico do POS — ATM e Quiosques, quando chegar a vez, ganham os seus
+próprios serviços em vez de partilhar este.
+
 | | |
 |---|---|
-| Categoria | `reconciliation` |
+| Categoria | `business/reconciliation` |
 | Departamento | Meios de Pagamentos e Canais (DOP) |
 | Canal | POS |
 | Porta | 8000 no contentor · 8001 publicada em desenvolvimento |
@@ -27,7 +30,7 @@ outros dois campos registam quem fez o trabalho — hoje a mesma pessoa, mas sã
 papéis diferentes e separam-se quando a equipa crescer.
 
 Os mesmos dados estão no [`service.yaml`](service.yaml), que é a versão legível
-por máquina e alimenta o [`OWNERS.md`](../../../../OWNERS.md) da raiz. Ao mudar
+por máquina e alimenta o [`OWNERS.md`](../../../../../OWNERS.md) da raiz. Ao mudar
 um, mudar o outro.
 
 ## O que faz
@@ -47,7 +50,7 @@ duplicados — persiste o resultado e gera o relatório em Excel.
 ## Organização
 
 Cinco camadas, num só sentido — ver a
-[ADR 0008](../../../../docs/adr/0008-cinco-camadas-por-servico.md).
+[ADR 0008](../../../../../docs/adr/0008-cinco-camadas-por-servico.md).
 
 ```
 app/
@@ -98,10 +101,3 @@ bancários e não são versionados. Para o correr, pô-los em `tests/fixtures/` 
 
 Em desenvolvimento o serviço escuta em `localhost:8001`, que é para onde o
 proxy do frontend reencaminha `/api/pos/validacao-credito-fecho`.
-
-## Nota sobre nomes
-
-A base de dados e o role ainda se chamam `closing_reconciliation`, o nome
-anterior do serviço. Renomeá-los obrigaria a migrar a base que já tem execuções
-reais e a editar o `.env` de quem já corre isto — fica para uma janela própria.
-O `service.yaml` regista os dois nomes e traz o `ALTER DATABASE` pronto.

@@ -39,21 +39,22 @@ services:
       retries: 5
 
   # ─── Serviços de negócio ──────────────────────────────────────────────────
-  # Validação de crédito de valores de fecho — POS hoje, ATM e Quiosques a
-  # seguir (é a mesma automação, muda o ficheiro de entrada).
-  closing-credit-validation:
+  # Validação de crédito de valores de fecho — específico do POS. ATM e
+  # Quiosques, quando chegar a vez, ganham serviços próprios em vez de
+  # partilhar este.
+  pos-closing-credit-validation:
     build:
       # Contexto em `backend/` e não na pasta do serviço: o workspace uv resolve
       # `libs/` por caminho, e um contexto mais estreito não lá chegava.
       context: ./backend
       args:
-        CATEGORY: reconciliation
-        SERVICE: closing-credit-validation
-    image: mozaops-closing-credit-validation
-    container_name: mozaops-closing-credit-validation
+        CATEGORY: business/reconciliation
+        SERVICE: pos-closing-credit-validation
+    image: mozaops-pos-closing-credit-validation
+    container_name: mozaops-pos-closing-credit-validation
     restart: unless-stopped
     environment:
-      DATABASE_URL: postgresql+asyncpg://${DB_RECONCILIATION_USER}:${DB_RECONCILIATION_PASSWORD}@postgres:5432/mozaops_closing_reconciliation
+      DATABASE_URL: postgresql+asyncpg://${DB_RECONCILIATION_USER}:${DB_RECONCILIATION_PASSWORD}@postgres:5432/mozaops_pos_closing_credit_validation
       LOG_LEVEL: ${LOG_LEVEL}
       # Com valor por omissão porque a variável é nova: um `.env` anterior a ela
       # resolveria para string vazia, e uma string vazia num campo inteiro faz o
@@ -81,11 +82,11 @@ services:
       # da API, não parte do caminho. O stripprefix faz aqui o que o
       # `pathRewrite` do proxy.conf.json faz em dev — mesma topologia dos dois
       # lados, que é o ponto de haver um proxy à frente.
-      - traefik.http.routers.closing-credit-validation.rule=Host(`${DOMAIN}`) && PathPrefix(`/api/pos/validacao-credito-fecho`)
-      - traefik.http.routers.closing-credit-validation.entrypoints=web
+      - traefik.http.routers.pos-closing-credit-validation.rule=Host(`${DOMAIN}`) && PathPrefix(`/api/pos/validacao-credito-fecho`)
+      - traefik.http.routers.pos-closing-credit-validation.entrypoints=web
       - traefik.http.middlewares.api-strip.stripprefix.prefixes=/api
-      - traefik.http.routers.closing-credit-validation.middlewares=api-strip
-      - traefik.http.services.closing-credit-validation.loadbalancer.server.port=8000
+      - traefik.http.routers.pos-closing-credit-validation.middlewares=api-strip
+      - traefik.http.services.pos-closing-credit-validation.loadbalancer.server.port=8000
 
   # Sessões e áreas. É quem fala com o GEEA — nenhum outro serviço o faz — e
   # quem diz ao SPA quem está do outro lado. Sem base de dados: a identidade

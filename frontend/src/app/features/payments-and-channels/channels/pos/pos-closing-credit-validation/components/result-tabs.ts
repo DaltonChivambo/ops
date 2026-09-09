@@ -12,7 +12,7 @@ import {
 } from '@angular/core';
 import { LucideArrowUp, LucideTriangleAlert } from '@lucide/angular';
 
-import { numberFormatter } from '../../../../../shared/format';
+import { numberFormatter } from '../../../../../../shared/format';
 import type { ValidationResult } from '../data/models';
 import { type CasePatch, PendingCasesTableComponent } from './pending-cases-table';
 import { ReconciliationTableComponent } from './reconciliation-table';

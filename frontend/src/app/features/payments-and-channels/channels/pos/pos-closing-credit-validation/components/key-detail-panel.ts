@@ -16,7 +16,7 @@ import {
   formatDate,
   formatSignedAmount,
   numberFormatter,
-} from '../../../../../shared/format';
+} from '../../../../../../shared/format';
 import { ReconciliationApi } from '../data/reconciliation-api.service';
 import { STATE_CHIP, STATE_DOT, STATE_LABEL } from '../data/state-options';
 import type { ClosingDetail, KeyBreakdown } from '../data/models';

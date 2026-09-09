@@ -4,7 +4,7 @@ Esta lista é o contrato com o `.env.example` e com o `docker-compose.yml`: o
 que o serviço lê está aqui, e o que aqui não está o serviço não lê, porque o
 `extra="ignore"` esconde qualquer variável mal escrita.
 
-As variáveis `auth_*` são **as mesmas** que o `closing-credit-validation`
+As variáveis `auth_*` são **as mesmas** que o `pos-closing-credit-validation`
 declara, e no compose recebem o mesmo `${...}`: dois serviços a mapear áreas
 de maneira diferente seria uma porta aberta num deles.
 """

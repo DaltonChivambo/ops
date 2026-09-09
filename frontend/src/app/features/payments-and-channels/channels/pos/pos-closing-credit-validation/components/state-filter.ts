@@ -10,7 +10,7 @@ import {
 } from '@angular/core';
 import { LucideCheck, LucideChevronDown, LucideListFilter, LucideMinus } from '@lucide/angular';
 
-import { numberFormatter } from '../../../../../shared/format';
+import { numberFormatter } from '../../../../../../shared/format';
 import type { DetailCounts } from '../data/models';
 import { ALL_STATES, STATE_OPTIONS, type StateId } from '../data/state-options';
 

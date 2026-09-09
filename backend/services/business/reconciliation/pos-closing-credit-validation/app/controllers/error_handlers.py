@@ -24,7 +24,7 @@ from app.domain.errors import (
 )
 from mozaops_libs.auth import register_error_handlers
 
-logger = logging.getLogger("closing_credit_validation")
+logger = logging.getLogger("pos_closing_credit_validation")
 
 # Percorrido pela MRO da excepção, do mais específico para o mais geral: uma
 # subclasse nova de `BusinessRuleError` cai no 422 sem se tocar aqui.

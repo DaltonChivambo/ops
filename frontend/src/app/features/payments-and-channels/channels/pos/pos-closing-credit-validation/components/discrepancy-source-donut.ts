@@ -1,7 +1,7 @@
 import { ChangeDetectionStrategy, Component, computed, input } from '@angular/core';
 
-import { CollapsibleCardComponent } from '../../../../../shared/ui/collapsible-card';
-import { DonutChartComponent, type DonutSlice } from '../../../../../shared/ui/donut-chart';
+import { CollapsibleCardComponent } from '../../../../../../shared/ui/collapsible-card';
+import { DonutChartComponent, type DonutSlice } from '../../../../../../shared/ui/donut-chart';
 import type { ClosingSummary } from '../data/models';
 
 /**

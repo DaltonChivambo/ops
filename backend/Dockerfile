@@ -18,11 +18,13 @@
 # pastas dos serviços seriam duplicação a ter de andar sincronizada. O que
 # muda entre eles é o nome; passa em `--build-arg`.
 #
-#   docker build --build-arg CATEGORY=reconciliation \
-#                --build-arg SERVICE=closing-credit-validation -t mozaops-ccv backend
+#   docker build --build-arg CATEGORY=business/reconciliation \
+#                --build-arg SERVICE=pos-closing-credit-validation -t mozaops-ccv backend
 #
 # Dois argumentos porque os servicos vivem em services/<categoria>/<servico>:
-# CATEGORY so entra no caminho, SERVICE entra tambem no nome do pacote.
+# CATEGORY so entra no caminho, SERVICE entra tambem no nome do pacote. O
+# `business/` tem uma subcategoria a mais — CATEGORY leva a barra lá dentro
+# (`business/reconciliation`), e a substituição de string trata do resto.
 
 ARG CATEGORY
 ARG SERVICE
@@ -64,7 +66,7 @@ WORKDIR /app
 # padrão achata tudo para o mesmo destino e os manifestos sobrepõem-se.
 COPY pyproject.toml uv.lock ./
 COPY libs/ libs/
-COPY --parents services/*/*/pyproject.toml ./
+COPY --parents services/platform/*/pyproject.toml services/business/*/*/pyproject.toml ./
 RUN uv sync --locked --no-dev --no-install-workspace --package mozaops-${SERVICE}
 
 # Agora o código, e o segundo sync só instala os pacotes do workspace.

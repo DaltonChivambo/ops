@@ -5,7 +5,7 @@ nada o verificava: acrescentar um campo de um lado e esquecer o outro não dava
 erro nenhum — dava um `undefined` no ecrã do operador, semanas depois.
 
 As listas abaixo são transcritas de
-`frontend/src/app/features/payments-and-channels/channels/closing-reconciliation/data/models.ts`.
+`frontend/src/app/features/payments-and-channels/channels/pos/pos-closing-credit-validation/data/models.ts`.
 Ao mudar o contrato mudam-se as duas, e é isso que se pretende: que a mudança
 seja deliberada dos dois lados.
 """

@@ -6,9 +6,9 @@ import {
   formatSignedAmount,
   numberFormatter,
   percentageShares,
-} from '../../../../../shared/format';
-import { CollapsibleCardComponent } from '../../../../../shared/ui/collapsible-card';
-import { StackedBarComponent, type BarSegment } from '../../../../../shared/ui/stacked-bar';
+} from '../../../../../../shared/format';
+import { CollapsibleCardComponent } from '../../../../../../shared/ui/collapsible-card';
+import { StackedBarComponent, type BarSegment } from '../../../../../../shared/ui/stacked-bar';
 import type { ClosingSummary } from '../data/models';
 
 interface Row {

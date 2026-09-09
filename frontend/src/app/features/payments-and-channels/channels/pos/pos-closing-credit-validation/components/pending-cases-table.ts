@@ -1,8 +1,8 @@
 import { ChangeDetectionStrategy, Component, computed, input, output, signal } from '@angular/core';
 import { LucideCircleCheck, LucideSearch } from '@lucide/angular';
 
-import { formatAmount, formatDate, numberFormatter } from '../../../../../shared/format';
-import { DataTableComponent, TABLE_CLASS, THEAD_CLASS } from '../../../../../shared/ui/data-table';
+import { formatAmount, formatDate, numberFormatter } from '../../../../../../shared/format';
+import { DataTableComponent, TABLE_CLASS, THEAD_CLASS } from '../../../../../../shared/ui/data-table';
 import type { CaseStatus, CaseType, PendingCase } from '../data/models';
 import { MoneyComponent } from './money';
 
