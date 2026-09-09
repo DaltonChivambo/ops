@@ -15,7 +15,6 @@ import {
   LucideChevronDown,
   LucideChevronRight,
   LucideChevronsLeft,
-  LucideChevronsRight,
   LucideLayoutGrid,
   LucideMonitorSmartphone,
   LucideShieldAlert,
@@ -51,16 +50,8 @@ interface NavSection {
   readonly id: string;
   readonly label?: string;
   /**
-   * A área que abre a secção; `null` = transversal, para toda a gente com
-   * sessão. Quem não é da área não vê a secção — esconder não é controlo
-   * (isso é a guarda de rota e o backend), mas mostrar um menu inteiro que dá
-   * «sem acesso» em cada clique também não é interface nenhuma.
-   *
-   * Hoje é a área da única ilha com automação construída (`channels`), e gate a
-   * secção **inteira** — «Pagamentos» e «Fraudes» são placeholders sem rota
-   * nem área própria, por isso ficam à boleia. Quando uma delas ganhar a
-   * primeira automação, ganha a sua própria área, e este campo desce de
-   * secção para item.
+   * A área que abre a secção; `null` = transversal. Esconder não é controlo de
+   * acesso — isso é a guarda de rota e o backend.
    */
   readonly area: AreaId | null;
   readonly items: readonly NavItem[];
@@ -98,8 +89,7 @@ const SECTIONS: readonly NavSection[] = [
         ],
       },
       {
-        // O label é curto de propósito — a barra lateral não tem largura
-        // para "Suporte e Monitorização de Fraudes" (ver README da área).
+        // Abreviado: não cabe "Suporte e Monitorização de Fraudes".
         id: 'fraud-monitoring',
         label: 'Fraudes',
         icon: 'shield-alert',
@@ -119,7 +109,6 @@ const SECTIONS: readonly NavSection[] = [
     LucideChevronDown,
     LucideChevronRight,
     LucideChevronsLeft,
-    LucideChevronsRight,
     LucideLayoutGrid,
     LucideMonitorSmartphone,
     LucideShieldAlert,
@@ -136,7 +125,7 @@ const SECTIONS: readonly NavSection[] = [
     }
 
     <aside
-      class="fixed inset-y-0 left-0 z-40 flex flex-col border-r border-gray-100 bg-white py-6 transition-[width,translate] duration-200 lg:translate-x-0"
+      class="fixed inset-y-0 left-0 z-40 flex flex-col border-r border-gray-100 bg-white py-6 transition-[width,translate] duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] lg:translate-x-0"
       [class]="collapsed() ? 'w-[4.75rem] px-3' : 'w-[16.5rem] px-4'"
       [class.translate-x-0]="open()"
       [class.-translate-x-full]="!open()"
@@ -148,18 +137,26 @@ const SECTIONS: readonly NavSection[] = [
         [attr.aria-expanded]="!collapsed()"
         class="absolute top-8 -right-3.5 z-10 hidden size-7 items-center justify-center rounded-full border border-gray-200 bg-white text-gray-500 shadow-md transition-colors hover:border-moza-200 hover:bg-moza-50 hover:text-moza-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-moza-400 lg:inline-flex"
       >
-        @if (collapsed()) {
-          <svg lucideChevronsRight [size]="15" [strokeWidth]="2.2"></svg>
-        } @else {
-          <svg lucideChevronsLeft [size]="15" [strokeWidth]="2.2"></svg>
-        }
+        <!-- Um ícone só, a rodar 180° — a troca de svg era instantânea, e
+             ficava dessincronizada da barra a encolher suavemente ao lado. -->
+        <svg
+          lucideChevronsLeft
+          [size]="15"
+          [strokeWidth]="2.2"
+          class="transition-transform duration-300 ease-[cubic-bezier(0.16,1,0.3,1)]"
+          [class.rotate-180]="collapsed()"
+        ></svg>
       </button>
 
       <div class="mb-6 flex items-center" [class]="collapsed() ? 'justify-center' : 'gap-3 px-3'">
         @if (collapsed()) {
-          <img src="mozaops_logo_OPS_sem_fundo.svg" alt="MozaOps" class="h-5 w-auto" />
+          <img
+            src="mozaops_logo_OPS_sem_fundo.svg"
+            alt="MozaOps"
+            class="h-5 w-auto motion-safe:animate-[card-in_300ms_cubic-bezier(0.16,1,0.3,1)]"
+          />
         } @else {
-          <span class="min-w-0">
+          <span class="min-w-0 motion-safe:animate-[card-in_300ms_cubic-bezier(0.16,1,0.3,1)]">
             <img src="mozaops_logo_sem_fundo.svg" alt="MozaOps" class="h-8 w-auto" />
             <!-- Duas linhas em vez de truncar: cortado, o nome da área
                  deixa de dizer de qual se trata. -->
@@ -181,12 +178,17 @@ const SECTIONS: readonly NavSection[] = [
       <nav class="thin-scrollbar min-h-0 flex-1 overflow-y-auto" aria-label="Principal">
         @for (section of sections(); track section.id; let sectionIndex = $index) {
           <div>
-            @if (section.label && !collapsed()) {
-              <p
-                class="mt-6 mb-2 px-3 text-2xs font-semibold tracking-wider text-gray-400 uppercase"
+            @if (section.label) {
+              <div
+                class="grid transition-[grid-template-rows] duration-300 ease-[cubic-bezier(0.16,1,0.3,1)]"
+                [style.grid-template-rows]="collapsed() ? '0fr' : '1fr'"
               >
-                {{ section.label }}
-              </p>
+                <p
+                  class="mt-6 mb-2 overflow-hidden px-3 text-2xs font-semibold tracking-wider text-gray-400 uppercase"
+                >
+                  {{ section.label }}
+                </p>
+              </div>
             }
             @if (collapsed() && sectionIndex > 0) {
               <hr class="my-3 border-gray-100" />
@@ -228,8 +230,8 @@ const SECTIONS: readonly NavSection[] = [
           [attr.aria-label]="item.label"
           [attr.title]="collapsed() ? item.label : null"
           (click)="onItemClick(item)"
-          class="relative flex w-full items-center gap-3 rounded-xl py-2.5 text-left text-base transition-colors"
-          [class]="collapsed() ? 'justify-center px-0' : 'px-3'"
+          class="relative flex w-full items-center rounded-xl py-2.5 text-left text-base transition-[gap,color,background-color] duration-300 ease-[cubic-bezier(0.16,1,0.3,1)]"
+          [class]="collapsed() ? 'justify-center gap-0 px-0' : 'gap-3 px-3'"
           [class.bg-moza-100]="isActive(item)"
           [class.font-semibold]="isActive(item)"
           [class.text-moza-700]="isActive(item) || hasActiveChild(item)"
@@ -245,9 +247,6 @@ const SECTIONS: readonly NavSection[] = [
             ></span>
           }
 
-          <!-- Ícone a vermelho onde se está: no item que é a página, e no grupo
-               que a contém. É a única pista com a barra encolhida. A régua e o
-               fundo ficam só no primeiro — um grupo não é uma página. -->
           <span class="shrink-0" [class.text-alert-500]="isActive(item) || hasActiveChild(item)">
             @switch (item.icon) {
               @case ('layout-grid') {
@@ -265,60 +264,83 @@ const SECTIONS: readonly NavSection[] = [
             }
           </span>
 
-          @if (!collapsed()) {
-            <span class="min-w-0 flex-1 truncate">{{ item.label }}</span>
-          }
+          <!-- Grelha em vez de @if: a coluna encolhe para "0fr" a par da barra,
+               em vez do rótulo aparecer/desaparecer de repente a meio da
+               animação da largura. O flex-1 só entra expandida — fixo, mesmo
+               a 0fr por dentro, o próprio <span> continuava a comer o espaço
+               que sobrava no botão e descentrava o ícone. -->
+          <span
+            class="grid transition-[grid-template-columns] duration-300 ease-[cubic-bezier(0.16,1,0.3,1)]"
+            [class.flex-1]="!collapsed()"
+            [style.grid-template-columns]="collapsed() ? '0fr' : '1fr'"
+          >
+            <span class="min-w-0 overflow-hidden">
+              <span class="block truncate">{{ item.label }}</span>
+            </span>
+          </span>
 
-          @if (!collapsed() && item.children) {
-            <svg
-              lucideChevronDown
-              [size]="16"
-              [strokeWidth]="1.8"
-              class="shrink-0 text-gray-400 transition-transform"
-              [class.rotate-180]="isExpanded(item.id)"
-            ></svg>
+          @if (item.children) {
+            <span
+              class="grid transition-[grid-template-columns] duration-300 ease-[cubic-bezier(0.16,1,0.3,1)]"
+              [style.grid-template-columns]="collapsed() ? '0fr' : '1fr'"
+            >
+              <span class="overflow-hidden">
+                <svg
+                  lucideChevronDown
+                  [size]="16"
+                  [strokeWidth]="1.8"
+                  class="shrink-0 text-gray-400 transition-transform"
+                  [class.rotate-180]="isExpanded(item.id)"
+                ></svg>
+              </span>
+            </span>
           }
         </button>
 
-        @if (item.children && isExpanded(item.id) && !collapsed()) {
-          <ul
-            class="mt-1 mb-1.5 ml-[1.4375rem] flex flex-col gap-0.5 border-l border-moza-100 pl-3"
+        @if (item.children) {
+          <div
+            class="grid transition-[grid-template-rows] duration-300 ease-[cubic-bezier(0.16,1,0.3,1)]"
+            [style.grid-template-rows]="isExpanded(item.id) && !collapsed() ? '1fr' : '0fr'"
           >
-            @for (child of item.children; track child.id) {
-              <li>
-                <button
-                  type="button"
-                  [attr.aria-current]="isChildActive(child) ? 'page' : null"
-                  [attr.aria-haspopup]="child.channel ? 'menu' : null"
-                  [attr.aria-expanded]="child.channel ? flyoutChannelId() === child.id : null"
-                  (click)="onChildClick(child)"
-                  class="relative flex w-full items-center gap-1 rounded-lg px-3 py-2 text-left text-sm transition-colors"
-                  [class.bg-moza-100]="isChildActive(child)"
-                  [class.font-semibold]="isChildActive(child)"
-                  [class.text-moza-700]="isChildActive(child)"
-                  [class.text-gray-500]="!isChildActive(child)"
-                  [class.hover:bg-moza-50]="!isChildActive(child)"
-                  [class.hover:text-gray-900]="!isChildActive(child)"
-                >
-                  @if (isChildActive(child)) {
-                    <span
-                      class="absolute inset-y-1 left-0 w-0.5 rounded-full bg-alert-500"
-                      aria-hidden="true"
-                    ></span>
-                  }
-                  <span class="min-w-0 flex-1 truncate">{{ child.label }}</span>
-                  @if (child.channel) {
-                    <svg
-                      lucideChevronRight
-                      [size]="15"
-                      [strokeWidth]="1.8"
-                      class="shrink-0 text-gray-400"
-                    ></svg>
-                  }
-                </button>
-              </li>
-            }
-          </ul>
+            <ul
+              class="mt-1 mb-1.5 ml-[1.4375rem] flex flex-col gap-0.5 overflow-hidden border-l border-moza-100 pl-3"
+            >
+              @for (child of item.children; track child.id) {
+                <li>
+                  <button
+                    type="button"
+                    [attr.aria-current]="isChildActive(child) ? 'page' : null"
+                    [attr.aria-haspopup]="child.channel ? 'menu' : null"
+                    [attr.aria-expanded]="child.channel ? flyoutChannelId() === child.id : null"
+                    (click)="onChildClick(child)"
+                    class="relative flex w-full items-center gap-1 rounded-lg px-3 py-2 text-left text-sm transition-colors"
+                    [class.bg-moza-100]="isChildActive(child)"
+                    [class.font-semibold]="isChildActive(child)"
+                    [class.text-moza-700]="isChildActive(child)"
+                    [class.text-gray-500]="!isChildActive(child)"
+                    [class.hover:bg-moza-50]="!isChildActive(child)"
+                    [class.hover:text-gray-900]="!isChildActive(child)"
+                  >
+                    @if (isChildActive(child)) {
+                      <span
+                        class="absolute inset-y-1 left-0 w-0.5 rounded-full bg-alert-500"
+                        aria-hidden="true"
+                      ></span>
+                    }
+                    <span class="min-w-0 flex-1 truncate">{{ child.label }}</span>
+                    @if (child.channel) {
+                      <svg
+                        lucideChevronRight
+                        [size]="15"
+                        [strokeWidth]="1.8"
+                        class="shrink-0 text-gray-400"
+                      ></svg>
+                    }
+                  </button>
+                </li>
+              }
+            </ul>
+          </div>
         }
       </li>
     </ng-template>
@@ -350,12 +372,8 @@ export class SidebarComponent {
     return this.expandedIds().has(id);
   }
 
-  /**
-   * Um sinal por rota, construído uma vez — as rotas da barra são estáticas.
-   *
-   * Tem de ser sinal: `router.url` é uma propriedade, e com OnPush sem zone.js
-   * mudar de página não avisava a barra, que só se marcava ao clique seguinte.
-   */
+  /** Tem de ser sinal: `router.url` é uma propriedade, e sem zone.js mudar de
+      página não marcava a barra para verificação. */
   private readonly activeByRoute = new Map<string, Signal<boolean>>();
 
   constructor() {

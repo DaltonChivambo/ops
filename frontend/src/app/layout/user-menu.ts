@@ -47,11 +47,22 @@ const SOON_ITEMS = [
     >
       <span [class]="avatarClass">{{ session.initials() }}</span>
 
-      @if (!collapsed()) {
-        <span class="min-w-0 flex-1 text-left">
+      <!-- Mesma grelha que a barra usa nos rótulos: encolhe a par da largura,
+           em vez de desaparecer de repente a meio da animação. O flex-1 só
+           entra expandida — fixo, o <span> continuava a comer o espaço que
+           sobrava e descentrava o avatar. -->
+      <span
+        class="grid text-left transition-[grid-template-columns] duration-300 ease-[cubic-bezier(0.16,1,0.3,1)]"
+        [class.flex-1]="!collapsed()"
+        [style.grid-template-columns]="collapsed() ? '0fr' : '1fr'"
+      >
+        <span class="min-w-0 overflow-hidden">
           <span class="block truncate text-sm font-semibold text-gray-900">{{ name() }}</span>
           <span class="block truncate text-2xs text-gray-400">{{ areaLabels() }}</span>
         </span>
+      </span>
+
+      @if (!collapsed()) {
         <svg
           lucideChevronsUpDown
           [size]="14"
