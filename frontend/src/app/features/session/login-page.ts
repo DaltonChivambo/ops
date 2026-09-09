@@ -56,7 +56,7 @@ import { ApiError } from '../../core/http/api-error';
         ></div>
 
         <div
-          class="relative inline-flex w-fit overflow-hidden rounded-xl p-[2.5px] shadow-lg shadow-black/30 motion-safe:animate-[card-in_400ms_cubic-bezier(0.22,1,0.36,1)]"
+          class="relative inline-flex w-fit overflow-hidden rounded-xl bg-gradient-to-b from-alert-500 to-alert-600 p-[1.25px] shadow-lg shadow-black/30 motion-safe:animate-[card-in_400ms_cubic-bezier(0.22,1,0.36,1)]"
         >
           <!-- O gradiente cónico é maior do que a moldura e roda por baixo dela; o
                "overflow-hidden" acima recorta-o na forma arredondada, deixando só a
@@ -66,15 +66,15 @@ import { ApiError } from '../../core/http/api-error';
           <div
             aria-hidden="true"
             class="absolute inset-[-60%] blur-sm motion-safe:animate-[border-beam-spin_2.2s_linear_infinite]"
-            style="background-image: conic-gradient(from 0deg, transparent 0%, rgba(255,255,255,0.9) 12%, transparent 30%)"
+            style="background-image: conic-gradient(from 0deg, transparent 0%, rgba(255,255,255,0.55) 6%, transparent 18%)"
           ></div>
           <div
             aria-hidden="true"
             class="absolute inset-[-60%] motion-safe:animate-[border-beam-spin_2.2s_linear_infinite]"
-            style="background-image: conic-gradient(from 0deg, transparent 0%, #fff 10%, transparent 24%)"
+            style="background-image: conic-gradient(from 0deg, transparent 0%, rgba(255,255,255,0.75) 5%, transparent 14%)"
           ></div>
           <div
-            class="relative inline-flex items-center rounded-[calc(0.75rem-2.5px)] bg-white px-3.5 py-2.5"
+            class="relative inline-flex items-center rounded-[calc(0.75rem-1.25px)] bg-white px-3.5 py-2.5"
           >
             <img src="mozaops_logo_sem_fundo.svg" alt="MozaOps" class="h-5 w-auto" />
           </div>
@@ -192,18 +192,40 @@ import { ApiError } from '../../core/http/api-error';
               }
             </label>
 
-            <!-- Não prender à validade do formulário: não é um signal, e numa
-                 app zoneless o botão fica cinzento depois do autofill. -->
-            <button
-              type="submit"
-              [disabled]="signingIn()"
-              class="mt-2 inline-flex items-center justify-center gap-2 rounded-xl bg-gradient-to-b from-alert-500 to-alert-600 px-4 py-3 text-sm font-semibold text-white shadow-lg shadow-alert-700/25 transition-all hover:from-alert-600 hover:to-alert-700 hover:shadow-alert-700/30 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-alert-300 disabled:cursor-not-allowed disabled:opacity-70"
+            <!-- Mesmo efeito do cartão do logótipo, aplicado ao botão principal —
+                 é a única acção desta página, por isso é a que mais o merece. -->
+            <div
+              class="relative mt-2 overflow-hidden rounded-xl bg-gradient-to-b from-alert-500 to-alert-600 p-[1.25px] shadow-xl shadow-alert-700/30 transition-transform duration-150 hover:scale-[1.01] active:scale-[0.97]"
             >
-              @if (signingIn()) {
-                <svg lucideLoaderCircle [size]="16" [strokeWidth]="2" class="animate-spin"></svg>
-              }
-              {{ signingIn() ? 'A entrar…' : 'Entrar' }}
-            </button>
+              <div
+                aria-hidden="true"
+                class="pointer-events-none absolute inset-[-60%] blur-sm motion-safe:animate-[border-beam-spin_2.2s_linear_infinite]"
+                style="background-image: conic-gradient(from 0deg, transparent 0%, rgba(255,255,255,0.55) 6%, transparent 18%)"
+              ></div>
+              <div
+                aria-hidden="true"
+                class="pointer-events-none absolute inset-[-60%] motion-safe:animate-[border-beam-spin_2.2s_linear_infinite]"
+                style="background-image: conic-gradient(from 0deg, transparent 0%, rgba(255,255,255,0.75) 5%, transparent 14%)"
+              ></div>
+
+              <!-- Não prender à validade do formulário: não é um signal, e numa
+                   app zoneless o botão fica cinzento depois do autofill. -->
+              <button
+                type="submit"
+                [disabled]="signingIn()"
+                class="relative inline-flex w-full items-center justify-center gap-2 overflow-hidden rounded-[calc(0.75rem-1.25px)] bg-gradient-to-b from-alert-500 to-alert-600 px-4 py-3 text-sm font-semibold tracking-wide text-white transition-all hover:from-alert-600 hover:to-alert-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-alert-300 disabled:cursor-not-allowed disabled:opacity-70"
+              >
+                <!-- Brilho de vidro no topo — só um verniz, para não ficar chapado. -->
+                <span
+                  aria-hidden="true"
+                  class="pointer-events-none absolute inset-x-0 top-0 h-1/2 bg-gradient-to-b from-white/25 to-transparent"
+                ></span>
+                @if (signingIn()) {
+                  <svg lucideLoaderCircle [size]="16" [strokeWidth]="2" class="animate-spin"></svg>
+                }
+                {{ signingIn() ? 'A entrar…' : 'Entrar' }}
+              </button>
+            </div>
           </form>
 
           <div class="mt-8 flex items-center gap-2">
