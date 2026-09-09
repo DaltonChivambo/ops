@@ -1,7 +1,7 @@
 import { ChangeDetectionStrategy, Component, computed, input, signal } from '@angular/core';
-import { LucideInfo } from '@lucide/angular';
 
 import { numberFormatter, percentageShares } from '../format';
+import { InfoTooltipComponent } from './info-tooltip';
 
 /** Traço fino de propósito: o miolo é para o número, que é o que se vem cá ver. */
 const SIZE = 200;
@@ -43,7 +43,7 @@ interface Arc extends DonutSlice {
 @Component({
   selector: 'app-donut-chart',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [LucideInfo],
+  imports: [InfoTooltipComponent],
   // O cartão que o recebe é flex em coluna; sem isto o anel não esticava.
   host: { class: 'flex flex-1' },
   template: `
@@ -133,10 +133,12 @@ interface Arc extends DonutSlice {
       <ul class="flex w-full max-w-sm flex-col gap-1">
         @for (arc of arcs(); track arc.name) {
           @let on = active() === arc.name;
-          <li>
+          <!-- O "i" fica fora do botão: um botão dentro doutro botão é HTML
+               inválido, e o botão da linha já cobre a fila toda (rato e teclado). -->
+          <li class="flex items-center gap-1">
             <button
               type="button"
-              class="flex w-full items-center gap-2.5 rounded-lg px-2 py-1.5 text-left text-sm transition-colors hover:bg-gray-50 focus-visible:bg-gray-50 focus-visible:outline-none"
+              class="flex min-w-0 flex-1 items-center gap-2.5 rounded-lg px-2 py-1.5 text-left text-sm transition-colors hover:bg-gray-50 focus-visible:bg-gray-50 focus-visible:outline-none"
               (mouseenter)="active.set(arc.name)"
               (mouseleave)="active.set(null)"
               (focus)="active.set(arc.name)"
@@ -150,19 +152,6 @@ interface Arc extends DonutSlice {
               ></span>
               <span class="min-w-0 flex-1 truncate" [class.font-semibold]="on">
                 {{ arc.name }}
-                @if (arc.description) {
-                  <!-- O título fica só no ícone: passar pelo nome inteiro não deve
-                       acender a explicação, só passar mesmo pelo "i". -->
-                  <span [attr.title]="arc.description" class="inline-flex align-middle">
-                    <svg
-                      lucideInfo
-                      [size]="11"
-                      [strokeWidth]="2"
-                      class="mb-0.5 inline-block shrink-0 text-gray-300"
-                      aria-hidden="true"
-                    ></svg>
-                  </span>
-                }
               </span>
               <span class="shrink-0 text-2xs tabular-nums text-gray-400">
                 {{ arc.share }}
@@ -171,6 +160,9 @@ interface Arc extends DonutSlice {
                 {{ count(arc.count) }}
               </span>
             </button>
+            @if (arc.description) {
+              <app-info-tooltip [text]="arc.description" [label]="'Sobre ' + arc.name" />
+            }
           </li>
         } @empty {
           <li class="text-center text-sm text-gray-400">{{ emptyMessage() }}</li>

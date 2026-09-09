@@ -1,5 +1,4 @@
 import { ChangeDetectionStrategy, Component, computed, input, signal } from '@angular/core';
-import { LucideInfo } from '@lucide/angular';
 
 import {
   formatAmount,
@@ -10,6 +9,7 @@ import {
   percentageShares,
 } from '../../../../../../shared/format';
 import { CollapsibleCardComponent } from '../../../../../../shared/ui/collapsible-card';
+import { InfoTooltipComponent } from '../../../../../../shared/ui/info-tooltip';
 import { StackedBarComponent, type BarSegment } from '../../../../../../shared/ui/stacked-bar';
 import type { ClosingSummary } from '../data/models';
 
@@ -31,7 +31,7 @@ type Source = 'simo' | 'banka' | 'difference';
 @Component({
   selector: 'app-amount-reconciliation',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [CollapsibleCardComponent, StackedBarComponent, LucideInfo],
+  imports: [CollapsibleCardComponent, InfoTooltipComponent, StackedBarComponent],
   template: `
     <app-collapsible-card heading="Reconciliação de Montantes" storageKey="reconciliacao-montantes">
       <p cardAside class="text-xs text-gray-400">Apurado na SIMO vs creditado no Banka · MZN</p>
@@ -109,17 +109,11 @@ type Source = 'simo' | 'banka' | 'difference';
                     ></span>
                     <span class="font-semibold text-gray-900">{{ row.label }}</span>
                     @if (row.description) {
-                      <!-- Título só no ícone: passar pelo rótulo não deve acender a
-                           explicação, só passar mesmo pelo "i". -->
-                      <span [attr.title]="row.description" class="inline-flex align-middle">
-                        <svg
-                          lucideInfo
-                          [size]="11"
-                          [strokeWidth]="2"
-                          class="shrink-0 text-gray-300"
-                          aria-hidden="true"
-                        ></svg>
-                      </span>
+                      <app-info-tooltip
+                        [text]="row.description"
+                        [label]="'Sobre ' + row.label"
+                        [openUpward]="row.key === 'duplicated'"
+                      />
                     }
                   </span>
                 </td>
@@ -146,15 +140,11 @@ type Source = 'simo' | 'banka' | 'difference';
               <td class="py-3 pr-3 pl-1.5">
                 <span class="inline-flex items-center gap-2">
                   Total
-                  <span [attr.title]="totalDescription" class="inline-flex align-middle">
-                    <svg
-                      lucideInfo
-                      [size]="11"
-                      [strokeWidth]="2"
-                      class="shrink-0 text-gray-300"
-                      aria-hidden="true"
-                    ></svg>
-                  </span>
+                  <app-info-tooltip
+                    [text]="totalDescription"
+                    label="Sobre o total"
+                    [openUpward]="true"
+                  />
                 </span>
               </td>
               <td class="px-4 py-3 text-right whitespace-nowrap tabular-nums">
