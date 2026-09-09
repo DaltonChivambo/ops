@@ -40,7 +40,7 @@ export class DiscrepancySourceDonutComponent {
       },
       {
         name: 'Creditado incorrectamente',
-        short: 'com valor incorrecto',
+        short: 'incorrectamente creditados',
         count: s.mismatchCount,
         color: '#e8342a',
         description: 'Foi creditado no Banka, mas o valor não corresponde ao apurado na SIMO.',
