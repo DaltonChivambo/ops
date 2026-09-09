@@ -14,8 +14,8 @@ import {
 import { NgTemplateOutlet } from '@angular/common';
 import { LucideChevronRight, LucideCornerDownRight, LucideSearch, LucideX } from '@lucide/angular';
 
-import { formatDate, formatSignedAmount, numberFormatter } from '../../../../../shared/format';
-import { DataTableComponent, TABLE_CLASS, THEAD_CLASS } from '../../../../../shared/ui/data-table';
+import { formatDate, formatSignedAmount, numberFormatter } from '../../../../../../shared/format';
+import { DataTableComponent, TABLE_CLASS, THEAD_CLASS } from '../../../../../../shared/ui/data-table';
 import { ReconciliationApi } from '../data/reconciliation-api.service';
 import type { ClosingDetail, DetailCounts } from '../data/models';
 import {

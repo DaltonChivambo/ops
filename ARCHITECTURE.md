@@ -20,7 +20,7 @@ flowchart LR
     B["Browser<br/>Angular 22 SPA"] -- "HTTP" --> TR["Traefik<br/>entrada única"]
 
     TR -- "/" --> FE["mozaops-web<br/>(nginx)"]
-    TR -- "/api/pos/validacao-credito-fecho<br/>(stripprefix /api)" --> CR["closing-credit-validation<br/>FastAPI"]
+    TR -- "/api/pos/validacao-credito-fecho<br/>(stripprefix /api)" --> CR["pos-closing-credit-validation<br/>FastAPI"]
     TR -- "/api/identity<br/>(stripprefix /api)" --> ID["identity<br/>FastAPI"]
 
     ID -- "SSOLogin · JWKS" --> GE["GEEA<br/>(Keycloak do banco)"]
@@ -62,12 +62,14 @@ automação serve mais do que um.
 
 | Serviço | Responsabilidade | Estado |
 |---|---|---|
-| `reconciliation/closing-credit-validation` | Validação de crédito de valores de fecho: parse dos ficheiros, reconciliação, persistência e relatório | **construído** (POS) |
+| `business/reconciliation/pos-closing-credit-validation` | Validação de crédito de valores de fecho do POS: parse dos ficheiros, reconciliação, persistência e relatório | **construído** |
 | `platform/identity` | Sessões e áreas: fala com o GEEA, devolve token e cookie de renovação, e diz ao SPA quem está do outro lado | **construído** |
 | `cases` | Gestão dos casos de divergência, quando deixar de ser suficiente vivê-los dentro da reconciliação | por fazer |
 
-A mesma automação serve os três canais — POS, ATM e Quiosques. Muda o ficheiro de entrada,
-não a regra: por isso é um serviço e não três.
+`pos-closing-credit-validation` é específico do POS, de propósito — não «a mesma automação
+para os três canais». ATM e Quiosques têm ficheiros de entrada e regras de negócio diferentes
+o suficiente para não valer a pena um serviço só a servi-los aos três; quando chegar a vez de
+cada canal, ganha o seu próprio serviço em `business/`, independente deste.
 
 **Só está aqui o que existe.** Prometer serviços que ainda não foram construídos gasta a
 confiança de quem lê — a mesma regra que o catálogo do frontend segue.
@@ -82,7 +84,7 @@ na base de dados; o repositório nunca decide regra de negócio. Ver
 [ADR 0008](docs/adr/0008-cinco-camadas-por-servico.md).
 
 ```
-backend/services/reconciliation/closing-credit-validation/
+backend/services/business/reconciliation/pos-closing-credit-validation/
 ├── app/
 │   ├── main.py                composition root: a app, o router, os handlers, o /health
 │   ├── settings.py            o que o serviço lê do ambiente — e só o que lê
@@ -135,7 +137,7 @@ ops/
 │   ├── libs/                  mozaops_libs — auth: tokens do GEEA e mapa de áreas
 │   └── services/
 │       ├── platform/identity/
-│       └── reconciliation/closing-credit-validation/
+│       └── business/reconciliation/pos-closing-credit-validation/
 ├── external-services/
 │   └── geea-keycloak/         mock do GEEA para desenvolvimento (NÃO é serviço nosso)
 ├── frontend/                 SPA Angular (features por área → ilha)
@@ -167,7 +169,7 @@ Sem ele, no dia em que alguém escrever um JOIN entre bases, a regra deixou de e
 Verifica-se assim, e tem de falhar:
 
 ```bash
-docker compose exec postgres psql -U closing_reconciliation -d mozaops_cases
+docker compose exec postgres psql -U pos_closing_credit_validation -d mozaops_cases
 # FATAL: permission denied for database "mozaops_cases"
 ```
 

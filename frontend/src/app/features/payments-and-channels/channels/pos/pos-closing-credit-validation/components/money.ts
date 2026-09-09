@@ -1,6 +1,6 @@
 import { ChangeDetectionStrategy, Component, input } from '@angular/core';
 
-import { formatAmount } from '../../../../../shared/format';
+import { formatAmount } from '../../../../../../shared/format';
 
 /** Um montante em MZN, ou travessão quando não há valor — `null` é ausência de crédito, não zero. */
 @Component({

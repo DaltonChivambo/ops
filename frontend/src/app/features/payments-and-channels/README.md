@@ -15,10 +15,11 @@ ganha a sua própria área no dia em que tiver a primeira automação.
 
 Três, tal como na barra lateral (`layout/sidebar.ts`):
 
-- **Canais** (`channels/`) — POS, ATM, Quiosques. Contém as automações que servem os
-  três, como `closing-credit-validation/`, e o aviso para os canais que ainda não têm
-  nenhuma (`channel-placeholder.ts`). Entrar num canal com automação pronta
-  abre-a directamente: quem trata disso é a `core/single-feature.guard.ts`.
+- **Canais** (`channels/`) — POS, ATM, Quiosques. Cada canal tem a sua própria
+  subpasta com as suas automações — `pos/pos-closing-credit-validation/` é a
+  primeira — e o aviso para os canais que ainda não têm nenhuma
+  (`channel-placeholder.ts`). Entrar num canal com automação pronta abre-a
+  directamente: quem trata disso é a `core/single-feature.guard.ts`.
   Houve aqui um catálogo de canal, com um cartão por automação — deixou de
   fazer sentido com uma automação por canal, e volta a fazer quando algum
   tiver duas.

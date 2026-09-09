@@ -44,8 +44,8 @@ export const routes: Routes = [
         path: ':moduleId/:featureId',
         canActivate: [canOpenModule],
         loadComponent: () =>
-          import('./features/payments-and-channels/channels/closing-credit-validation/closing-credit-validation-page').then(
-            (m) => m.ClosingCreditValidationPageComponent,
+          import('./features/payments-and-channels/channels/pos/pos-closing-credit-validation/pos-closing-credit-validation-page').then(
+            (m) => m.PosClosingCreditValidationPageComponent,
           ),
       },
     ],

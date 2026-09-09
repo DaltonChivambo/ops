@@ -1,10 +1,10 @@
 import { ChangeDetectionStrategy, Component, computed, inject, input, signal } from '@angular/core';
 import { LucideFileSearch, LucideLoaderCircle } from '@lucide/angular';
 
-import { numberFormatter } from '../../../../shared/format';
-import { findModule } from '../../../../core/navigation';
-import { CardComponent } from '../../../../shared/ui/card';
-import { ToastComponent } from '../../../../shared/ui/toast';
+import { numberFormatter } from '../../../../../shared/format';
+import { findModule } from '../../../../../core/navigation';
+import { CardComponent } from '../../../../../shared/ui/card';
+import { ToastComponent } from '../../../../../shared/ui/toast';
 import { AmountReconciliationComponent } from './components/amount-reconciliation';
 import { DiscrepancySourceDonutComponent } from './components/discrepancy-source-donut';
 import { PageHeaderComponent } from './components/page-header';
@@ -21,7 +21,7 @@ import type { ProgressPhase, UploadSlotId, ValidationResult } from './data/model
  * Porte de `client/src/modules/pos-closing/PosClosingPage.tsx`.
  */
 @Component({
-  selector: 'app-closing-credit-validation-page',
+  selector: 'app-pos-closing-credit-validation-page',
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     AmountReconciliationComponent,
@@ -111,7 +111,7 @@ import type { ProgressPhase, UploadSlotId, ValidationResult } from './data/model
     </div>
   `,
 })
-export class ClosingCreditValidationPageComponent {
+export class PosClosingCreditValidationPageComponent {
   private readonly api = inject(ReconciliationApi);
 
   /**

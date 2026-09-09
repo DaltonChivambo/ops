@@ -1,7 +1,7 @@
 import { ChangeDetectionStrategy, Component, computed, input } from '@angular/core';
 
-import { formatAmount, numberFormatter } from '../../../../../shared/format';
-import { type Stat, StatCardComponent } from '../../../../../shared/ui/stat-card';
+import { formatAmount, numberFormatter } from '../../../../../../shared/format';
+import { type Stat, StatCardComponent } from '../../../../../../shared/ui/stat-card';
 import type { ValidationResult } from '../data/models';
 
 /** Cada cartão leva a sua própria leitura por baixo, em vez do intervalo repetido. */

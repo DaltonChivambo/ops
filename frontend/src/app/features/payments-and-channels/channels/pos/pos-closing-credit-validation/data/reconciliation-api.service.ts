@@ -2,8 +2,8 @@ import { HttpClient, HttpParams } from '@angular/common/http';
 import { inject, Injectable } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
 
-import { ApiError } from '../../../../../core/http/api-error';
-import { environment } from '../../../../../../environments/environment';
+import { ApiError } from '../../../../../../core/http/api-error';
+import { environment } from '../../../../../../../environments/environment';
 import type {
   CaseStatus,
   ClosingSummary,

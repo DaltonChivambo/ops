@@ -6,29 +6,36 @@ Um serviço por automação, agrupados por **categoria de processo**:
 services/<categoria>/<serviço>/
 ```
 
+`business/` tem uma subcategoria a mais — `services/business/<subcategoria>/<serviço>/` —
+porque é aí que vivem as automações de regra de negócio, e uma só subcategoria não chega para
+as distinguir por tipo de processo. As outras categorias ficam nos dois níveis de sempre.
+
 Hoje:
 
 | Categoria | Serviços |
 |---|---|
-| [`reconciliation/`](reconciliation/) | [`closing-credit-validation`](reconciliation/closing-credit-validation/) — validação de crédito de valores de fecho de POS |
+| [`business/reconciliation/`](business/reconciliation/) | [`pos-closing-credit-validation`](business/reconciliation/pos-closing-credit-validation/) — validação de crédito de valores de fecho do POS |
 
 ## Porquê categorias, e porquê estas
 
-A pasta agrupa por **tipo de processo**, não por área nem por canal.
+A pasta agrupa por **tipo de processo**, não por área.
 
 Uma área muda de nome e de perímetro mais depressa do que o código — por isso
-`area` é um campo do `service.yaml` e não uma pasta. O mesmo vale para o canal:
-POS, ATM e Quiosques são metadado, e a reconciliação de um fecho é o mesmo tipo
-de trabalho nos três. Quem se organiza por área e ilha é o frontend, porque é a
-navegação que o operador vê.
+`area` é um campo do `service.yaml` e não uma pasta. Quem se organiza por área e
+ilha é o frontend, porque é a navegação que o operador vê.
 
-O que muda devagar é a natureza do processo — reconciliar é reconciliar. É isso
-que dá uma pasta estável.
+O que muda devagar é a natureza do processo. `reconciliar` é um desses processos
+estáveis, e vive dentro de `business/` porque é uma das várias categorias de
+negócio que hão-de aparecer — `pos-closing-credit-validation` é específico do
+POS, de propósito: decidiu-se que ATM e Quiosques vão ganhar serviços próprios
+quando chegar a vez, em vez de partilhar este, por isso já não fazia sentido um
+serviço a prometer servir os três canais.
 
 ## Acrescentar um serviço
 
-**Numa categoria existente**, é criar a pasta lá dentro. O `uv` apanha-o
-sozinho: o workspace tem `members = ["libs", "services/*/*"]`.
+**Numa (sub)categoria existente**, é criar a pasta lá dentro. O `uv` apanha-o
+sozinho: o workspace tem `members = ["libs", "services/platform/*",
+"services/business/*/*"]`.
 
 **Categoria nova** só quando houver um processo que não caiba em nenhuma —
 e com pelo menos um serviço a entrar já. Uma pasta de categoria vazia, ou com um
@@ -36,9 +43,9 @@ serviço que ainda não existe, é uma promessa que aparece em buscas e engana q
 vier a seguir. A regra do repositório é a mesma em toda a parte: só está aqui o
 que existe.
 
-Categorias prováveis quando o trabalho aparecer — não as criar antes disso:
-processamento (salários, ficheiros de pagamento), monitorização (fraude,
-alertas), cadastro.
+Subcategorias prováveis dentro de `business/` quando o trabalho aparecer — não
+as criar antes disso: processamento (salários, ficheiros de pagamento),
+monitorização (fraude, alertas), cadastro.
 
 ## O que cada serviço tem de trazer
 

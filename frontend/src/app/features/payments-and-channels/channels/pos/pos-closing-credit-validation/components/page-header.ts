@@ -7,7 +7,7 @@ import {
   LucideShieldCheck,
 } from '@lucide/angular';
 
-import { formatInterval } from '../../../../../shared/format';
+import { formatInterval } from '../../../../../../shared/format';
 import type { ValidationResult } from '../data/models';
 
 const dateTimeFormatter = new Intl.DateTimeFormat('pt-PT', {
