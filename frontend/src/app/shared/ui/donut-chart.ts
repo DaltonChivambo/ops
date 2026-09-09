@@ -44,7 +44,7 @@ interface Arc extends DonutSlice {
   host: { class: 'flex flex-1' },
   template: `
     <div class="flex flex-1 flex-col items-center justify-center gap-6 @md:flex-row @md:gap-10">
-      <div class="relative aspect-square w-full max-w-[13rem] min-w-[9rem] shrink-0">
+      <div class="relative aspect-square w-full max-w-[13rem] min-w-[9rem] shrink-0 @container">
         @if (arcs().length > 0) {
           <svg
             class="h-full w-full overflow-visible motion-safe:animate-[donut-in_520ms_cubic-bezier(0.16,1,0.3,1)]"
@@ -96,22 +96,28 @@ interface Arc extends DonutSlice {
         }
 
         <div
-          class="pointer-events-none absolute inset-0 flex flex-col items-center justify-center px-6 text-center"
+          class="pointer-events-none absolute inset-0 flex flex-col items-center justify-center px-[8cqw] text-center"
         >
           @let focus = activeArc();
           <span
-            class="font-display text-[2.5rem] leading-none font-bold tracking-tight tabular-nums text-gray-900"
+            class="font-display leading-none font-bold tracking-tight tabular-nums text-gray-900"
+            style="font-size: clamp(1.25rem, 17cqw, 2.5rem)"
           >
             {{ count(focus ? focus.count : total()) }}
           </span>
           @if (focus) {
             <span
-              class="mt-1.5 rounded-full px-2 py-0.5 text-2xs font-bold tabular-nums text-white"
+              class="mt-1.5 shrink-0 rounded-full px-2 py-0.5 text-2xs font-bold tabular-nums text-white"
               [style.backgroundColor]="focus.color"
             >
               {{ focus.share }}
             </span>
-            <span class="mt-1 text-2xs leading-tight text-gray-500">{{ focus.short }}</span>
+            <span
+              class="mt-1 line-clamp-2 leading-tight text-gray-500"
+              style="font-size: clamp(0.5625rem, 5.2cqw, 0.6875rem)"
+            >
+              {{ focus.short }}
+            </span>
           } @else {
             <span class="mt-1.5 text-2xs tracking-[0.18em] text-gray-400 uppercase">
               {{ caption() }}
