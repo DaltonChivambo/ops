@@ -108,6 +108,7 @@ type TabId = 'cases' | 'closings';
       @if (tab() === 'cases') {
         <app-pending-cases-table
           [cases]="r.cases"
+          [executionId]="r.executionId"
           [scrollAnchor]="anchor()"
           (updated)="updateCase.emit($event)"
         />
