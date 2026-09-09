@@ -12,7 +12,18 @@ from typing import Any
 import sqlalchemy as sa
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.domain.vocabulary import CaseType
 from app.infrastructure.tables import PendingCase
+
+# Ordem de leitura do operador: dinheiro errado primeiro (é o que mais salta à
+# vista), depois a ambiguidade por desfazer, e só no fim o que falta chegar —
+# não é a ordem de declaração do enum (essa é `missing, mismatch, duplicated`,
+# e serve a `Validation`, não isto).
+_TYPE_ORDER = sa.case(
+    (PendingCase.type == CaseType.MISMATCH, 0),
+    (PendingCase.type == CaseType.DUPLICATED, 1),
+    (PendingCase.type == CaseType.MISSING, 2),
+)
 
 
 class CaseRepository:
@@ -20,12 +31,12 @@ class CaseRepository:
         self._session = session
 
     async def list_by_execution(self, execution_id: str) -> list[PendingCase]:
-        # A ordem vem da declaração do enum `CaseType` (missing, mismatch): os
-        # não-creditados aparecem primeiro. Dentro do tipo, os maiores montantes.
+        # Incorrectos, depois duplicados, depois não-creditados — ver
+        # `_TYPE_ORDER`. Dentro do tipo, os maiores montantes.
         result = await self._session.execute(
             sa.select(PendingCase)
             .where(PendingCase.execution_id == execution_id)
-            .order_by(PendingCase.type.asc(), PendingCase.simo_amount.desc())
+            .order_by(_TYPE_ORDER, PendingCase.simo_amount.desc())
         )
         return list(result.scalars().all())
 
