@@ -97,7 +97,9 @@ class ClosingDetail:
 
 @dataclass(slots=True)
 class PendingCase:
-    """Caso de divergência para análise/regularização pelo operador."""
+    """Caso aberto para análise/regularização pelo operador — por não creditado,
+    por incorrecto, ou por período duplicado (esse último não é bem
+    divergência, é ambiguidade por desfazer)."""
 
     key: str
     pos_id: str

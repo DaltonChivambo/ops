@@ -275,21 +275,25 @@ def _build_cases(
     simo_totals: dict[str, Decimal],
     credits: dict[str, BankaCredit],
 ) -> list[PendingCase]:
-    """Um caso por chave divergente — não um por fecho individual.
+    """Um caso por chave que pede tratamento — não um por fecho individual.
 
-    Não geram caso: «match», fechos zerados («zero») e chaves com períodos
-    duplicados («duplicated», que vão para análise manual, não para casos).
+    Não geram caso: «match» e fechos zerados («zero»). Os períodos duplicados
+    também abrem caso, um por chave, tal como não-creditados e incorrectos —
+    é aí que o operador desfaz a ambiguidade de qual fecho é o real.
     """
     cases: list[PendingCase] = []
     seen: set[str] = set()
     for detail in details:
-        if (
-            detail.validation in (Validation.MATCH, Validation.ZERO, Validation.DUPLICATED)
-            or detail.key in seen
-        ):
+        if detail.validation in (Validation.MATCH, Validation.ZERO) or detail.key in seen:
             continue
         seen.add(detail.key)
         credit = credits.get(detail.key)
+        if detail.validation is Validation.MISSING:
+            case_type = CaseType.MISSING
+        elif detail.validation is Validation.DUPLICATED:
+            case_type = CaseType.DUPLICATED
+        else:
+            case_type = CaseType.MISMATCH
         cases.append(
             PendingCase(
                 key=detail.key,
@@ -299,9 +303,7 @@ def _build_cases(
                 account_number=detail.account_number,
                 simo_amount=simo_totals.get(detail.key, Decimal(0)),
                 banka_amount=credit.amount if credit else Decimal(0),
-                type=CaseType.MISSING
-                if detail.validation is Validation.MISSING
-                else CaseType.MISMATCH,
+                type=case_type,
             )
         )
     return cases
