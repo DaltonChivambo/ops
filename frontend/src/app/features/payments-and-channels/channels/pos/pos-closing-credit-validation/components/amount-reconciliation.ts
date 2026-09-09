@@ -109,11 +109,7 @@ type Source = 'simo' | 'banka' | 'difference';
                     ></span>
                     <span class="font-semibold text-gray-900">{{ row.label }}</span>
                     @if (row.description) {
-                      <app-info-tooltip
-                        [text]="row.description"
-                        [label]="'Sobre ' + row.label"
-                        [openUpward]="row.key === 'duplicated'"
-                      />
+                      <app-info-tooltip [text]="row.description" [label]="'Sobre ' + row.label" />
                     }
                   </span>
                 </td>
@@ -140,11 +136,7 @@ type Source = 'simo' | 'banka' | 'difference';
               <td class="py-3 pr-3 pl-1.5">
                 <span class="inline-flex items-center gap-2">
                   Total
-                  <app-info-tooltip
-                    [text]="totalDescription"
-                    label="Sobre o total"
-                    [openUpward]="true"
-                  />
+                  <app-info-tooltip [text]="totalDescription" label="Sobre o total" />
                 </span>
               </td>
               <td class="px-4 py-3 text-right whitespace-nowrap tabular-nums">
