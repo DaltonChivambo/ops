@@ -86,7 +86,7 @@ import { ApiError } from '../../core/http/api-error';
           class="relative mt-auto motion-safe:animate-[card-in_400ms_cubic-bezier(0.22,1,0.36,1)]"
         >
           <p class="text-lg leading-snug font-bold text-white xl:text-xl">
-            A plataforma de operações do Moza.
+            Operações mais simples. Processos mais eficientes.
           </p>
           <p class="mt-2.5 max-w-sm text-xs text-white/70 sm:text-sm">
             Centraliza, acompanha e automatiza operações, num só lugar.
