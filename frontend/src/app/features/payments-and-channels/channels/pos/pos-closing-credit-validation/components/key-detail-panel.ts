@@ -91,7 +91,7 @@ function creditedWhen(closingIso: string | undefined, creditIso: string | null):
             </span>
             <span [class]="meta">
               <span class="text-gray-400">Fecho</span>
-              <span [class]="metaValue">{{ d.closingType }}</span>
+              <span [class]="metaValue">{{ closingType() }}</span>
             </span>
             <span [class]="meta">
               <span class="text-gray-400">Chave</span>
@@ -110,7 +110,7 @@ function creditedWhen(closingIso: string | undefined, creditIso: string | null):
         </button>
       </header>
 
-      <div class="flex-1 overflow-y-auto px-5 py-5">
+      <div class="min-h-0 flex-1 overflow-y-auto px-5 py-5">
         @if (error(); as message) {
           <p class="rounded-xl bg-alert-50 px-4 py-3 text-sm text-alert-700">{{ message }}</p>
         }
@@ -326,7 +326,12 @@ export class KeyDetailPanelComponent {
   private readonly api = inject(ReconciliationApi);
 
   readonly executionId = input.required<string>();
-  /** O fecho clicado — dá a identidade e fica assinalado na lista da SIMO. */
+  /**
+   * O fecho clicado — dá a identidade e fica assinalado na lista da SIMO.
+   * Quando se abre a partir de um caso (a chave inteira, não um fecho), é uma
+   * vista construída sem tipo de fecho real — `closingType` abaixo corrige-se
+   * sozinho assim que os fechos verdadeiros da chave chegam.
+   */
   readonly detail = input.required<ClosingDetail>();
   readonly closed = output<void>();
 
@@ -372,6 +377,12 @@ export class KeyDetailPanelComponent {
     const closings = this.closings();
     return closings.length === 1 ? closings[0].simoClosingDate : undefined;
   });
+
+  /** Prefere o fecho real, assim que carrega — a vista construída a partir de
+   *  um caso não sabe o tipo de fecho da chave. */
+  protected readonly closingType = computed(
+    () => this.data()?.closings[0]?.closingType ?? this.detail().closingType,
+  );
 
   protected readonly chip = computed(() => STATE_CHIP[this.detail().validation]);
   protected readonly dot = computed(() => STATE_DOT[this.detail().validation]);

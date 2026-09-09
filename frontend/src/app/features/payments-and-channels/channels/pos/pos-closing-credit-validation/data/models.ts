@@ -21,7 +21,7 @@ export type Validation = 'match' | 'mismatch' | 'missing' | 'zero' | 'duplicated
 
 export type CaseStatus = 'pending' | 'in-review' | 'resolved';
 
-export type CaseType = 'missing' | 'mismatch';
+export type CaseType = 'missing' | 'mismatch' | 'duplicated';
 
 export type UploadSlotId = 'posList' | 'simoClosings' | 'bankaCredits';
 

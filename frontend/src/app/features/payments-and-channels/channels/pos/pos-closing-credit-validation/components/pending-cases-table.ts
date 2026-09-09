@@ -1,27 +1,36 @@
 import { ChangeDetectionStrategy, Component, computed, input, output, signal } from '@angular/core';
-import { LucideCircleCheck, LucideSearch } from '@lucide/angular';
+import { LucideCircleCheck, LucideSearch, LucideX } from '@lucide/angular';
 
 import { formatAmount, formatDate, numberFormatter } from '../../../../../../shared/format';
-import { DataTableComponent, TABLE_CLASS, THEAD_CLASS } from '../../../../../../shared/ui/data-table';
-import type { CaseStatus, CaseType, PendingCase } from '../data/models';
+import {
+  DataTableComponent,
+  TABLE_CLASS,
+  THEAD_CLASS,
+} from '../../../../../../shared/ui/data-table';
+import type { CaseStatus, CaseType, ClosingDetail, PendingCase } from '../data/models';
+import { KeyDetailPanelComponent } from './key-detail-panel';
 import { MoneyComponent } from './money';
 
 const TYPE_CHIP: Record<CaseType, string> = {
   missing: 'bg-moza-100 text-moza-600',
   mismatch: 'bg-alert-50 text-alert-700',
+  duplicated: 'bg-amber-50 text-amber-700',
 };
 const TYPE_DOT: Record<CaseType, string> = {
   missing: 'bg-moza-500',
   mismatch: 'bg-alert-500',
+  duplicated: 'bg-amber-500',
 };
 const TYPE_LABEL: Record<CaseType, string> = {
   missing: 'Não creditado',
   mismatch: 'Incorrecto',
+  duplicated: 'Período duplicado',
 };
 /** Sombra interior e não `border-l` — ver a nota em STATE_STRIPE, no state-options. */
 const TYPE_STRIPE: Record<CaseType, string> = {
   missing: 'shadow-[inset_3px_0_0_var(--color-moza-400)]',
   mismatch: 'shadow-[inset_3px_0_0_var(--color-alert-500)]',
+  duplicated: 'shadow-[inset_3px_0_0_var(--color-amber-500)]',
 };
 
 const STATUS_LABELS: Record<CaseStatus, string> = {
@@ -48,7 +57,14 @@ export interface CasePatch {
 @Component({
   selector: 'app-pending-cases-table',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [DataTableComponent, MoneyComponent, LucideCircleCheck, LucideSearch],
+  imports: [
+    DataTableComponent,
+    KeyDetailPanelComponent,
+    MoneyComponent,
+    LucideCircleCheck,
+    LucideSearch,
+    LucideX,
+  ],
   template: `
     @if (cases().length === 0) {
       <div
@@ -97,6 +113,16 @@ export interface CasePatch {
               (input)="query.set($any($event.target).value)"
               class="w-full bg-transparent text-sm text-gray-900 outline-none placeholder:text-gray-400"
             />
+            @if (query()) {
+              <button
+                type="button"
+                (click)="query.set('')"
+                aria-label="Limpar pesquisa"
+                class="inline-flex size-4 shrink-0 items-center justify-center rounded-full text-gray-400 hover:bg-gray-200 hover:text-gray-600"
+              >
+                <svg lucideX [size]="11" [strokeWidth]="2.5"></svg>
+              </button>
+            }
           </label>
         </ng-container>
 
@@ -127,7 +153,14 @@ export interface CasePatch {
                 [class]="item.status === 'resolved' ? 'bg-emerald-50/40' : 'hover:bg-gray-50/70'"
               >
                 <td class="py-3.5 pr-3 pl-5" [class]="stripe(item)">
-                  <div class="font-bold text-gray-900 tabular-nums">{{ item.posId }}</div>
+                  <button
+                    type="button"
+                    (click)="opened.set(toDetail(item))"
+                    class="font-bold text-gray-900 tabular-nums underline-offset-2 transition-colors hover:text-moza-600 hover:underline focus-visible:text-moza-600 focus-visible:underline"
+                  >
+                    {{ item.posId }}
+                    <span class="sr-only"> — ver os dados da SIMO e do Banka</span>
+                  </button>
                   <div class="mt-0.5 max-w-48 truncate text-sm text-gray-400">
                     {{ item.merchant }}
                   </div>
@@ -153,13 +186,15 @@ export interface CasePatch {
                   </span>
                 </td>
                 <td class="px-3 py-3.5">
-                  <!-- Grava ao sair do campo: um PATCH por tecla era de mais. -->
+                  <!-- Grava ao sair do campo: um PATCH por tecla era de mais.
+                       Enter sai do campo (dispara o mesmo blur) para quem prefere confirmar sem tocar no rato. -->
                   <input
                     type="text"
                     [value]="item.eTicket ?? ''"
                     placeholder="—"
                     [attr.aria-label]="'e-Ticket do caso ' + item.posId"
                     (blur)="onETicketBlur(item, $any($event.target).value)"
+                    (keydown.enter)="$any($event.target).blur()"
                     class="w-28 rounded-lg border border-gray-200 bg-white px-2.5 py-1.5 text-xs font-medium text-gray-700 outline-none placeholder:text-gray-300 focus:border-moza-400 focus:ring-2 focus:ring-moza-100"
                   />
                 </td>
@@ -200,14 +235,28 @@ export interface CasePatch {
           por regularizar
         </p>
       </app-data-table>
+
+      <!-- Fora do cartão, como no "Todos os Fechos" — mesma razão: o
+           @container faz de contentor de posicionamento para o painel fixed. -->
+      @if (opened(); as detail) {
+        <app-key-detail-panel
+          [executionId]="executionId()"
+          [detail]="detail"
+          (closed)="opened.set(null)"
+        />
+      }
     }
   `,
 })
 export class PendingCasesTableComponent {
   readonly cases = input.required<readonly PendingCase[]>();
+  readonly executionId = input.required<string>();
   /** Onde o scroll da página assenta antes de a lista correr — a barra de separadores. */
   readonly scrollAnchor = input<HTMLElement | undefined>(undefined);
   readonly updated = output<CasePatch>();
+
+  /** O caso aberto no painel lateral — o mesmo painel do "Todos os Fechos". */
+  protected readonly opened = signal<ClosingDetail | null>(null);
 
   /** `bg-gray-50` aqui e não no `<thead>`: é a célula que pinta o fundo de forma fiável. */
   protected readonly th = 'bg-gray-50 text-2xs font-bold tracking-wider uppercase';
@@ -264,6 +313,31 @@ export class PendingCasesTableComponent {
   protected onStatusChange(item: PendingCase, status: string): void {
     this.updated.emit({ caseId: item.id, patch: { status: status as CaseStatus } });
   }
+
+  /**
+   * O caso é da chave inteira, não de um fecho — não há um `id`/data/nº de
+   * operação de fecho para dar. Servem só para abrir o mesmo painel lateral;
+   * o `closingType` no cabeçalho corrige-se sozinho assim que o painel carrega
+   * os fechos reais da chave (ver `key-detail-panel.ts`).
+   */
+  protected toDetail = (item: PendingCase): ClosingDetail => ({
+    id: item.id,
+    posId: item.posId,
+    merchant: item.merchant,
+    accountNumber: item.accountNumber,
+    period: item.period,
+    key: item.key,
+    simoClosingDate: '',
+    operationNumber: 0,
+    simoClosingTotal: item.simoAmount,
+    simoKeyTotal: item.simoAmount,
+    closingDescription: null,
+    bankaCreditDate: null,
+    bankaClosingTotal: item.bankaAmount,
+    closingType: 'n.a',
+    validation: item.type,
+    difference: item.bankaAmount - item.simoAmount,
+  });
 
   protected stripe = (item: PendingCase) => TYPE_STRIPE[item.type];
   protected chip = (item: PendingCase) => TYPE_CHIP[item.type];
