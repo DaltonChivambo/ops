@@ -234,8 +234,7 @@ export class AmountReconciliationComponent {
         banka: s.bankaAmountDuplicated,
         barClass: 'bg-amber-500',
         dotClass: 'bg-amber-500',
-        description:
-          'A mesma chave (POS + período) aparece mais do que uma vez — não se sabe se confere enquanto isso não se resolver.',
+        description: 'A mesma chave (POS + período) tem mais de um fecho registado.',
       },
     ];
   });
