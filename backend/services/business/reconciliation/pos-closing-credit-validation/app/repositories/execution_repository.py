@@ -27,6 +27,20 @@ INSERT_BATCH = 5_000
 
 VALIDATION_STATES = frozenset(Validation)
 
+# Ordem de leitura do operador na tabela de fechos — a mesma dos casos (ver
+# `CaseRepository._TYPE_ORDER`): incorrecto, duplicado, não creditado à
+# frente, por exigirem trabalho; confere depois; zerado por último, que não
+# pede nada a ninguém. Não é a ordem de declaração do enum `Validation`
+# (essa é `zero, match, mismatch, missing, duplicated`, contrato da migração
+# `9e88fa0665cd`) — só a leitura muda, não a base.
+_VALIDATION_ORDER = sa.case(
+    (ClosingDetail.validation == Validation.MISMATCH, 0),
+    (ClosingDetail.validation == Validation.DUPLICATED, 1),
+    (ClosingDetail.validation == Validation.MISSING, 2),
+    (ClosingDetail.validation == Validation.MATCH, 3),
+    (ClosingDetail.validation == Validation.ZERO, 4),
+)
+
 
 class ExecutionRepository:
     def __init__(self, session: AsyncSession) -> None:
@@ -146,13 +160,11 @@ class ExecutionRepository:
         items_result = await self._session.execute(
             sa.select(ClosingDetail)
             .where(*where)
-            # A ordem vem da declaração do enum `Validation` no schema, lida ao
-            # contrário: duplicados · não creditados · incorrectos · conferem ·
-            # zerados. Primeiro o que exige trabalho, no fim os zerados, que não
-            # pedem nada a ninguém. Dentro da chave ordena-se por data, para as
-            # linhas da mesma chave ficarem contíguas e a tabela as poder agrupar.
+            # Ver `_VALIDATION_ORDER`. Dentro do tipo ordena-se por chave e depois
+            # por data, para as linhas da mesma chave ficarem contíguas e a tabela
+            # as poder agrupar.
             .order_by(
-                ClosingDetail.validation.desc(),
+                _VALIDATION_ORDER,
                 ClosingDetail.pos_id.asc(),
                 ClosingDetail.period.asc(),
                 ClosingDetail.simo_closing_date.asc(),
