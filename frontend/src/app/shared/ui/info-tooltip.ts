@@ -1,37 +1,47 @@
-import { ChangeDetectionStrategy, Component, input } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  DestroyRef,
+  ElementRef,
+  inject,
+  input,
+} from '@angular/core';
 import { LucideInfo } from '@lucide/angular';
+
+let nextId = 0;
 
 /**
  * O "i" que explica um termo, em toda a app — um só sítio para o estilo, a
- * cor e o comportamento do popover, para uma mudança valer para todos de uma
- * vez. Botão focável com popover CSS (`group-hover`/`group-focus-within`), e
- * não `title` nativo: aparece no mesmo sítio para o rato e para o teclado, e
- * admite mais do que uma linha de texto.
+ * cor e o comportamento do popover, para uma mudança valer para todos de
+ * uma vez.
+ *
+ * O popover é anexado directamente ao `<body>`, e não ao lado do ícone: os
+ * cartões (`app-collapsible-card`) são `@container`, e isso torna-os bloco
+ * de contenção também para `position: fixed` — um popover preso lá dentro
+ * nunca conseguiria aparecer por cima de nada fora do cartão (a barra de
+ * separadores da tabela, por exemplo). Fora da árvore, mede-se a posição do
+ * ícone com `getBoundingClientRect` e decide-se o lado com espaço.
  */
 @Component({
   selector: 'app-info-tooltip',
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [LucideInfo],
   template: `
-    <span class="group relative inline-flex align-middle">
-      <button
-        type="button"
-        [attr.aria-label]="label()"
-        class="inline-flex shrink-0 items-center justify-center rounded-full text-gray-400 transition-colors hover:bg-moza-50 hover:text-moza-700 focus-visible:bg-moza-50 focus-visible:text-moza-700 focus-visible:outline-none"
-        [style.width.px]="size() + 8"
-        [style.height.px]="size() + 8"
-        [style.margin.px]="-4"
-      >
-        <svg lucideInfo [size]="size()" [strokeWidth]="2"></svg>
-      </button>
-      <span
-        role="tooltip"
-        class="pointer-events-none absolute z-20 w-56 max-w-[80vw] rounded-xl bg-moza-800 px-3.5 py-2.5 text-xs leading-relaxed font-normal text-white opacity-0 shadow-lg transition-opacity duration-150 group-hover:opacity-100 group-focus-within:opacity-100 sm:w-64"
-        [class]="position()"
-      >
-        {{ text() }}
-      </span>
-    </span>
+    <button
+      type="button"
+      [attr.aria-label]="label()"
+      [attr.aria-describedby]="tooltipId"
+      class="inline-flex shrink-0 items-center justify-center rounded-full align-middle text-gray-400 transition-colors hover:bg-moza-50 hover:text-moza-700 focus-visible:bg-moza-50 focus-visible:text-moza-700 focus-visible:outline-none"
+      [style.width.px]="size() + 8"
+      [style.height.px]="size() + 8"
+      [style.margin.px]="-4"
+      (mouseenter)="show()"
+      (mouseleave)="hide()"
+      (focus)="show()"
+      (blur)="hide()"
+    >
+      <svg lucideInfo [size]="size()" [strokeWidth]="2"></svg>
+    </button>
   `,
 })
 export class InfoTooltipComponent {
@@ -39,18 +49,47 @@ export class InfoTooltipComponent {
   readonly label = input('Mais informação');
   /** Tamanho do ícone — o botão cresce à volta dele, sempre com a mesma folga. */
   readonly size = input(11);
-  /**
-   * Abre por baixo e centrado no ícone, por omissão — centrado porque o
-   * ícone raramente está a meio da tela, e um popover ancorado só de um
-   * lado (ex.: `left-0`) cortava-se na borda de tabelas com scroll
-   * horizontal (`overflow-x-auto`), como a da Reconciliação de Montantes.
-   * Junto ao fundo de um contentor (a última linha de uma tabela, o Total),
-   * passa-se `true` para abrir por cima em vez de por baixo.
-   */
-  readonly openUpward = input(false);
 
-  protected readonly position = () =>
-    this.openUpward()
-      ? 'bottom-full left-1/2 mb-2 -translate-x-1/2'
-      : 'top-full left-1/2 mt-2 -translate-x-1/2';
+  protected readonly tooltipId = `info-tooltip-${nextId++}`;
+
+  private readonly host = inject(ElementRef<HTMLElement>);
+  private tooltipEl: HTMLElement | null = null;
+
+  constructor() {
+    inject(DestroyRef).onDestroy(() => this.hide());
+  }
+
+  protected show(): void {
+    if (this.tooltipEl) return;
+    const button = this.host.nativeElement.querySelector('button');
+    if (!button) return;
+    const anchor = button.getBoundingClientRect();
+
+    const el = document.createElement('span');
+    el.id = this.tooltipId;
+    el.setAttribute('role', 'tooltip');
+    el.textContent = this.text();
+    el.className =
+      'pointer-events-none fixed z-50 w-56 max-w-[80vw] rounded-xl bg-moza-800 px-3.5 py-2.5 text-xs leading-relaxed font-normal text-white shadow-lg sm:w-64';
+    document.body.appendChild(el);
+
+    const tip = el.getBoundingClientRect();
+    const gap = 8;
+    const fitsBelow = anchor.bottom + gap + tip.height <= window.innerHeight;
+    const top = fitsBelow ? anchor.bottom + gap : anchor.top - gap - tip.height;
+    const left = Math.max(
+      gap,
+      Math.min(anchor.left + anchor.width / 2 - tip.width / 2, window.innerWidth - tip.width - gap),
+    );
+
+    el.style.top = `${Math.max(gap, top)}px`;
+    el.style.left = `${left}px`;
+
+    this.tooltipEl = el;
+  }
+
+  protected hide(): void {
+    this.tooltipEl?.remove();
+    this.tooltipEl = null;
+  }
 }
