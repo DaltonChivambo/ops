@@ -88,13 +88,17 @@ def test_fecho_a_zero_sem_credito_e_zerado_e_nao_divergencia() -> None:
     assert r.summary.divergent == 0
 
 
-def test_dois_fechos_na_mesma_chave_ficam_para_analise_individual() -> None:
+def test_dois_fechos_na_mesma_chave_abrem_um_unico_caso_duplicado() -> None:
     fechos = [fecho(total="100.00", ops=1), fecho(total="200.00", ops=2)]
 
     r = reconcile(pos(), fechos, {"200001101": credito("300.00")})
 
     assert [d.validation for d in r.details] == [Validation.DUPLICATED] * 2
-    assert r.cases == [], "períodos duplicados não geram caso — vão para análise manual"
+    # Um caso por chave, não um por fecho — mesmo dedup que missing/mismatch.
+    assert len(r.cases) == 1
+    assert r.cases[0].type is CaseType.DUPLICATED
+    assert r.cases[0].simo_amount == Decimal("300.00")
+    assert r.cases[0].banka_amount == Decimal("300.00")
     assert r.summary.duplicated_periods == 2
     # Os dois lados registam-se: o Banka duplica na mesma proporção da SIMO.
     assert r.summary.simo_amount_duplicated == Decimal("300.00")

@@ -308,9 +308,10 @@ def _add_pending_cases_sheet(workbook: Workbook, details: Iterable[Any], cases: 
 
     Entram os três problemas que exigem acção, e só enquanto não estiverem
     tratados: creditado incorrectamente, não creditado e períodos duplicados. Um
-    caso regularizado sai daqui (o Resumo é que o contabiliza); os duplicados não
-    geram caso nenhum, por isso vêm dos detalhes, um por fecho — é fecho a fecho
-    que se desfaz a duplicação.
+    caso regularizado sai daqui (o Resumo é que o contabiliza) — os duplicados
+    também têm caso, mas continuam a vir dos detalhes, um por fecho, porque é
+    fecho a fecho que se desfaz a duplicação; o caso só decide se a chave ainda
+    entra ou já saiu (foi regularizada).
 
     Os duplicados vão rotulados como «Fecho creditado incorrectamente»: para o DOP
     o crédito não bateu certo, e a duplicação do período é a causa, não uma
@@ -362,8 +363,16 @@ def _add_pending_cases_sheet(workbook: Workbook, details: Iterable[Any], cases: 
     # primeira linha de cada chave — repeti-lo em todas inflacionaria a coluna, que
     # é exactamente o erro do VLOOKUP manual que esta automação veio corrigir.
     # Assim a coluna M soma para o mesmo que o Resumo.
+    #
+    # Cada chave duplicada tem um caso próprio (um só, o `_build_cases` já
+    # colapsa os vários fechos) — regularizá-lo tira a chave inteira daqui,
+    # tal como um caso de incorrecto/não-creditado regularizado.
+    duplicated_cases = {c.key: c for c in cases if c.type == CaseType.DUPLICATED}
     credited_keys: set[str] = set()
     for detail in (d for d in details if d.validation == "duplicated"):
+        case = duplicated_cases.get(detail.key)
+        if case is not None and case.status == "resolved":
+            continue
         first_of_key = detail.key not in credited_keys
         credited_keys.add(detail.key)
         _write_row(

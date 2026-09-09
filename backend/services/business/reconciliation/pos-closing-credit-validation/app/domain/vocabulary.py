@@ -57,10 +57,13 @@ class CaseStatus(StrEnum):
 
 
 class CaseType(StrEnum):
-    """Porque é que a chave abriu caso. A ordem manda os não-creditados à frente."""
+    """Porque é que a chave abriu caso. A ordem manda os não-creditados à frente,
+    e os períodos duplicados — que não são bem divergência, só ambiguidade a
+    desfazer — ficam por último."""
 
     MISSING = "missing"
     MISMATCH = "mismatch"
+    DUPLICATED = "duplicated"
 
 
 class UploadSlot(StrEnum):
