@@ -105,6 +105,25 @@ def test_dois_fechos_na_mesma_chave_abrem_um_unico_caso_duplicado() -> None:
     assert r.summary.banka_amount_duplicated == Decimal("300.00")
 
 
+def test_caso_leva_a_data_do_fecho_mais_antigo_da_chave() -> None:
+    """O prazo conta do fecho que está à espera há mais tempo, não do último."""
+    antes = date(2026, 6, 20)
+    fechos = [
+        fecho(total="100.00", ops=2, dia=DIA),
+        fecho(total="200.00", ops=1, dia=antes),
+    ]
+
+    r = reconcile(pos(), fechos, {"200001101": credito("300.00")})
+
+    assert r.cases[0].closing_date == antes
+
+
+def test_caso_de_um_fecho_so_leva_a_data_desse_fecho() -> None:
+    r = reconcile(pos(), [fecho(total="100.00")], {})
+
+    assert r.cases[0].closing_date == DIA
+
+
 # ─── A regra central: somar por chave antes de comparar ──────────────────────
 
 

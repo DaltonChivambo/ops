@@ -280,7 +280,19 @@ def _build_cases(
     Não geram caso: «match» e fechos zerados («zero»). Os períodos duplicados
     também abrem caso, um por chave, tal como não-creditados e incorrectos —
     é aí que o operador desfaz a ambiguidade de qual fecho é o real.
+
+    O caso leva a data do fecho mais antigo da chave: é dela que conta o prazo
+    de tratamento, e numa chave duplicada é a que está à espera há mais tempo.
+    O detalhe representativo continua a ser o primeiro (o `seen`) e não o mais
+    antigo — numa colisão de `período % 1000` os detalhes diferem no período,
+    e trocá-lo mudava o que a linha do caso mostra.
     """
+    earliest: dict[str, date] = {}
+    for detail in details:
+        current = earliest.get(detail.key)
+        if current is None or detail.simo_closing_date < current:
+            earliest[detail.key] = detail.simo_closing_date
+
     cases: list[PendingCase] = []
     seen: set[str] = set()
     for detail in details:
@@ -304,6 +316,7 @@ def _build_cases(
                 simo_amount=simo_totals.get(detail.key, Decimal(0)),
                 banka_amount=credit.amount if credit else Decimal(0),
                 type=case_type,
+                closing_date=earliest[detail.key],
             )
         )
     return cases

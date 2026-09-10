@@ -234,6 +234,47 @@ def test_relatorio_devolve_xlsx_com_o_nome_do_periodo(client):
     assert resposta.content.startswith(b"PK")
 
 
+# ─── Definições: o prazo de tratamento ───────────────────────────────────────
+
+
+def test_definicoes_devolvem_o_prazo_em_vigor(client):
+    resposta = client.get(f"{BASE}/definicoes")
+
+    assert resposta.status_code == 200
+    assert resposta.json() == {
+        "caseSlaDays": 7,
+        "caseWarningDays": 3,
+        "updatedAt": None,
+        "updatedBy": None,
+    }
+
+
+def test_gravar_definicoes_devolve_o_prazo_novo_e_quem_o_pos(client):
+    resposta = client.put(f"{BASE}/definicoes", json={"caseSlaDays": 15, "caseWarningDays": 5})
+
+    assert resposta.status_code == 200
+    corpo = resposta.json()
+    assert corpo["caseSlaDays"] == 15
+    assert corpo["caseWarningDays"] == 5
+    # Mudar o prazo mexe com o que toda a gente vê: fica assinado.
+    assert corpo["updatedBy"] == "m001926"
+    # E o que se lê a seguir é o que se gravou.
+    assert client.get(f"{BASE}/definicoes").json()["caseSlaDays"] == 15
+
+
+def test_aviso_a_partir_do_prazo_e_recusado_com_mensagem_de_negocio(client):
+    resposta = client.put(f"{BASE}/definicoes", json={"caseSlaDays": 7, "caseWarningDays": 7})
+
+    assert resposta.status_code == 422
+    assert "menor" in resposta.json()["error"]["message"]
+
+
+def test_prazo_a_zero_e_recusado(client):
+    resposta = client.put(f"{BASE}/definicoes", json={"caseSlaDays": 0, "caseWarningDays": 0})
+
+    assert resposta.status_code == 422
+
+
 # ─── O envelope de erro ──────────────────────────────────────────────────────
 
 

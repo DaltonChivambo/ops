@@ -126,6 +126,7 @@ class ExecutionRepository:
                 "simo_amount": case.simo_amount,
                 "banka_amount": case.banka_amount,
                 "type": case.type,
+                "closing_date": case.closing_date,
             }
             for case in result.cases
         ]

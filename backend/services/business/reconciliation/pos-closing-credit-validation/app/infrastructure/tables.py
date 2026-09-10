@@ -27,6 +27,7 @@ import sqlalchemy as sa
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
+from app.domain.sla import DEFAULT_SLA_DAYS, DEFAULT_WARNING_DAYS
 from app.domain.vocabulary import CaseStatus, CaseType, ClosingType, Validation
 
 
@@ -163,6 +164,35 @@ class PendingCase(Base):
     simo_amount: Mapped[Decimal] = mapped_column("simoAmount", Money)
     banka_amount: Mapped[Decimal] = mapped_column("bankaAmount", Money)
     type: Mapped[CaseType] = mapped_column(CaseTypeEnum)
+    # Data do fecho mais antigo da chave — o prazo de tratamento conta daqui.
+    closing_date: Mapped[date] = mapped_column("closingDate", sa.Date)
     e_ticket: Mapped[str | None] = mapped_column("eTicket", sa.String, nullable=True)
     status: Mapped[CaseStatus] = mapped_column(CaseStatusEnum, default=CaseStatus.PENDING)
     resolved_at: Mapped[date | None] = mapped_column("resolvedAt", sa.Date, nullable=True)
+
+
+class Setting(Base):
+    """As definições do serviço — uma linha só, sempre a de `id = 1`.
+
+    Tabela em vez de variável de ambiente porque o prazo de tratamento é do
+    DOP, não da equipa técnica: muda-se no ecrã, sem reiniciar nada. Como muda
+    para toda a gente ao mesmo tempo, fica registado quem mexeu e quando.
+
+    **O prazo é retroactivo, de propósito.** A data limite calcula-se sempre a
+    partir da data do fecho com o valor actual, por isso baixar o prazo põe
+    casos antigos em atraso de imediato — é o que se espera de uma regra que
+    se afina. Nada disto fica congelado no `summary` da execução.
+    """
+
+    __tablename__ = "setting"
+    __table_args__ = (sa.CheckConstraint("id = 1", name="ck_setting_single_row"),)
+
+    id: Mapped[int] = mapped_column(sa.SmallInteger, primary_key=True, default=1)
+    case_sla_days: Mapped[int] = mapped_column(
+        "caseSlaDays", sa.Integer, server_default=str(DEFAULT_SLA_DAYS)
+    )
+    case_warning_days: Mapped[int] = mapped_column(
+        "caseWarningDays", sa.Integer, server_default=str(DEFAULT_WARNING_DAYS)
+    )
+    updated_at: Mapped[datetime] = mapped_column("updatedAt", sa.DateTime, default=_now)
+    updated_by: Mapped[str | None] = mapped_column("updatedBy", sa.String, nullable=True)
