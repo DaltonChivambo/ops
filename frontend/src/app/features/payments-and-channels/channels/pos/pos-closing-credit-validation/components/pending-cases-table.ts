@@ -1,16 +1,24 @@
 import { ChangeDetectionStrategy, Component, computed, input, output, signal } from '@angular/core';
 import { LucideCircleCheck, LucideSearch, LucideX } from '@lucide/angular';
 
-import { formatAmount, formatDate, numberFormatter } from '../../../../../../shared/format';
+import {
+  formatAmount,
+  formatDate,
+  formatDayCount,
+  numberFormatter,
+} from '../../../../../../shared/format';
 import {
   DataTableComponent,
   TABLE_CLASS,
   THEAD_CLASS,
 } from '../../../../../../shared/ui/data-table';
-import type { CaseStatus, CaseType, ClosingDetail, PendingCase } from '../data/models';
+import type { CaseStatus, CaseType, ClosingDetail, PendingCase, SlaSettings } from '../data/models';
+import { SLA_CHIP, SLA_LABEL, slaOf, startOfToday, type SlaState, type SlaView } from '../data/sla';
 import { CaseTypeFilterComponent } from './case-type-filter';
 import { KeyDetailPanelComponent } from './key-detail-panel';
 import { MoneyComponent } from './money';
+import { SlaFilterComponent } from './sla-filter';
+import { SlaSettingsPopoverComponent } from './sla-settings-popover';
 
 const TYPE_CHIP: Record<CaseType, string> = {
   missing: 'bg-moza-100 text-moza-600',
@@ -63,6 +71,8 @@ export interface CasePatch {
     DataTableComponent,
     KeyDetailPanelComponent,
     MoneyComponent,
+    SlaFilterComponent,
+    SlaSettingsPopoverComponent,
     LucideCircleCheck,
     LucideSearch,
     LucideX,
@@ -89,6 +99,12 @@ export interface CasePatch {
             [counts]="typeCounts()"
             [selected]="selectedTypes()"
             (changed)="selectedTypes.set($event)"
+          />
+
+          <app-sla-filter
+            [counts]="slaCounts()"
+            [selected]="selectedSla()"
+            (changed)="selectedSla.set($event)"
           />
 
           <div class="inline-flex rounded-xl border border-gray-100 bg-gray-50 p-1">
@@ -132,6 +148,12 @@ export interface CasePatch {
               </button>
             }
           </label>
+
+          <app-sla-settings-popover
+            class="ml-auto"
+            [settings]="settings()"
+            (saved)="settingsChanged.emit($event)"
+          />
         </ng-container>
 
         <table [class]="tableClass + ' min-w-3xl @4xl:min-w-4xl'">
@@ -148,6 +170,7 @@ export interface CasePatch {
               <th scope="col" [class]="th + ' px-3 py-2.5 text-left'">Tipo</th>
               <th scope="col" [class]="th + ' px-3 py-2.5 text-left'">e-Ticket</th>
               <th scope="col" [class]="th + ' px-3 py-2.5 text-left'">Estado</th>
+              <th scope="col" [class]="th + ' px-3 py-2.5 text-left'">Prazo</th>
               <th scope="col" [class]="th + ' hidden px-3 py-2.5 text-left @4xl:table-cell'">
                 Data Reg.
               </th>
@@ -219,13 +242,26 @@ export interface CasePatch {
                     }
                   </select>
                 </td>
+                <td class="px-3 py-3.5">
+                  @let sla = slaOf(item);
+                  <span
+                    class="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-bold whitespace-nowrap"
+                    [class]="slaChip[sla.state]"
+                    [attr.title]="slaTitle(sla)"
+                  >
+                    {{ slaText(sla) }}
+                  </span>
+                  <div class="mt-0.5 text-2xs text-gray-400 tabular-nums">
+                    {{ date(item.closingDate) }} + {{ settings().caseSlaDays }}d
+                  </div>
+                </td>
                 <td class="hidden px-3 py-3.5 tabular-nums text-gray-400 @4xl:table-cell">
                   {{ item.resolvedAt ? date(item.resolvedAt) : '—' }}
                 </td>
               </tr>
             } @empty {
               <tr>
-                <td colspan="8" class="px-4 py-10 text-center text-gray-400">
+                <td colspan="9" class="px-4 py-10 text-center text-gray-400">
                   Nenhum caso corresponde aos critérios seleccionados.
                 </td>
               </tr>
@@ -260,9 +296,11 @@ export interface CasePatch {
 export class PendingCasesTableComponent {
   readonly cases = input.required<readonly PendingCase[]>();
   readonly executionId = input.required<string>();
+  readonly settings = input.required<SlaSettings>();
   /** Onde o scroll da página assenta antes de a lista correr — a barra de separadores. */
   readonly scrollAnchor = input<HTMLElement | undefined>(undefined);
   readonly updated = output<CasePatch>();
+  readonly settingsChanged = output<{ caseSlaDays: number; caseWarningDays: number }>();
 
   /** O caso aberto no painel lateral — o mesmo painel do "Todos os Fechos". */
   protected readonly opened = signal<ClosingDetail | null>(null);
@@ -280,6 +318,37 @@ export class PendingCasesTableComponent {
   protected readonly status = signal<StatusFilter>('all');
   protected readonly query = signal('');
   protected readonly selectedTypes = signal<CaseType[]>(['mismatch', 'duplicated', 'missing']);
+  protected readonly selectedSla = signal<SlaState[]>([
+    'overdue',
+    'due-soon',
+    'on-track',
+    'settled',
+  ]);
+
+  /** Fixado à montagem: uma tabela aberta não muda de dia a meio de um clique. */
+  protected readonly today = startOfToday();
+  protected readonly slaChip = SLA_CHIP;
+
+  /**
+   * O prazo de cada caso, numa passagem só — e não uma função por célula, que
+   * voltaria a fazer a conta a cada detecção de alterações.
+   */
+  private readonly slaByCase = computed(() => {
+    const settings = this.settings();
+    const today = this.today;
+    return new Map(this.cases().map((item) => [item.id, slaOf(item, settings, today)]));
+  });
+
+  protected readonly slaCounts = computed(() => {
+    const result: Record<SlaState, number> = {
+      overdue: 0,
+      'due-soon': 0,
+      'on-track': 0,
+      settled: 0,
+    };
+    for (const view of this.slaByCase().values()) result[view.state] += 1;
+    return result;
+  });
 
   protected readonly counts = computed(() => {
     const cases = this.cases();
@@ -303,10 +372,13 @@ export class PendingCasesTableComponent {
     const term = this.query().trim().toLowerCase();
     const status = this.status();
     const types = this.selectedTypes();
+    const slaStates = this.selectedSla();
+    const sla = this.slaByCase();
     return this.cases().filter(
       (item) =>
         (status === 'all' || item.status === status) &&
         types.includes(item.type) &&
+        slaStates.includes(sla.get(item.id)!.state) &&
         (!term ||
           item.posId.toLowerCase().includes(term) ||
           item.merchant.toLowerCase().includes(term) ||
@@ -356,6 +428,26 @@ export class PendingCasesTableComponent {
     validation: item.type,
     difference: item.bankaAmount - item.simoAmount,
   });
+
+  protected slaOf = (item: PendingCase): SlaView => this.slaByCase().get(item.id)!;
+
+  /** O que a pastilha diz: o que falta, o que já passou, ou quanto demorou. */
+  protected slaText(sla: SlaView): string {
+    if (sla.state === 'settled') return `Tratado em ${formatDayCount(sla.age)}`;
+    if (sla.remaining < 0) return `${formatDayCount(-sla.remaining)} em atraso`;
+    if (sla.remaining === 0) return 'Vence hoje';
+    return `Faltam ${formatDayCount(sla.remaining)}`;
+  }
+
+  /** Ao passar o rato: o estado por extenso, a data limite e o tempo em aberto. */
+  protected slaTitle(sla: SlaView): string {
+    const deadline = formatDate(sla.deadline.toISOString());
+    const age =
+      sla.state === 'settled'
+        ? `Fechado ${formatDayCount(sla.age)} depois do fecho.`
+        : `Em aberto há ${formatDayCount(sla.age)}.`;
+    return `${SLA_LABEL[sla.state]} · data limite ${deadline}. ${age}`;
+  }
 
   protected stripe = (item: PendingCase) => TYPE_STRIPE[item.type];
   protected chip = (item: PendingCase) => TYPE_CHIP[item.type];

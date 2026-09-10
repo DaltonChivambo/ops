@@ -13,7 +13,7 @@ import {
 import { LucideArrowUp, LucideTriangleAlert } from '@lucide/angular';
 
 import { numberFormatter } from '../../../../../../shared/format';
-import type { ValidationResult } from '../data/models';
+import type { SlaSettings, ValidationResult } from '../data/models';
 import { type CasePatch, PendingCasesTableComponent } from './pending-cases-table';
 import { ReconciliationTableComponent } from './reconciliation-table';
 
@@ -109,8 +109,10 @@ type TabId = 'cases' | 'closings';
         <app-pending-cases-table
           [cases]="r.cases"
           [executionId]="r.executionId"
+          [settings]="settings()"
           [scrollAnchor]="anchor()"
           (updated)="updateCase.emit($event)"
+          (settingsChanged)="settingsChanged.emit($event)"
         />
       } @else {
         <app-reconciliation-table [executionId]="r.executionId" [scrollAnchor]="anchor()" />
@@ -120,7 +122,9 @@ type TabId = 'cases' | 'closings';
 })
 export class ResultTabsComponent {
   readonly result = input.required<ValidationResult>();
+  readonly settings = input.required<SlaSettings>();
   readonly updateCase = output<CasePatch>();
+  readonly settingsChanged = output<{ caseSlaDays: number; caseWarningDays: number }>();
 
   /** Âncora do `appPageFirstScroll`: os separadores, não a tabela, para ficarem à vista. */
   private readonly tabList = viewChild<ElementRef<HTMLElement>>('tabList');

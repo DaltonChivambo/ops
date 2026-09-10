@@ -80,9 +80,19 @@ export interface PendingCase {
   simoAmount: number;
   bankaAmount: number; // 0 quando não creditado
   type: CaseType;
+  /** Fecho mais antigo da chave — é daqui que conta o prazo de tratamento. */
+  closingDate: string; // ISO
   eTicket: string | null;
   status: CaseStatus;
   resolvedAt: string | null;
+}
+
+/** O prazo de tratamento em vigor, em dias, e quem o pôs assim. */
+export interface SlaSettings {
+  caseSlaDays: number;
+  caseWarningDays: number;
+  updatedAt: string | null; // ISO
+  updatedBy: string | null;
 }
 
 /** Indicadores do dashboard operacional (PDD §4.2.1). */

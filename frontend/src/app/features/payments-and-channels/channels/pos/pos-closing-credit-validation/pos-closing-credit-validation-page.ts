@@ -2,6 +2,7 @@ import { ChangeDetectionStrategy, Component, computed, inject, input, signal } f
 import { LucideFileSearch, LucideLoaderCircle } from '@lucide/angular';
 
 import { numberFormatter } from '../../../../../shared/format';
+import { ApiError } from '../../../../../core/http/api-error';
 import { findModule } from '../../../../../core/navigation';
 import { CardComponent } from '../../../../../shared/ui/card';
 import { ToastComponent } from '../../../../../shared/ui/toast';
@@ -13,7 +14,8 @@ import { ResultStatsComponent } from './components/result-stats';
 import { ResultTabsComponent } from './components/result-tabs';
 import { UploadZoneComponent } from './components/upload-zone';
 import { ReconciliationApi } from './data/reconciliation-api.service';
-import type { ProgressPhase, UploadSlotId, ValidationResult } from './data/models';
+import type { ProgressPhase, SlaSettings, UploadSlotId, ValidationResult } from './data/models';
+import { DEFAULT_SLA } from './data/sla';
 
 /**
  * A página da automação: upload → execução → resultado.
@@ -99,7 +101,12 @@ import type { ProgressPhase, UploadSlotId, ValidationResult } from './data/model
           <app-amount-reconciliation [summary]="current.summary" />
         </div>
 
-        <app-result-tabs [result]="current" (updateCase)="updateCase($event)" />
+        <app-result-tabs
+          [result]="current"
+          [settings]="settings()"
+          (updateCase)="updateCase($event)"
+          (settingsChanged)="saveSettings($event)"
+        />
       }
 
       @if (success(); as message) {
@@ -141,6 +148,9 @@ export class PosClosingCreditValidationPageComponent {
   protected readonly downloading = signal(false);
   /** O formulário de upload só ocupa o ecrã quando é isso que se está a fazer. */
   protected readonly uploading = signal(false);
+  /** O prazo de tratamento em vigor. Falhar a leitura não tranca o ecrã: o
+   *  valor por omissão serve, e a gravação volta a tentar. */
+  protected readonly settings = signal<SlaSettings>(DEFAULT_SLA);
 
   constructor() {
     // A última execução está persistida no servidor: sobrevive ao refresh.
@@ -153,6 +163,27 @@ export class PosClosingCreditValidationPageComponent {
         ),
       )
       .finally(() => this.loading.set(false));
+
+    void this.api
+      .getSettings()
+      .then((settings) => this.settings.set(settings))
+      .catch(() => undefined);
+  }
+
+  protected async saveSettings(patch: {
+    caseSlaDays: number;
+    caseWarningDays: number;
+  }): Promise<void> {
+    try {
+      this.settings.set(await this.api.saveSettings(patch));
+      this.success.set(`Prazo de tratamento actualizado para ${patch.caseSlaDays} dias.`);
+    } catch (problem) {
+      this.error.set(
+        problem instanceof ApiError
+          ? problem.message
+          : 'Não foi possível guardar o prazo. Tente novamente.',
+      );
+    }
   }
 
   protected async execute(files: Record<UploadSlotId, File>): Promise<void> {
