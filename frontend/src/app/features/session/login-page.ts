@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
 import {
@@ -49,31 +49,46 @@ import { ApiError } from '../../core/http/api-error';
           class="pointer-events-none absolute inset-0"
           style="background-image: radial-gradient(circle at 1px 1px, rgba(255,255,255,0.07) 1px, transparent 0); background-size: 26px 26px; mask-image: radial-gradient(65% 60% at 25% 20%, #000 0%, transparent 75%)"
         ></div>
-        <!-- Véu escuro por cima do gradiente — o rato abre um círculo nele, como um
-             caminho de luz que o segue. Ao repouso é invisível; só se acende ao entrar. -->
+        <!-- Líquido de fundo: cada brilho é dois níveis — o de fora só posiciona (o
+             paralaxe, que segue o rato), o de dentro só muda de forma (o "blob-morph",
+             sempre a mexer-se). Têm de ser divs diferentes: um transform para a posição
+             e outro para a forma, na mesma div, um substituía o outro. -->
         <div
           aria-hidden="true"
-          class="pointer-events-none absolute inset-0 bg-black/55 opacity-0 transition-opacity duration-300 ease-out"
-          [class.opacity-100]="hovering()"
-          [style.-webkit-mask-image]="revealMask()"
-          [style.mask-image]="revealMask()"
-        ></div>
-        <!-- Os dois brilhos desfocados ganham um leve paralaxe — em sentidos opostos,
-             para dar profundidade e não parecerem presos ao mesmo ponto. -->
-        <div
-          aria-hidden="true"
-          class="pointer-events-none absolute -top-28 -right-20 size-80 rounded-full bg-alert-300/25 blur-3xl transition-transform duration-300 ease-out"
+          class="pointer-events-none absolute -top-28 -right-20 size-80 transition-transform duration-300 ease-out"
           [style.transform]="
             'translate(' + (pointer().x - 50) * 0.3 + 'px, ' + (pointer().y - 50) * 0.3 + 'px)'
           "
-        ></div>
+        >
+          <div
+            class="size-full bg-alert-300/25 blur-3xl motion-safe:animate-[blob-morph_9s_ease-in-out_infinite]"
+          ></div>
+        </div>
         <div
           aria-hidden="true"
-          class="pointer-events-none absolute -bottom-24 -left-16 size-72 rounded-full bg-black/30 blur-3xl transition-transform duration-300 ease-out"
+          class="pointer-events-none absolute -bottom-24 -left-16 size-72 transition-transform duration-300 ease-out"
           [style.transform]="
             'translate(' + (pointer().x - 50) * -0.3 + 'px, ' + (pointer().y - 50) * -0.3 + 'px)'
           "
-        ></div>
+        >
+          <div
+            class="size-full bg-black/30 blur-3xl motion-safe:animate-[blob-morph_11s_ease-in-out_infinite_reverse]"
+          ></div>
+        </div>
+        <!-- O líquido que o rato arrasta: segue-o com atraso (a transição lenta no
+             left/top) e muda de forma sozinho, como um pingo — só aparece ao passar
+             por cima, sem sair do DOM (senão o desvanecer à saída não tinha tempo). -->
+        <div
+          aria-hidden="true"
+          class="pointer-events-none absolute size-52 -translate-x-1/2 -translate-y-1/2 opacity-0 transition-[left,top,opacity] duration-700 ease-out"
+          [class.opacity-100]="hovering()"
+          [style.left.%]="pointer().x"
+          [style.top.%]="pointer().y"
+        >
+          <div
+            class="size-full bg-white/20 blur-2xl motion-safe:animate-[blob-morph_5s_ease-in-out_infinite]"
+          ></div>
+        </div>
 
         <div
           class="relative inline-flex w-fit overflow-hidden rounded-xl bg-gradient-to-b from-alert-500 to-alert-600 p-[3.5px] shadow-xl shadow-black/50 motion-safe:animate-[card-in_400ms_cubic-bezier(0.22,1,0.36,1)]"
@@ -311,12 +326,6 @@ export class LoginPageComponent {
   /** Posição do rato no painel de marca, em percentagem — centro por omissão. */
   protected readonly pointer = signal({ x: 50, y: 50 });
   protected readonly hovering = signal(false);
-
-  /** O círculo de revelação do véu escuro — o "caminho" que o rato abre. */
-  protected readonly revealMask = computed(() => {
-    const { x, y } = this.pointer();
-    return `radial-gradient(9rem circle at ${x}% ${y}%, transparent 0%, transparent 55%, black 100%)`;
-  });
 
   protected onBrandPointerMove(event: MouseEvent): void {
     const panel = event.currentTarget as HTMLElement;
