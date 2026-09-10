@@ -2,11 +2,13 @@ import { ChangeDetectionStrategy, Component, computed, input, output, signal } f
 import { LucideCircleCheck, LucideSearch, LucideX } from '@lucide/angular';
 
 import {
+  daysBetween,
   formatAmount,
   formatDate,
   formatDateValue,
   formatDayCount,
   numberFormatter,
+  parseIsoDate,
 } from '../../../../../../shared/format';
 import {
   DataTableComponent,
@@ -55,8 +57,17 @@ const TYPE_STRIPE: Record<CaseType, string> = {
 
 const STATUS_LABELS: Record<CaseStatus, string> = {
   pending: 'Pendente',
-  'in-review': 'Em análise',
+  'in-review-internal': 'Em análise interna',
+  'in-review-simo': 'Em análise na SIMO',
   resolved: 'Regularizado',
+};
+
+/** O que se diz do tempo que o caso leva no estado em que está. */
+const STATUS_WAIT: Record<CaseStatus, string> = {
+  pending: 'por analisar há',
+  'in-review-internal': 'em análise há',
+  'in-review-simo': 'submetido há',
+  resolved: 'regularizado há',
 };
 
 type StatusFilter = CaseStatus | 'all';
@@ -64,7 +75,8 @@ type StatusFilter = CaseStatus | 'all';
 const STATUS_FILTERS: ReadonlyArray<{ id: StatusFilter; label: string }> = [
   { id: 'all', label: 'Todos' },
   { id: 'pending', label: 'Pendentes' },
-  { id: 'in-review', label: 'Em análise' },
+  { id: 'in-review-internal', label: 'Análise interna' },
+  { id: 'in-review-simo', label: 'Análise SIMO' },
   { id: 'resolved', label: 'Regularizados' },
 ];
 
@@ -245,6 +257,11 @@ export interface CasePatch {
                       <option [value]="option.value">{{ option.label }}</option>
                     }
                   </select>
+                  <!-- Há quanto tempo está assim: é o que responde a «submetido
+                       à SIMO há quanto tempo?» sem abrir o fecho. -->
+                  <div class="mt-0.5 text-2xs whitespace-nowrap text-gray-400">
+                    {{ statusWait[item.status] }} {{ dayCount(daysInStatus(item)) }}
+                  </div>
                 </td>
                 <td class="px-3 py-3.5">
                   @let sla = slaOf(item);
@@ -336,6 +353,11 @@ export class PendingCasesTableComponent {
   /** Fixado à montagem: uma tabela aberta não muda de dia a meio de um clique. */
   protected readonly today = startOfToday();
   protected readonly sourceLabel = SOURCE_LABEL;
+  protected readonly statusWait = STATUS_WAIT;
+
+  /** Dias no estado actual — o relógio recomeça a cada mudança de estado. */
+  protected daysInStatus = (item: PendingCase): number =>
+    daysBetween(parseIsoDate(item.statusSince), this.today);
 
   /**
    * O prazo de cada caso, numa passagem só — e não uma função por célula, que
@@ -363,7 +385,8 @@ export class PendingCasesTableComponent {
     const result: Record<StatusFilter, number> = {
       all: cases.length,
       pending: 0,
-      'in-review': 0,
+      'in-review-internal': 0,
+      'in-review-simo': 0,
       resolved: 0,
     };
     for (const item of cases) result[item.status] += 1;
@@ -463,5 +486,6 @@ export class PendingCasesTableComponent {
   protected amount = formatAmount;
   protected date = formatDate;
   protected dateValue = formatDateValue;
+  protected dayCount = formatDayCount;
   protected n = (value: number) => numberFormatter.format(value);
 }

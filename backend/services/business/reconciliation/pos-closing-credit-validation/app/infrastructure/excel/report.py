@@ -28,7 +28,7 @@ from openpyxl.styles import Alignment, Border, Font, PatternFill, Side
 from openpyxl.utils import get_column_letter
 from openpyxl.worksheet.worksheet import Worksheet
 
-from app.domain.vocabulary import CaseStatus, CaseType, ClosingType, Validation
+from app.domain.vocabulary import CaseType, ClosingType, Validation
 
 MOZA_RED = "FFC00000"
 LIGHT_GREY = "FFF2F2F2"
@@ -71,12 +71,6 @@ VALIDATION_LABELS = {
     Validation.MISSING: "Fecho Não Creditado_aguarda tratamento da SIMO",
     Validation.ZERO: "Fecho zerado (sem movimento)",
     Validation.DUPLICATED: "Períodos duplicados_analisar individualmente",
-}
-
-CASE_STATUS_LABELS = {
-    CaseStatus.PENDING: "Fecho Não Creditado_aguarda tratamento da SIMO",
-    CaseStatus.IN_REVIEW: "Em análise",
-    CaseStatus.RESOLVED: "Fecho Regularizado",
 }
 
 CLOSING_TYPE_LABELS = {

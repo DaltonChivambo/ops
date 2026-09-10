@@ -153,13 +153,15 @@ def test_chave_sem_fechos_da_404(client):
 
 def test_actualizar_caso_devolve_o_caso_e_o_summary_recalculado(client):
     resposta = client.patch(
-        f"{BASE}/casos/{CASE_ID}", json={"status": "in-review", "eTicket": "INC-4210"}
+        f"{BASE}/casos/{CASE_ID}", json={"status": "in-review-simo", "eTicket": "INC-4210"}
     )
 
     assert resposta.status_code == 200
     corpo = resposta.json()
-    # `in_review` na base, `in-review` no contrato — a tradução é da apresentação.
-    assert corpo["case"]["status"] == "in-review"
+    # `in_review_simo` na base, `in-review-simo` no contrato — a tradução é da
+    # apresentação. E o relógio do estado recomeçou hoje.
+    assert corpo["case"]["status"] == "in-review-simo"
+    assert corpo["case"]["statusSince"] == "2026-09-10"
     assert corpo["case"]["eTicket"] == "INC-4210"
     assert corpo["summary"]["processed"] == 18138
 
@@ -180,7 +182,7 @@ def test_actualizar_caso_com_estado_invalido_e_regra_de_negocio(client):
     erro = resposta.json()["error"]
     assert erro["code"] == "business_rule"
     # A mensagem diz ao operador quais são os estados possíveis.
-    assert "in-review" in erro["message"]
+    assert "in-review-simo" in erro["message"]
 
 
 def test_actualizar_caso_sem_nada_para_mudar_e_pedido_incompleto(client):

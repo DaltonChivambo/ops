@@ -171,6 +171,10 @@ class PendingCase(Base):
     first_date_source: Mapped[CaseDateSource] = mapped_column("firstDateSource", CaseDateSourceEnum)
     e_ticket: Mapped[str | None] = mapped_column("eTicket", sa.String, nullable=True)
     status: Mapped[CaseStatus] = mapped_column(CaseStatusEnum, default=CaseStatus.PENDING)
+    # Desde quando o caso está no estado em que está — é daqui que sai «submetido
+    # à SIMO há 5 dias» ou «em análise interna há 2». Muda a cada mudança de
+    # estado, ao contrário do `resolvedAt`, que só existe no fim.
+    status_since: Mapped[date] = mapped_column("statusSince", sa.Date, default=date.today)
     resolved_at: Mapped[date | None] = mapped_column("resolvedAt", sa.Date, nullable=True)
 
 

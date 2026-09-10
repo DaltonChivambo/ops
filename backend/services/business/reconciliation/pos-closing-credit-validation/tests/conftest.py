@@ -27,6 +27,7 @@ from app.domain.sla import DEFAULT_SLA_DAYS, DEFAULT_WARNING_DAYS, validate_sla
 from app.infrastructure.auth import auth
 from app.infrastructure.tables import ClosingDetail, CreditMovement, Execution, PendingCase
 from app.main import app
+from app.services.case_service import STATUS_FROM_JSON
 from app.services.settings_service import SlaSettings
 from mozaops_libs.auth import Principal
 
@@ -100,6 +101,7 @@ def make_case() -> PendingCase:
         type="mismatch",
         first_date=date(2026, 6, 23),
         first_date_source="simo",
+        status_since=date(2026, 6, 30),
         e_ticket=None,
         status="pending",
         resolved_at=None,
@@ -195,17 +197,18 @@ class FakeService:
             raise NothingToUpdateError(
                 "O pedido não indica nada para alterar. Envie o estado, o e-Ticket, ou ambos."
             )
-        if "status" in patch and patch["status"] not in ("pending", "in-review", "resolved"):
+        if "status" in patch and patch["status"] not in STATUS_FROM_JSON:
             raise InvalidCaseStatusError(
                 f"Estado de caso inválido: «{patch['status']}». "
-                "Os estados possíveis são «pending», «in-review» e «resolved»."
+                f"Os estados possíveis são «{'», «'.join(STATUS_FROM_JSON)}»."
             )
 
         caso = self.cases[0]
         if "e_ticket" in patch:
             caso.e_ticket = patch["e_ticket"]
         if "status" in patch:
-            caso.status = {"in-review": "in_review"}.get(patch["status"], patch["status"])
+            caso.status = STATUS_FROM_JSON[patch["status"]]
+            caso.status_since = date(2026, 9, 10)
         return caso, dict(SUMMARY)
 
     async def build_report(self, execution_id: str) -> tuple[bytes, str]:
