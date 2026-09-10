@@ -13,19 +13,22 @@ export const STATE_OPTIONS: Array<{
   dot: string;
   count: (c: DetailCounts) => number;
 }> = [
-  {
-    id: 'match',
-    label: 'Confere',
-    validations: ['match'],
-    dot: 'bg-emerald-500',
-    count: (c) => c.match,
-  },
+  // Incorrecto, depois duplicado, depois não creditado: o que exige mais
+  // trabalho primeiro. Confere a seguir, e zerado por último — não pede
+  // nada a ninguém.
   {
     id: 'mismatch',
     label: 'Incorrecto',
     validations: ['mismatch'],
     dot: 'bg-alert-500',
     count: (c) => c.mismatch,
+  },
+  {
+    id: 'duplicated',
+    label: 'Duplicados',
+    validations: ['duplicated'],
+    dot: 'bg-amber-500',
+    count: (c) => c.duplicated,
   },
   {
     id: 'missing',
@@ -35,13 +38,12 @@ export const STATE_OPTIONS: Array<{
     count: (c) => c.missing,
   },
   {
-    id: 'duplicated',
-    label: 'Duplicados',
-    validations: ['duplicated'],
-    dot: 'bg-amber-500',
-    count: (c) => c.duplicated,
+    id: 'match',
+    label: 'Confere',
+    validations: ['match'],
+    dot: 'bg-emerald-500',
+    count: (c) => c.match,
   },
-  // Zerados por último, e em cinzento: é o estado que não pede nada a ninguém.
   {
     id: 'zero',
     label: 'Zerados',
