@@ -12,6 +12,7 @@ import type {
   ExecutionOutcome,
   KeyBreakdown,
   PendingCase,
+  SlaSettings,
   UploadSlotId,
   Validation,
   ValidationResult,
@@ -101,6 +102,15 @@ export class ReconciliationApi {
         patch,
       ),
     );
+  }
+
+  getSettings(): Promise<SlaSettings> {
+    return firstValueFrom(this.http.get<SlaSettings>(`${this.base}/definicoes`));
+  }
+
+  /** O documento inteiro: o «aviso antes do prazo» não se valida a meio. */
+  saveSettings(settings: { caseSlaDays: number; caseWarningDays: number }): Promise<SlaSettings> {
+    return firstValueFrom(this.http.put<SlaSettings>(`${this.base}/definicoes`, settings));
   }
 
   async downloadReport(executionId: string, reportName: string): Promise<void> {

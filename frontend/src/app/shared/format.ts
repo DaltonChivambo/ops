@@ -57,13 +57,29 @@ export function formatSignedMzn(value: number): string {
 }
 
 export function formatDate(iso: string): string {
-  return dateFormatter.format(new Date(`${iso.slice(0, 10)}T00:00:00`));
+  return dateFormatter.format(parseIsoDate(iso));
+}
+
+/** Uma data ISO como data local, sem o desvio de fuso que o `new Date(iso)` traz. */
+export function parseIsoDate(iso: string): Date {
+  return new Date(`${iso.slice(0, 10)}T00:00:00`);
+}
+
+/** "1 dia" · "9 dias" — o singular tem de ser singular. */
+export function formatDayCount(days: number): string {
+  return `${numberFormatter.format(days)} ${days === 1 ? 'dia' : 'dias'}`;
+}
+
+/** Dias inteiros de `from` até `to`, ambos tomados como datas locais. */
+export function daysBetween(from: Date, to: Date): number {
+  const DAY = 24 * 60 * 60 * 1000;
+  return Math.round((to.getTime() - from.getTime()) / DAY);
 }
 
 /** "21 a 28 de Junho" a partir de duas datas ISO. */
 export function formatInterval(startIso: string, endIso: string): string {
-  const start = new Date(`${startIso.slice(0, 10)}T00:00:00`);
-  const end = new Date(`${endIso.slice(0, 10)}T00:00:00`);
+  const start = parseIsoDate(startIso);
+  const end = parseIsoDate(endIso);
   if (start.getMonth() === end.getMonth()) {
     return `${start.getDate()} a ${shortDateFormatter.format(end)}`;
   }
