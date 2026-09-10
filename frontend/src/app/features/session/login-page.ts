@@ -39,6 +39,8 @@ import { ApiError } from '../../core/http/api-error';
            esquerdo e canto inferior direito) e o vermelho fica só no meio — em vez
            de vermelho vivo só num canto. -->
       <div
+        (mousemove)="onBrandPointerMove($event)"
+        (mouseleave)="onBrandPointerLeave()"
         class="relative hidden overflow-hidden bg-gradient-to-br from-[#1a0604] via-alert-600 to-[#1a0604] lg:flex lg:flex-col lg:p-8 xl:p-11 2xl:p-16"
       >
         <div
@@ -46,13 +48,33 @@ import { ApiError } from '../../core/http/api-error';
           class="pointer-events-none absolute inset-0"
           style="background-image: radial-gradient(circle at 1px 1px, rgba(255,255,255,0.07) 1px, transparent 0); background-size: 26px 26px; mask-image: radial-gradient(65% 60% at 25% 20%, #000 0%, transparent 75%)"
         ></div>
+        <!-- O foco de luz que segue o rato — a "div em movimento" que se pediu. -->
         <div
           aria-hidden="true"
-          class="pointer-events-none absolute -top-28 -right-20 size-80 rounded-full bg-alert-300/25 blur-3xl"
+          class="pointer-events-none absolute inset-0 transition-[background] duration-300 ease-out"
+          [style.background]="
+            'radial-gradient(28rem circle at ' +
+            pointer().x +
+            '% ' +
+            pointer().y +
+            '%, rgba(255,255,255,0.10), transparent 60%)'
+          "
+        ></div>
+        <!-- Os dois brilhos desfocados ganham um leve paralaxe — em sentidos opostos,
+             para dar profundidade e não parecerem presos ao mesmo ponto. -->
+        <div
+          aria-hidden="true"
+          class="pointer-events-none absolute -top-28 -right-20 size-80 rounded-full bg-alert-300/25 blur-3xl transition-transform duration-300 ease-out"
+          [style.transform]="
+            'translate(' + (pointer().x - 50) * 0.3 + 'px, ' + (pointer().y - 50) * 0.3 + 'px)'
+          "
         ></div>
         <div
           aria-hidden="true"
-          class="pointer-events-none absolute -bottom-24 -left-16 size-72 rounded-full bg-black/30 blur-3xl"
+          class="pointer-events-none absolute -bottom-24 -left-16 size-72 rounded-full bg-black/30 blur-3xl transition-transform duration-300 ease-out"
+          [style.transform]="
+            'translate(' + (pointer().x - 50) * -0.3 + 'px, ' + (pointer().y - 50) * -0.3 + 'px)'
+          "
         ></div>
 
         <div
@@ -287,6 +309,22 @@ export class LoginPageComponent {
   protected readonly error = signal<string | null>(null);
   protected readonly showPassword = signal(false);
   protected readonly capsLock = signal(false);
+
+  /** Posição do rato no painel de marca, em percentagem — centro por omissão. */
+  protected readonly pointer = signal({ x: 50, y: 50 });
+
+  protected onBrandPointerMove(event: MouseEvent): void {
+    const panel = event.currentTarget as HTMLElement;
+    const rect = panel.getBoundingClientRect();
+    this.pointer.set({
+      x: ((event.clientX - rect.left) / rect.width) * 100,
+      y: ((event.clientY - rect.top) / rect.height) * 100,
+    });
+  }
+
+  protected onBrandPointerLeave(): void {
+    this.pointer.set({ x: 50, y: 50 });
+  }
 
   protected trackCapsLock(event: KeyboardEvent): void {
     this.capsLock.set(event.getModifierState('CapsLock'));
