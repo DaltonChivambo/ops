@@ -39,9 +39,6 @@ import { ApiError } from '../../core/http/api-error';
            esquerdo e canto inferior direito) e o vermelho fica só no meio — em vez
            de vermelho vivo só num canto. -->
       <div
-        (mouseenter)="onBrandPointerMove($event)"
-        (mousemove)="onBrandPointerMove($event)"
-        (mouseleave)="onBrandPointerLeave()"
         class="relative hidden overflow-hidden bg-gradient-to-br from-[#1a0604] via-alert-600 to-[#1a0604] lg:flex lg:flex-col lg:p-8 xl:p-11 2xl:p-16"
       >
         <div
@@ -49,46 +46,15 @@ import { ApiError } from '../../core/http/api-error';
           class="pointer-events-none absolute inset-0"
           style="background-image: radial-gradient(circle at 1px 1px, rgba(255,255,255,0.07) 1px, transparent 0); background-size: 26px 26px; mask-image: radial-gradient(65% 60% at 25% 20%, #000 0%, transparent 75%)"
         ></div>
-        <!-- Líquido de fundo: cada brilho é dois níveis — o de fora só posiciona (o
-             paralaxe, que segue o rato), o de dentro só muda de forma (o "blob-morph",
-             sempre a mexer-se). Têm de ser divs diferentes: um transform para a posição
-             e outro para a forma, na mesma div, um substituía o outro. -->
         <div
           aria-hidden="true"
-          class="pointer-events-none absolute -top-28 -right-20 size-80 transition-transform duration-300 ease-out"
-          [style.transform]="
-            'translate(' + (pointer().x - 50) * 0.3 + 'px, ' + (pointer().y - 50) * 0.3 + 'px)'
-          "
-        >
-          <div
-            class="size-full bg-alert-300/25 blur-3xl motion-safe:animate-[blob-morph_9s_ease-in-out_infinite]"
-          ></div>
-        </div>
+          class="pointer-events-none absolute -top-28 -right-20 size-80 rounded-full bg-alert-300/25 blur-3xl"
+        ></div>
         <div
           aria-hidden="true"
-          class="pointer-events-none absolute -bottom-24 -left-16 size-72 transition-transform duration-300 ease-out"
-          [style.transform]="
-            'translate(' + (pointer().x - 50) * -0.3 + 'px, ' + (pointer().y - 50) * -0.3 + 'px)'
-          "
-        >
-          <div
-            class="size-full bg-black/30 blur-3xl motion-safe:animate-[blob-morph_11s_ease-in-out_infinite_reverse]"
-          ></div>
-        </div>
-        <!-- O líquido que o rato arrasta: segue-o com atraso (a transição lenta no
-             left/top) e muda de forma sozinho, como um pingo — só aparece ao passar
-             por cima, sem sair do DOM (senão o desvanecer à saída não tinha tempo). -->
-        <div
-          aria-hidden="true"
-          class="pointer-events-none absolute size-52 -translate-x-1/2 -translate-y-1/2 opacity-0 transition-[left,top,opacity] duration-700 ease-out"
-          [class.opacity-100]="hovering()"
-          [style.left.%]="pointer().x"
-          [style.top.%]="pointer().y"
-        >
-          <div
-            class="size-full bg-white/20 blur-2xl motion-safe:animate-[blob-morph_5s_ease-in-out_infinite]"
-          ></div>
-        </div>
+          class="pointer-events-none absolute -bottom-24 -left-16 size-72 rounded-full bg-black/30 blur-3xl"
+        ></div>
+        <div aria-hidden="true" class="pointer-events-none absolute inset-0 bg-black/25"></div>
 
         <div
           class="relative inline-flex w-fit overflow-hidden rounded-xl bg-gradient-to-b from-alert-500 to-alert-600 p-[3.5px] shadow-xl shadow-black/50 motion-safe:animate-[card-in_400ms_cubic-bezier(0.22,1,0.36,1)]"
@@ -322,25 +288,6 @@ export class LoginPageComponent {
   protected readonly error = signal<string | null>(null);
   protected readonly showPassword = signal(false);
   protected readonly capsLock = signal(false);
-
-  /** Posição do rato no painel de marca, em percentagem — centro por omissão. */
-  protected readonly pointer = signal({ x: 50, y: 50 });
-  protected readonly hovering = signal(false);
-
-  protected onBrandPointerMove(event: MouseEvent): void {
-    const panel = event.currentTarget as HTMLElement;
-    const rect = panel.getBoundingClientRect();
-    this.pointer.set({
-      x: ((event.clientX - rect.left) / rect.width) * 100,
-      y: ((event.clientY - rect.top) / rect.height) * 100,
-    });
-    this.hovering.set(true);
-  }
-
-  protected onBrandPointerLeave(): void {
-    this.hovering.set(false);
-    this.pointer.set({ x: 50, y: 50 });
-  }
 
   protected trackCapsLock(event: KeyboardEvent): void {
     this.capsLock.set(event.getModifierState('CapsLock'));

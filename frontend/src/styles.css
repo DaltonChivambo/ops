@@ -115,25 +115,6 @@
   }
 }
 
-/* Os brilhos de fundo do painel de marca do login — o border-radius muda de
-   forma sem sair de um círculo/elipse, dando o ar de um líquido a mexer-se
-   devagar. A rotação, a par, evita que a "onda" pareça sempre igual. */
-@keyframes blob-morph {
-  0%,
-  100% {
-    border-radius: 42% 58% 63% 37% / 41% 44% 56% 59%;
-    transform: rotate(0deg);
-  }
-  34% {
-    border-radius: 63% 37% 41% 59% / 55% 47% 53% 45%;
-    transform: rotate(6deg);
-  }
-  67% {
-    border-radius: 37% 63% 55% 45% / 63% 40% 60% 37%;
-    transform: rotate(-6deg);
-  }
-}
-
 html,
 body {
   height: 100%;
