@@ -149,13 +149,14 @@ export interface CasePatch {
           <tbody>
             @for (item of visible(); track item.id) {
               <tr
-                class="border-b border-gray-50 text-gray-600 transition-colors last:border-b-0"
+                (click)="opened.set(toDetail(item))"
+                class="cursor-pointer border-b border-gray-50 text-gray-600 transition-colors last:border-b-0"
                 [class]="item.status === 'resolved' ? 'bg-emerald-50/40' : 'hover:bg-gray-50/70'"
               >
                 <td class="py-3.5 pr-3 pl-5" [class]="stripe(item)">
                   <button
                     type="button"
-                    (click)="opened.set(toDetail(item))"
+                    (click)="$event.stopPropagation(); opened.set(toDetail(item))"
                     class="font-bold text-gray-900 tabular-nums underline-offset-2 transition-colors hover:text-moza-600 hover:underline focus-visible:text-moza-600 focus-visible:underline"
                   >
                     {{ item.posId }}
@@ -185,7 +186,7 @@ export interface CasePatch {
                     {{ typeLabel(item) }}
                   </span>
                 </td>
-                <td class="px-3 py-3.5">
+                <td class="px-3 py-3.5" (click)="$event.stopPropagation()">
                   <!-- Grava ao sair do campo: um PATCH por tecla era de mais.
                        Enter sai do campo (dispara o mesmo blur) para quem prefere confirmar sem tocar no rato. -->
                   <input
@@ -198,7 +199,7 @@ export interface CasePatch {
                     class="w-28 rounded-lg border border-gray-200 bg-white px-2.5 py-1.5 text-xs font-medium text-gray-700 outline-none placeholder:text-gray-300 focus:border-moza-400 focus:ring-2 focus:ring-moza-100"
                   />
                 </td>
-                <td class="px-3 py-3.5">
+                <td class="px-3 py-3.5" (click)="$event.stopPropagation()">
                   <select
                     [value]="item.status"
                     [attr.aria-label]="'Estado do caso ' + item.posId"
