@@ -9,6 +9,9 @@ const RADIUS = 84;
 const STROKE = 12;
 /** Ao destacar, o arco engorda para dentro e para fora — daí a folga no viewBox. */
 const STROKE_ACTIVE = 18;
+/** Faixa invisível, mais larga, só para caçar o rato — sem ela, uma fatia
+ *  pequena (0,7%) é fina de mais para se apontar com conforto. */
+const HIT_STROKE = 32;
 const CIRCUMFERENCE = 2 * Math.PI * RADIUS;
 /** Intervalo entre fatias, em comprimento de arco (equivale a 4°). */
 const GAP = (4 / 360) * CIRCUMFERENCE;
@@ -85,8 +88,21 @@ interface Arc extends DonutSlice {
                   [attr.stroke-dasharray]="arc.dash + ' ' + circumference"
                   [attr.stroke-dashoffset]="arc.offset"
                   [attr.opacity]="active() && !on ? 0.22 : 1"
-                  class="cursor-pointer transition-[stroke-width,opacity,filter] duration-200"
+                  class="pointer-events-none transition-[stroke-width,opacity,filter] duration-200"
                   [style.filter]="on ? 'drop-shadow(0 2px 6px ' + arc.color + '59)' : null"
+                />
+                <!-- Faixa larga e transparente, por cima — é nela que o rato acerta;
+                     a fina de cima só é a que se vê. -->
+                <circle
+                  [attr.cx]="size / 2"
+                  [attr.cy]="size / 2"
+                  [attr.r]="radius"
+                  fill="none"
+                  stroke="transparent"
+                  [attr.stroke-width]="hitStroke"
+                  [attr.stroke-dasharray]="arc.dash + ' ' + circumference"
+                  [attr.stroke-dashoffset]="arc.offset"
+                  class="cursor-pointer"
                   (mouseenter)="active.set(arc.name)"
                 />
               }
@@ -183,6 +199,7 @@ export class DonutChartComponent {
   protected readonly radius = RADIUS;
   protected readonly stroke = STROKE;
   protected readonly strokeActive = STROKE_ACTIVE;
+  protected readonly hitStroke = HIT_STROKE;
   protected readonly circumference = CIRCUMFERENCE;
 
   protected readonly active = signal<string | null>(null);
