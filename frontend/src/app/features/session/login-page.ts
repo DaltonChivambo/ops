@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
 import {
@@ -39,6 +39,7 @@ import { ApiError } from '../../core/http/api-error';
            esquerdo e canto inferior direito) e o vermelho fica só no meio — em vez
            de vermelho vivo só num canto. -->
       <div
+        (mouseenter)="onBrandPointerMove($event)"
         (mousemove)="onBrandPointerMove($event)"
         (mouseleave)="onBrandPointerLeave()"
         class="relative hidden overflow-hidden bg-gradient-to-br from-[#1a0604] via-alert-600 to-[#1a0604] lg:flex lg:flex-col lg:p-8 xl:p-11 2xl:p-16"
@@ -48,17 +49,14 @@ import { ApiError } from '../../core/http/api-error';
           class="pointer-events-none absolute inset-0"
           style="background-image: radial-gradient(circle at 1px 1px, rgba(255,255,255,0.07) 1px, transparent 0); background-size: 26px 26px; mask-image: radial-gradient(65% 60% at 25% 20%, #000 0%, transparent 75%)"
         ></div>
-        <!-- O foco de luz que segue o rato — a "div em movimento" que se pediu. -->
+        <!-- Véu escuro por cima do gradiente — o rato abre um círculo nele, como um
+             caminho de luz que o segue. Ao repouso é invisível; só se acende ao entrar. -->
         <div
           aria-hidden="true"
-          class="pointer-events-none absolute inset-0 transition-[background] duration-300 ease-out"
-          [style.background]="
-            'radial-gradient(28rem circle at ' +
-            pointer().x +
-            '% ' +
-            pointer().y +
-            '%, rgba(255,255,255,0.10), transparent 60%)'
-          "
+          class="pointer-events-none absolute inset-0 bg-black/55 opacity-0 transition-opacity duration-300 ease-out"
+          [class.opacity-100]="hovering()"
+          [style.-webkit-mask-image]="revealMask()"
+          [style.mask-image]="revealMask()"
         ></div>
         <!-- Os dois brilhos desfocados ganham um leve paralaxe — em sentidos opostos,
              para dar profundidade e não parecerem presos ao mesmo ponto. -->
@@ -312,6 +310,13 @@ export class LoginPageComponent {
 
   /** Posição do rato no painel de marca, em percentagem — centro por omissão. */
   protected readonly pointer = signal({ x: 50, y: 50 });
+  protected readonly hovering = signal(false);
+
+  /** O círculo de revelação do véu escuro — o "caminho" que o rato abre. */
+  protected readonly revealMask = computed(() => {
+    const { x, y } = this.pointer();
+    return `radial-gradient(9rem circle at ${x}% ${y}%, transparent 0%, transparent 55%, black 100%)`;
+  });
 
   protected onBrandPointerMove(event: MouseEvent): void {
     const panel = event.currentTarget as HTMLElement;
@@ -320,9 +325,11 @@ export class LoginPageComponent {
       x: ((event.clientX - rect.left) / rect.width) * 100,
       y: ((event.clientY - rect.top) / rect.height) * 100,
     });
+    this.hovering.set(true);
   }
 
   protected onBrandPointerLeave(): void {
+    this.hovering.set(false);
     this.pointer.set({ x: 50, y: 50 });
   }
 
