@@ -48,8 +48,10 @@ import { DEFAULT_SLA } from './data/sla';
         [description]="description()"
         [result]="uploading() ? null : result()"
         [downloading]="downloading()"
+        [settings]="settings()"
         (download)="download()"
         (newExecution)="startNewExecution()"
+        (settingsChanged)="saveSettings($event)"
       />
 
       @if (loading()) {
@@ -105,7 +107,6 @@ import { DEFAULT_SLA } from './data/sla';
           [result]="current"
           [settings]="settings()"
           (updateCase)="updateCase($event)"
-          (settingsChanged)="saveSettings($event)"
         />
       }
 

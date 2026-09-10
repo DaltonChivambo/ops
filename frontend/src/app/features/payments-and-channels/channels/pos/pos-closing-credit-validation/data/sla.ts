@@ -79,9 +79,10 @@ export const SLA_DOT: Record<SlaState, string> = {
   settled: 'bg-emerald-500',
 };
 
-export const SLA_CHIP: Record<SlaState, string> = {
-  'on-track': 'bg-gray-100 text-gray-500',
-  'due-soon': 'bg-amber-50 text-amber-700',
-  overdue: 'bg-alert-50 text-alert-700',
-  settled: 'bg-emerald-50 text-emerald-700',
+/** Só a cor do texto: a pastilha cheia da coluna «Tipo» já chega por linha. */
+export const SLA_TEXT: Record<SlaState, string> = {
+  'on-track': 'text-gray-500',
+  'due-soon': 'text-amber-700',
+  overdue: 'text-alert-700',
+  settled: 'text-emerald-700',
 };

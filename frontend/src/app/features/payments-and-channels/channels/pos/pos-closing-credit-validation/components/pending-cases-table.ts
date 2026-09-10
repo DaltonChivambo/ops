@@ -4,6 +4,7 @@ import { LucideCircleCheck, LucideSearch, LucideX } from '@lucide/angular';
 import {
   formatAmount,
   formatDate,
+  formatDateValue,
   formatDayCount,
   numberFormatter,
 } from '../../../../../../shared/format';
@@ -13,12 +14,19 @@ import {
   THEAD_CLASS,
 } from '../../../../../../shared/ui/data-table';
 import type { CaseStatus, CaseType, ClosingDetail, PendingCase, SlaSettings } from '../data/models';
-import { SLA_CHIP, SLA_LABEL, slaOf, startOfToday, type SlaState, type SlaView } from '../data/sla';
+import {
+  SLA_DOT,
+  SLA_LABEL,
+  SLA_TEXT,
+  slaOf,
+  startOfToday,
+  type SlaState,
+  type SlaView,
+} from '../data/sla';
 import { CaseTypeFilterComponent } from './case-type-filter';
 import { KeyDetailPanelComponent } from './key-detail-panel';
 import { MoneyComponent } from './money';
 import { SlaFilterComponent } from './sla-filter';
-import { SlaSettingsPopoverComponent } from './sla-settings-popover';
 
 const TYPE_CHIP: Record<CaseType, string> = {
   missing: 'bg-moza-100 text-moza-600',
@@ -72,7 +80,6 @@ export interface CasePatch {
     KeyDetailPanelComponent,
     MoneyComponent,
     SlaFilterComponent,
-    SlaSettingsPopoverComponent,
     LucideCircleCheck,
     LucideSearch,
     LucideX,
@@ -148,12 +155,6 @@ export interface CasePatch {
               </button>
             }
           </label>
-
-          <app-sla-settings-popover
-            class="ml-auto"
-            [settings]="settings()"
-            (saved)="settingsChanged.emit($event)"
-          />
         </ng-container>
 
         <table [class]="tableClass + ' min-w-3xl @4xl:min-w-4xl'">
@@ -245,14 +246,16 @@ export interface CasePatch {
                 <td class="px-3 py-3.5">
                   @let sla = slaOf(item);
                   <span
-                    class="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-bold whitespace-nowrap"
-                    [class]="slaChip[sla.state]"
+                    class="flex items-center gap-1.5 whitespace-nowrap"
                     [attr.title]="slaTitle(sla)"
                   >
-                    {{ slaText(sla) }}
+                    <span class="size-1.5 shrink-0 rounded-full" [class]="slaDot[sla.state]"></span>
+                    <span class="text-xs font-semibold" [class]="slaTextClass[sla.state]">
+                      {{ slaPhrase(sla) }}
+                    </span>
                   </span>
                   <div class="mt-0.5 text-2xs text-gray-400 tabular-nums">
-                    {{ date(item.closingDate) }} + {{ settings().caseSlaDays }}d
+                    limite {{ dateValue(sla.deadline) }}
                   </div>
                 </td>
                 <td class="hidden px-3 py-3.5 tabular-nums text-gray-400 @4xl:table-cell">
@@ -300,7 +303,6 @@ export class PendingCasesTableComponent {
   /** Onde o scroll da página assenta antes de a lista correr — a barra de separadores. */
   readonly scrollAnchor = input<HTMLElement | undefined>(undefined);
   readonly updated = output<CasePatch>();
-  readonly settingsChanged = output<{ caseSlaDays: number; caseWarningDays: number }>();
 
   /** O caso aberto no painel lateral — o mesmo painel do "Todos os Fechos". */
   protected readonly opened = signal<ClosingDetail | null>(null);
@@ -327,7 +329,8 @@ export class PendingCasesTableComponent {
 
   /** Fixado à montagem: uma tabela aberta não muda de dia a meio de um clique. */
   protected readonly today = startOfToday();
-  protected readonly slaChip = SLA_CHIP;
+  protected readonly slaDot = SLA_DOT;
+  protected readonly slaTextClass = SLA_TEXT;
 
   /**
    * O prazo de cada caso, numa passagem só — e não uma função por célula, que
@@ -431,22 +434,21 @@ export class PendingCasesTableComponent {
 
   protected slaOf = (item: PendingCase): SlaView => this.slaByCase().get(item.id)!;
 
-  /** O que a pastilha diz: o que falta, o que já passou, ou quanto demorou. */
-  protected slaText(sla: SlaView): string {
+  /** O que a linha diz: o que falta, o que já passou, ou quanto demorou. */
+  protected slaPhrase(sla: SlaView): string {
     if (sla.state === 'settled') return `Tratado em ${formatDayCount(sla.age)}`;
     if (sla.remaining < 0) return `${formatDayCount(-sla.remaining)} em atraso`;
     if (sla.remaining === 0) return 'Vence hoje';
     return `Faltam ${formatDayCount(sla.remaining)}`;
   }
 
-  /** Ao passar o rato: o estado por extenso, a data limite e o tempo em aberto. */
+  /** Ao passar o rato: o estado por extenso e o tempo em aberto. */
   protected slaTitle(sla: SlaView): string {
-    const deadline = formatDate(sla.deadline.toISOString());
     const age =
       sla.state === 'settled'
         ? `Fechado ${formatDayCount(sla.age)} depois do fecho.`
         : `Em aberto há ${formatDayCount(sla.age)}.`;
-    return `${SLA_LABEL[sla.state]} · data limite ${deadline}. ${age}`;
+    return `${SLA_LABEL[sla.state]}. ${age}`;
   }
 
   protected stripe = (item: PendingCase) => TYPE_STRIPE[item.type];
@@ -455,5 +457,6 @@ export class PendingCasesTableComponent {
   protected typeLabel = (item: PendingCase) => TYPE_LABEL[item.type];
   protected amount = formatAmount;
   protected date = formatDate;
+  protected dateValue = formatDateValue;
   protected n = (value: number) => numberFormatter.format(value);
 }

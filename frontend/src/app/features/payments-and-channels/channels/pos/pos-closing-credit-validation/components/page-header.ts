@@ -8,7 +8,8 @@ import {
 
 import { formatInterval } from '../../../../../../shared/format';
 import { InfoTooltipComponent } from '../../../../../../shared/ui/info-tooltip';
-import type { ValidationResult } from '../data/models';
+import type { SlaSettings, ValidationResult } from '../data/models';
+import { SlaSettingsPopoverComponent } from './sla-settings-popover';
 
 const dateTimeFormatter = new Intl.DateTimeFormat('pt-PT', {
   day: '2-digit',
@@ -23,6 +24,7 @@ const dateTimeFormatter = new Intl.DateTimeFormat('pt-PT', {
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     InfoTooltipComponent,
+    SlaSettingsPopoverComponent,
     LucideDownload,
     LucideLoaderCircle,
     LucideRefreshCw,
@@ -71,6 +73,13 @@ const dateTimeFormatter = new Intl.DateTimeFormat('pt-PT', {
 
       @if (result(); as r) {
         <div class="flex flex-wrap items-center gap-2.5">
+          <!-- O prazo é definição do ecrã, não filtro de uma tabela: fica aqui,
+               com as outras acções, e não na barra dos casos. -->
+          <app-sla-settings-popover
+            [settings]="settings()"
+            (saved)="settingsChanged.emit($event)"
+          />
+
           <button
             type="button"
             (click)="newExecution.emit()"
@@ -102,6 +111,8 @@ const dateTimeFormatter = new Intl.DateTimeFormat('pt-PT', {
 export class PageHeaderComponent {
   readonly heading = input.required<string>();
   readonly description = input.required<string>();
+  readonly settings = input.required<SlaSettings>();
+  readonly settingsChanged = output<{ caseSlaDays: number; caseWarningDays: number }>();
 
   /** Nulo enquanto não há execução, ou enquanto se está a criar outra. */
   readonly result = input<ValidationResult | null>(null);

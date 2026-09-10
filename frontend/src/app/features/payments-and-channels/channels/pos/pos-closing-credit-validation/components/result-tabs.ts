@@ -112,7 +112,6 @@ type TabId = 'cases' | 'closings';
           [settings]="settings()"
           [scrollAnchor]="anchor()"
           (updated)="updateCase.emit($event)"
-          (settingsChanged)="settingsChanged.emit($event)"
         />
       } @else {
         <app-reconciliation-table [executionId]="r.executionId" [scrollAnchor]="anchor()" />
@@ -124,7 +123,6 @@ export class ResultTabsComponent {
   readonly result = input.required<ValidationResult>();
   readonly settings = input.required<SlaSettings>();
   readonly updateCase = output<CasePatch>();
-  readonly settingsChanged = output<{ caseSlaDays: number; caseWarningDays: number }>();
 
   /** Âncora do `appPageFirstScroll`: os separadores, não a tabela, para ficarem à vista. */
   private readonly tabList = viewChild<ElementRef<HTMLElement>>('tabList');
