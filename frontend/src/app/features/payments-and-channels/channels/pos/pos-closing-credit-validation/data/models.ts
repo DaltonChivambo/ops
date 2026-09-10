@@ -106,6 +106,18 @@ export interface SlaSettings {
   updatedBy: string | null;
 }
 
+/**
+ * O que o operador pode mudar num caso, e onde.
+ *
+ * Vive aqui e não no componente da tabela porque o painel de detalhe também o
+ * emite — e a tabela é quem monta o painel, portanto importá-lo de lá fechava
+ * um círculo.
+ */
+export interface CasePatch {
+  readonly caseId: string;
+  readonly patch: { status?: CaseStatus; eTicket?: string | null };
+}
+
 /** Indicadores do dashboard operacional (PDD §4.2.1). */
 export interface ClosingSummary {
   processed: number;

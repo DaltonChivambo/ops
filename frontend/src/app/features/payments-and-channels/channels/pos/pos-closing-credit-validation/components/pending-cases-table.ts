@@ -15,7 +15,14 @@ import {
   TABLE_CLASS,
   THEAD_CLASS,
 } from '../../../../../../shared/ui/data-table';
-import type { CaseStatus, CaseType, ClosingDetail, PendingCase, SlaSettings } from '../data/models';
+import type {
+  CasePatch,
+  CaseStatus,
+  CaseType,
+  ClosingDetail,
+  PendingCase,
+  SlaSettings,
+} from '../data/models';
 import {
   SLA_LABEL,
   SOURCE_LABEL,
@@ -79,11 +86,6 @@ const STATUS_FILTERS: ReadonlyArray<{ id: StatusFilter; label: string }> = [
   { id: 'in-review-simo', label: 'Análise SIMO' },
   { id: 'resolved', label: 'Regularizados' },
 ];
-
-export interface CasePatch {
-  readonly caseId: string;
-  readonly patch: { status?: CaseStatus; eTicket?: string | null };
-}
 
 /** Fila de trabalho do operador (incorrectos e não creditados) — edita e-Ticket e estado in-line. */
 @Component({
@@ -313,6 +315,7 @@ export interface CasePatch {
           [executionId]="executionId()"
           [detail]="detail"
           [settings]="settings()"
+          (updated)="updated.emit($event)"
           (closed)="opened.set(null)"
         />
       }

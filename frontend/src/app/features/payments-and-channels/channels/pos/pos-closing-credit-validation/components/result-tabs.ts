@@ -13,8 +13,8 @@ import {
 import { LucideArrowUp, LucideTriangleAlert } from '@lucide/angular';
 
 import { numberFormatter } from '../../../../../../shared/format';
-import type { SlaSettings, ValidationResult } from '../data/models';
-import { type CasePatch, PendingCasesTableComponent } from './pending-cases-table';
+import type { CasePatch, SlaSettings, ValidationResult } from '../data/models';
+import { PendingCasesTableComponent } from './pending-cases-table';
 import { ReconciliationTableComponent } from './reconciliation-table';
 
 type TabId = 'cases' | 'closings';
@@ -118,6 +118,7 @@ type TabId = 'cases' | 'closings';
           [executionId]="r.executionId"
           [settings]="settings()"
           [scrollAnchor]="anchor()"
+          (updated)="updateCase.emit($event)"
         />
       }
     </div>

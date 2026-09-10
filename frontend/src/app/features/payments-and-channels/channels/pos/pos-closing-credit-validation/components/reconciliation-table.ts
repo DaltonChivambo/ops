@@ -7,6 +7,7 @@ import {
   inject,
   input,
   linkedSignal,
+  output,
   signal,
   viewChild,
   type ElementRef,
@@ -21,7 +22,7 @@ import {
   THEAD_CLASS,
 } from '../../../../../../shared/ui/data-table';
 import { ReconciliationApi } from '../data/reconciliation-api.service';
-import type { ClosingDetail, DetailCounts, SlaSettings } from '../data/models';
+import type { CasePatch, ClosingDetail, DetailCounts, SlaSettings } from '../data/models';
 import {
   ALL_STATES,
   STATE_CHIP,
@@ -354,6 +355,7 @@ const STRUCK_ROW =
         [executionId]="executionId()"
         [detail]="detail"
         [settings]="settings()"
+        (updated)="updated.emit($event)"
         (closed)="opened.set(null)"
       />
     }
@@ -396,6 +398,8 @@ export class ReconciliationTableComponent {
   readonly settings = input.required<SlaSettings>();
   /** Onde o scroll da página assenta antes de a lista correr — a barra de separadores. */
   readonly scrollAnchor = input<HTMLElement | undefined>(undefined);
+  /** Só de passagem: quem muda o caso é o painel, quem o grava é a página. */
+  readonly updated = output<CasePatch>();
 
   private readonly table = viewChild.required(DataTableComponent);
 

@@ -20,6 +20,7 @@ import {
   formatSignedAmount,
   numberFormatter,
   parseIsoDate,
+  toIsoDate,
 } from '../../../../../../shared/format';
 import { ReconciliationApi } from '../data/reconciliation-api.service';
 import {
@@ -33,6 +34,7 @@ import {
 } from '../data/sla';
 import { STATE_CHIP, STATE_DOT, STATE_LABEL } from '../data/state-options';
 import type {
+  CasePatch,
   CaseStatus,
   ClosingDetail,
   KeyBreakdown,
@@ -340,12 +342,25 @@ function creditedWhen(closingIso: string | undefined, creditIso: string | null):
               </div>
 
               <dl class="mt-2.5 grid grid-cols-2 gap-x-4 gap-y-3 sm:grid-cols-3">
-                <!-- O tempo vai colado ao estado, e não num campo à parte: é
-                     dele que se está a falar, e muda quando ele muda. -->
+                <!-- O estado muda-se aqui: é neste painel que se analisa o caso,
+                     e obrigar a fechá-lo para mexer na tabela era um passo a
+                     mais. O tempo vai colado a ele — é dele que se fala, e muda
+                     quando ele muda. -->
                 <div class="min-w-0">
                   <dt [class]="fieldLabel">Estado</dt>
-                  <dd [class]="fieldValue">{{ caseStatus(pendingCase.status) }}</dd>
-                  <p class="mt-0.5 text-2xs text-gray-400">
+                  <dd class="mt-0.5">
+                    <select
+                      [value]="pendingCase.status"
+                      [attr.aria-label]="'Estado do caso do POS ' + pendingCase.posId"
+                      (change)="onStatusChange(pendingCase, $any($event.target).value)"
+                      class="w-full rounded-lg border border-gray-200 bg-white px-2.5 py-1.5 text-xs font-semibold text-gray-900 outline-none focus:border-moza-400 focus:ring-2 focus:ring-moza-100"
+                    >
+                      @for (option of statusOptions; track option.value) {
+                        <option [value]="option.value">{{ option.label }}</option>
+                      }
+                    </select>
+                  </dd>
+                  <p class="mt-1 text-2xs text-gray-400">
                     {{ statusWait[pendingCase.status] }} {{ dayCount(daysInStatus(pendingCase)) }}
                   </p>
                 </div>
@@ -403,6 +418,8 @@ export class KeyDetailPanelComponent {
    */
   readonly detail = input.required<ClosingDetail>();
   readonly closed = output<void>();
+  /** Sobe até à página, que é quem chama a API e recalcula o `summary`. */
+  readonly updated = output<CasePatch>();
 
   protected readonly data = signal<KeyBreakdown | null>(null);
   protected readonly error = signal<string | null>(null);
@@ -507,6 +524,26 @@ export class KeyDetailPanelComponent {
 
   protected readonly sourceLabel = SOURCE_LABEL;
   protected readonly statusWait = STATUS_WAIT;
+  protected readonly statusOptions = Object.entries(CASE_STATUS_LABEL).map(([value, label]) => ({
+    value,
+    label,
+  }));
+
+  protected onStatusChange(item: PendingCase, status: string): void {
+    const next = status as CaseStatus;
+    if (next === item.status) return;
+    this.updated.emit({ caseId: item.id, patch: { status: next } });
+
+    // O painel tem a sua própria cópia da chave (foi ele que a foi buscar), por
+    // isso acompanha a mudança em vez de esperar por ela — como a tabela faz.
+    // Se o pedido falhar, quem o diz é o toast de erro da página.
+    const current = this.data();
+    if (!current?.case) return;
+    this.data.set({
+      ...current,
+      case: { ...current.case, status: next, statusSince: toIsoDate(this.today) },
+    });
+  }
 
   /** Dias no estado actual — o relógio recomeça a cada mudança de estado. */
   protected daysInStatus = (item: PendingCase): number =>
