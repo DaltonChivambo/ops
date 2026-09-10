@@ -37,7 +37,7 @@ from .models import (
     ReconciliationResult,
     SimoClosing,
 )
-from .vocabulary import CaseType, ClosingType, Validation
+from .vocabulary import CaseDateSource, CaseType, ClosingType, Validation
 
 MONTHS_PT = (
     "Janeiro",
@@ -281,17 +281,20 @@ def _build_cases(
     também abrem caso, um por chave, tal como não-creditados e incorrectos —
     é aí que o operador desfaz a ambiguidade de qual fecho é o real.
 
-    O caso leva a data do fecho mais antigo da chave: é dela que conta o prazo
-    de tratamento, e numa chave duplicada é a que está à espera há mais tempo.
+    O caso leva a primeira data da chave — o fecho mais antigo da SIMO ou o
+    primeiro crédito do Banka, o que for anterior — e diz de que lado ela veio.
+    É dela que conta o prazo de tratamento. Empate fica para a SIMO: no mesmo
+    dia, o fecho vem antes do crédito que lhe corresponde.
+
     O detalhe representativo continua a ser o primeiro (o `seen`) e não o mais
     antigo — numa colisão de `período % 1000` os detalhes diferem no período,
     e trocá-lo mudava o que a linha do caso mostra.
     """
-    earliest: dict[str, date] = {}
+    earliest_simo: dict[str, date] = {}
     for detail in details:
-        current = earliest.get(detail.key)
+        current = earliest_simo.get(detail.key)
         if current is None or detail.simo_closing_date < current:
-            earliest[detail.key] = detail.simo_closing_date
+            earliest_simo[detail.key] = detail.simo_closing_date
 
     cases: list[PendingCase] = []
     seen: set[str] = set()
@@ -300,6 +303,16 @@ def _build_cases(
             continue
         seen.add(detail.key)
         credit = credits.get(detail.key)
+
+        # `credit.credit_date` já é o primeiro movimento da chave (ver o parser
+        # dos créditos), por isso basta compará-lo com o fecho mais antigo.
+        first_date = earliest_simo[detail.key]
+        first_date_source = CaseDateSource.SIMO
+        credited_on = credit.credit_date if credit else None
+        if credited_on is not None and credited_on < first_date:
+            first_date = credited_on
+            first_date_source = CaseDateSource.BANKA
+
         if detail.validation is Validation.MISSING:
             case_type = CaseType.MISSING
         elif detail.validation is Validation.DUPLICATED:
@@ -316,7 +329,8 @@ def _build_cases(
                 simo_amount=simo_totals.get(detail.key, Decimal(0)),
                 banka_amount=credit.amount if credit else Decimal(0),
                 type=case_type,
-                closing_date=earliest[detail.key],
+                first_date=first_date,
+                first_date_source=first_date_source,
             )
         )
     return cases

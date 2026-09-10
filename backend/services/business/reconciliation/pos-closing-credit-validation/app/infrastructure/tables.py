@@ -28,7 +28,7 @@ from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
 from app.domain.sla import DEFAULT_SLA_DAYS, DEFAULT_WARNING_DAYS
-from app.domain.vocabulary import CaseStatus, CaseType, ClosingType, Validation
+from app.domain.vocabulary import CaseDateSource, CaseStatus, CaseType, ClosingType, Validation
 
 
 class Base(DeclarativeBase):
@@ -67,6 +67,7 @@ ValidationEnum = _pg_enum(Validation, "validation")
 ClosingTypeEnum = _pg_enum(ClosingType, "closing_type")
 CaseStatusEnum = _pg_enum(CaseStatus, "case_status")
 CaseTypeEnum = _pg_enum(CaseType, "case_type")
+CaseDateSourceEnum = _pg_enum(CaseDateSource, "case_date_source")
 
 Money = sa.Numeric(18, 2)
 
@@ -164,8 +165,10 @@ class PendingCase(Base):
     simo_amount: Mapped[Decimal] = mapped_column("simoAmount", Money)
     banka_amount: Mapped[Decimal] = mapped_column("bankaAmount", Money)
     type: Mapped[CaseType] = mapped_column(CaseTypeEnum)
-    # Data do fecho mais antigo da chave — o prazo de tratamento conta daqui.
-    closing_date: Mapped[date] = mapped_column("closingDate", sa.Date)
+    # A primeira data da chave (fecho da SIMO ou crédito do Banka, o que for
+    # anterior) e de que lado veio — o prazo de tratamento conta daqui.
+    first_date: Mapped[date] = mapped_column("firstDate", sa.Date)
+    first_date_source: Mapped[CaseDateSource] = mapped_column("firstDateSource", CaseDateSourceEnum)
     e_ticket: Mapped[str | None] = mapped_column("eTicket", sa.String, nullable=True)
     status: Mapped[CaseStatus] = mapped_column(CaseStatusEnum, default=CaseStatus.PENDING)
     resolved_at: Mapped[date | None] = mapped_column("resolvedAt", sa.Date, nullable=True)

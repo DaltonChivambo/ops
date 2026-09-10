@@ -10,7 +10,7 @@ from datetime import date
 from decimal import Decimal
 from typing import Any
 
-from .vocabulary import CaseType, ClosingType, Validation
+from .vocabulary import CaseDateSource, CaseType, ClosingType, Validation
 
 
 def _to_camel(campo: str) -> str:
@@ -109,10 +109,12 @@ class PendingCase:
     simo_amount: Decimal
     banka_amount: Decimal
     type: CaseType
-    # Data do fecho mais antigo da chave — é daqui que conta o prazo de
-    # tratamento (`domain/sla.py`). Numa chave duplicada há vários fechos: fica
-    # o mais antigo, que é o que está à espera há mais tempo.
-    closing_date: date
+    # A primeira data que a chave tem, venha do lado que vier: o fecho mais
+    # antigo da SIMO ou o primeiro crédito do Banka, o que for anterior. É daqui
+    # que conta o prazo de tratamento (`domain/sla.py`), e o `first_date_source`
+    # diz de que lado veio — o operador tem de saber qual está a contar.
+    first_date: date
+    first_date_source: CaseDateSource
 
 
 @dataclass(slots=True)

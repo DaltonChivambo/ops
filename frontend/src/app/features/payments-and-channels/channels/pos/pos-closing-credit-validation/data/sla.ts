@@ -10,7 +10,13 @@
  * divergente leva por tratar; não decide validação nenhuma.
  */
 import { daysBetween, parseIsoDate } from '../../../../../../shared/format';
-import type { PendingCase, SlaSettings } from './models';
+import type { CaseDateSource, PendingCase, SlaSettings } from './models';
+
+/** Como se nomeia cada lado ao operador. */
+export const SOURCE_LABEL: Record<CaseDateSource, string> = {
+  simo: 'SIMO',
+  banka: 'Banka',
+};
 
 /** O que o ecrã assume enquanto as definições não chegam do servidor. */
 export const DEFAULT_SLA: SlaSettings = {
@@ -39,8 +45,8 @@ export function startOfToday(): Date {
   return new Date(now.getFullYear(), now.getMonth(), now.getDate());
 }
 
-export function deadlineOf(closingDate: string, slaDays: number): Date {
-  const deadline = parseIsoDate(closingDate);
+export function deadlineOf(firstDate: string, slaDays: number): Date {
+  const deadline = parseIsoDate(firstDate);
   deadline.setDate(deadline.getDate() + slaDays);
   return deadline;
 }
@@ -51,13 +57,13 @@ export function deadlineOf(closingDate: string, slaDays: number): Date {
  * não está feito.
  */
 export function slaOf(item: PendingCase, settings: SlaSettings, today: Date): SlaView {
-  const closing = parseIsoDate(item.closingDate);
-  const deadline = deadlineOf(item.closingDate, settings.caseSlaDays);
+  const first = parseIsoDate(item.firstDate);
+  const deadline = deadlineOf(item.firstDate, settings.caseSlaDays);
   const settled = item.status === 'resolved';
   const reference = settled && item.resolvedAt ? parseIsoDate(item.resolvedAt) : today;
 
   const remaining = daysBetween(reference, deadline);
-  const age = daysBetween(closing, reference);
+  const age = daysBetween(first, reference);
 
   if (settled) return { state: 'settled', deadline, remaining, age };
   if (remaining < 0) return { state: 'overdue', deadline, remaining, age };

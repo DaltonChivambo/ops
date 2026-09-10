@@ -66,6 +66,19 @@ class CaseType(StrEnum):
     DUPLICATED = "duplicated"
 
 
+class CaseDateSource(StrEnum):
+    """De que lado veio a primeira data da chave — a que abre o prazo.
+
+    Normalmente é a SIMO (o fecho existe antes do crédito), mas nem sempre: um
+    crédito pode chegar antes do fecho que lhe corresponde entrar no export. O
+    operador tem de saber qual dos dois está a contar, por isso isto viaja com
+    o caso em vez de se adivinhar no ecrã.
+    """
+
+    SIMO = "simo"
+    BANKA = "banka"
+
+
 class UploadSlot(StrEnum):
     """Os três campos do formulário de execução.
 
