@@ -109,6 +109,10 @@ class PendingCase:
     simo_amount: Decimal
     banka_amount: Decimal
     type: CaseType
+    # Data do fecho mais antigo da chave — é daqui que conta o prazo de
+    # tratamento (`domain/sla.py`). Numa chave duplicada há vários fechos: fica
+    # o mais antigo, que é o que está à espera há mais tempo.
+    closing_date: date
 
 
 @dataclass(slots=True)

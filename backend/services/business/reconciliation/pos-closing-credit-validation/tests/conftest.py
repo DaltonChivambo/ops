@@ -17,11 +17,17 @@ from typing import Any
 import pytest
 from fastapi.testclient import TestClient
 
-from app.controllers.dependencies import get_case_service, get_validation_service
+from app.controllers.dependencies import (
+    get_case_service,
+    get_settings_service,
+    get_validation_service,
+)
 from app.domain.errors import InvalidCaseStatusError, NotFoundError, NothingToUpdateError
+from app.domain.sla import DEFAULT_SLA_DAYS, DEFAULT_WARNING_DAYS, validate_sla
 from app.infrastructure.auth import auth
 from app.infrastructure.tables import ClosingDetail, CreditMovement, Execution, PendingCase
 from app.main import app
+from app.services.settings_service import SlaSettings
 from mozaops_libs.auth import Principal
 
 EXECUTION_ID = "3f2b1c00-0000-4000-8000-000000000001"
@@ -92,6 +98,7 @@ def make_case() -> PendingCase:
         simo_amount=Decimal("1000.00"),
         banka_amount=Decimal("7641.00"),
         type="mismatch",
+        closing_date=date(2026, 6, 23),
         e_ticket=None,
         status="pending",
         resolved_at=None,
@@ -205,9 +212,44 @@ class FakeService:
         return b"PK\x03\x04conteudo-xlsx", f"{execucao.report_name}.xlsx"
 
 
+class FakeSettingsService:
+    """Faz de `SettingsService` — guarda o prazo em memória.
+
+    Valida com a mesma função do domínio que o serviço a sério usa: o que se
+    quer testar na rota é que a mensagem em português chega ao operador, e ela
+    nasce ali.
+    """
+
+    def __init__(self) -> None:
+        self.sla = SlaSettings(
+            case_sla_days=DEFAULT_SLA_DAYS,
+            case_warning_days=DEFAULT_WARNING_DAYS,
+            updated_at=None,
+            updated_by=None,
+        )
+
+    async def get(self) -> SlaSettings:
+        return self.sla
+
+    async def save(self, sla_days: int, warning_days: int, updated_by: str | None) -> SlaSettings:
+        validate_sla(sla_days, warning_days)
+        self.sla = SlaSettings(
+            case_sla_days=sla_days,
+            case_warning_days=warning_days,
+            updated_at=datetime(2026, 9, 10, 8, 30),
+            updated_by=updated_by,
+        )
+        return self.sla
+
+
 @pytest.fixture
 def service() -> FakeService:
     return FakeService()
+
+
+@pytest.fixture
+def settings_service() -> FakeSettingsService:
+    return FakeSettingsService()
 
 
 DA_AREA = Principal(
@@ -224,7 +266,7 @@ DA_AREA = Principal(
 
 
 @pytest.fixture
-def client(service: FakeService) -> Any:
+def client(service: FakeService, settings_service: FakeSettingsService) -> Any:
     """Cliente HTTP contra a app real, com os dois serviços substituídos.
 
     A substituição é feita na fronteira que o `dependencies.py` declara, e é aí
@@ -238,6 +280,7 @@ def client(service: FakeService) -> Any:
     """
     app.dependency_overrides[get_validation_service] = lambda: service
     app.dependency_overrides[get_case_service] = lambda: service
+    app.dependency_overrides[get_settings_service] = lambda: settings_service
     app.dependency_overrides[auth.principal] = lambda: DA_AREA
     with TestClient(app) as cliente:
         yield cliente

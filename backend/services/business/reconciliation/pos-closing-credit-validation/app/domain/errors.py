@@ -35,6 +35,10 @@ class InvalidCaseStatusError(BusinessRuleError):
     """Pediram um estado de caso que não existe."""
 
 
+class InvalidSlaSettingsError(BusinessRuleError):
+    """O prazo de tratamento pedido não faz sentido (ver `domain/sla.py`)."""
+
+
 class UploadTooLargeError(BusinessRuleError):
     """Um dos ficheiros passa o limite de tamanho aceite."""
 

@@ -22,6 +22,7 @@ from app.controllers.schemas import (
     DetailsPageOut,
     KeyBreakdownOut,
     PendingCaseOut,
+    SlaSettingsOut,
     ValidationResultOut,
 )
 
@@ -64,6 +65,7 @@ CONTRATO: dict[str, tuple[type[Any], set[str]]] = {
             "simoAmount",
             "bankaAmount",
             "type",
+            "closingDate",
             "eTicket",
             "status",
             "resolvedAt",
@@ -93,6 +95,10 @@ CONTRATO: dict[str, tuple[type[Any], set[str]]] = {
     "DetailsPage": (
         DetailsPageOut,
         {"items", "total", "page", "perPage", "counts"},
+    ),
+    "SlaSettings": (
+        SlaSettingsOut,
+        {"caseSlaDays", "caseWarningDays", "updatedAt", "updatedBy"},
     ),
 }
 

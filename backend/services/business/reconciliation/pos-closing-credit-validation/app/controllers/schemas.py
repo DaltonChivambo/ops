@@ -19,6 +19,7 @@ from pydantic.alias_generators import to_camel
 
 from app.domain.vocabulary import CaseStatus, CaseType, ClosingType, Validation
 from app.infrastructure.tables import ClosingDetail, CreditMovement, Execution, PendingCase
+from app.services.settings_service import SlaSettings
 
 ClosingTypeLabel = Literal["D", "D+1", "n.a"]
 CaseStatusLabel = Literal["pending", "in-review", "resolved"]
@@ -128,6 +129,9 @@ class PendingCaseOut(Schema):
     simo_amount: float
     banka_amount: float
     type: CaseType
+    # A data limite não vem daqui: é `closing_date` mais o prazo em vigor, e
+    # quem a calcula é o SPA, que já traz as definições e sabe que dia é hoje.
+    closing_date: date
     e_ticket: str | None
     status: CaseStatusLabel
     resolved_at: date | None
@@ -144,6 +148,7 @@ class PendingCaseOut(Schema):
             simo_amount=float(row.simo_amount),
             banka_amount=float(row.banka_amount),
             type=row.type,
+            closing_date=row.closing_date,
             e_ticket=row.e_ticket,
             status=CASE_STATUS_LABELS[row.status],
             resolved_at=row.resolved_at,
@@ -243,6 +248,24 @@ class CaseUpdateOut(Schema):
     summary: dict[str, Any]
 
 
+class SlaSettingsOut(Schema):
+    """O prazo de tratamento em vigor, e quem o pôs assim."""
+
+    case_sla_days: int
+    case_warning_days: int
+    updated_at: datetime | None
+    updated_by: str | None
+
+    @classmethod
+    def from_row(cls, row: SlaSettings) -> "SlaSettingsOut":
+        return cls(
+            case_sla_days=row.case_sla_days,
+            case_warning_days=row.case_warning_days,
+            updated_at=row.updated_at,
+            updated_by=row.updated_by,
+        )
+
+
 # ─── Entrada ─────────────────────────────────────────────────────────────────
 
 
@@ -259,3 +282,17 @@ class CasePatchIn(BaseModel):
 
     status: str | None = None
     e_ticket: str | None = None
+
+
+class SlaSettingsIn(BaseModel):
+    """O prazo novo, inteiro — não em pedaços.
+
+    Os limites ficam no domínio (`domain/sla.py`) e não em `Field(ge=...)`: o
+    invariante que interessa é «o aviso vem antes do prazo», e esse compara
+    dois campos. Validado num sítio só, devolve a mensagem em português.
+    """
+
+    model_config = ConfigDict(alias_generator=to_camel, populate_by_name=True, extra="ignore")
+
+    case_sla_days: int
+    case_warning_days: int
