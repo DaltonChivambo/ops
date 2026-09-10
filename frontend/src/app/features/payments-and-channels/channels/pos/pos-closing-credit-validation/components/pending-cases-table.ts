@@ -15,11 +15,13 @@ import {
 } from '../../../../../../shared/ui/data-table';
 import type { CaseStatus, CaseType, ClosingDetail, PendingCase, SlaSettings } from '../data/models';
 import {
-  SLA_DOT,
   SLA_LABEL,
-  SLA_TEXT,
   SOURCE_LABEL,
+  slaAgePhrase,
+  slaDotOf,
   slaOf,
+  slaPhrase,
+  slaToneOf,
   startOfToday,
   type SlaState,
   type SlaView,
@@ -293,6 +295,7 @@ export interface CasePatch {
         <app-key-detail-panel
           [executionId]="executionId()"
           [detail]="detail"
+          [settings]="settings()"
           (closed)="opened.set(null)"
         />
       }
@@ -436,32 +439,12 @@ export class PendingCasesTableComponent {
 
   protected slaOf = (item: PendingCase): SlaView => this.slaByCase().get(item.id)!;
 
-  /** Um caso regularizado depois da data limite: tratado, mas fora de horas. */
-  private late(sla: SlaView): boolean {
-    return sla.state === 'settled' && sla.remaining < 0;
-  }
-
-  /** O que a linha diz sobre a data limite. */
-  protected slaPhrase(sla: SlaView): string {
-    if (sla.state === 'settled')
-      return this.late(sla) ? 'Tratado fora do prazo' : 'Tratado a tempo';
-    if (sla.remaining < 0) return `${formatDayCount(-sla.remaining)} em atraso`;
-    if (sla.remaining === 0) return 'Vence hoje';
-    return `Faltam ${formatDayCount(sla.remaining)}`;
-  }
-
-  /** Quanto tempo levou (ou leva) desde a primeira data da chave. */
-  protected slaAge(sla: SlaView): string {
-    return sla.state === 'settled'
-      ? `levou ${formatDayCount(sla.age)}`
-      : `em aberto há ${formatDayCount(sla.age)}`;
-  }
-
-  /** Verde só quando foi mesmo tratado a tempo — senão o âmbar diz a verdade. */
-  protected slaTone = (sla: SlaView) =>
-    this.late(sla) ? SLA_TEXT['due-soon'] : SLA_TEXT[sla.state];
-  protected slaDotTone = (sla: SlaView) =>
-    this.late(sla) ? SLA_DOT['due-soon'] : SLA_DOT[sla.state];
+  // A frase e a cor são as mesmas no painel de detalhe: vivem no `data/sla.ts`
+  // para as duas leituras não divergirem.
+  protected slaPhrase = slaPhrase;
+  protected slaAge = slaAgePhrase;
+  protected slaTone = slaToneOf;
+  protected slaDotTone = slaDotOf;
 
   /** Ao passar o rato: donde conta o prazo, e até quando. */
   protected slaTitle(item: PendingCase, sla: SlaView): string {

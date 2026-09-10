@@ -114,7 +114,11 @@ type TabId = 'cases' | 'closings';
           (updated)="updateCase.emit($event)"
         />
       } @else {
-        <app-reconciliation-table [executionId]="r.executionId" [scrollAnchor]="anchor()" />
+        <app-reconciliation-table
+          [executionId]="r.executionId"
+          [settings]="settings()"
+          [scrollAnchor]="anchor()"
+        />
       }
     </div>
   `,

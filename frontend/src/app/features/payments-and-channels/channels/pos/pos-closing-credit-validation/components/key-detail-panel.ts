@@ -14,12 +14,23 @@ import { LucideLoaderCircle, LucideX } from '@lucide/angular';
 import {
   formatAmount,
   formatDate,
+  formatDateValue,
+  formatDayCount,
   formatSignedAmount,
   numberFormatter,
 } from '../../../../../../shared/format';
 import { ReconciliationApi } from '../data/reconciliation-api.service';
+import {
+  SOURCE_LABEL,
+  slaDotOf,
+  slaOf,
+  slaPhrase,
+  slaToneOf,
+  startOfToday,
+  type SlaView,
+} from '../data/sla';
 import { STATE_CHIP, STATE_DOT, STATE_LABEL } from '../data/state-options';
-import type { ClosingDetail, KeyBreakdown } from '../data/models';
+import type { ClosingDetail, KeyBreakdown, PendingCase, SlaSettings } from '../data/models';
 
 const CASE_STATUS_LABEL: Record<string, string> = {
   pending: 'Pendente',
@@ -297,8 +308,20 @@ function creditedWhen(closingIso: string | undefined, creditIso: string | null):
           </section>
 
           @if (breakdown.case; as pendingCase) {
+            @let sla = slaOf(pendingCase);
             <section class="mt-4 rounded-xl border border-gray-100 px-4 py-3.5">
-              <h3 [class]="sectionTitle">Caso pendente na SIMO</h3>
+              <!-- O estado do prazo à cabeça, como na tabela: é a leitura que se
+                   vem cá fazer. O detalhe da conta fica na grelha por baixo. -->
+              <div class="flex flex-wrap items-center justify-between gap-x-4 gap-y-1">
+                <h3 [class]="sectionTitle">Caso pendente na SIMO</h3>
+                <span class="flex items-center gap-1.5 whitespace-nowrap">
+                  <span class="size-1.5 shrink-0 rounded-full" [class]="slaDotTone(sla)"></span>
+                  <span class="text-xs font-semibold" [class]="slaTone(sla)">
+                    {{ slaPhrase(sla) }}
+                  </span>
+                </span>
+              </div>
+
               <dl class="mt-2.5 grid grid-cols-2 gap-x-4 gap-y-3 sm:grid-cols-3">
                 <div class="min-w-0">
                   <dt [class]="fieldLabel">Estado</dt>
@@ -314,6 +337,28 @@ function creditedWhen(closingIso: string | undefined, creditIso: string | null):
                     {{ pendingCase.resolvedAt ? date(pendingCase.resolvedAt) : '—' }}
                   </dd>
                 </div>
+
+                <!-- Donde conta, até quando, e há quanto tempo. A origem vai
+                     junto da data: é ela que diz qual dos dois lados manda. -->
+                <div class="min-w-0">
+                  <dt [class]="fieldLabel">Conta desde</dt>
+                  <dd [class]="fieldValue">
+                    {{ date(pendingCase.firstDate) }}
+                    <span class="text-2xs font-medium text-gray-400">
+                      · {{ sourceLabel[pendingCase.firstDateSource] }}
+                    </span>
+                  </dd>
+                </div>
+                <div class="min-w-0">
+                  <dt [class]="fieldLabel">Data limite</dt>
+                  <dd [class]="fieldValue">{{ dateValue(sla.deadline) }}</dd>
+                </div>
+                <div class="min-w-0">
+                  <dt [class]="fieldLabel">
+                    {{ pendingCase.status === 'resolved' ? 'Levou' : 'Em aberto há' }}
+                  </dt>
+                  <dd [class]="fieldValue">{{ dayCount(sla.age) }}</dd>
+                </div>
               </dl>
             </section>
           }
@@ -326,6 +371,8 @@ export class KeyDetailPanelComponent {
   private readonly api = inject(ReconciliationApi);
 
   readonly executionId = input.required<string>();
+  /** Para calcular a data limite do caso, se a chave tiver um. */
+  readonly settings = input.required<SlaSettings>();
   /**
    * O fecho clicado — dá a identidade e fica assinalado na lista da SIMO.
    * Quando se abre a partir de um caso (a chave inteira, não um fecho), é uma
@@ -433,9 +480,20 @@ export class KeyDetailPanelComponent {
     return creditedWhen(this.soleClosingDate(), creditIso);
   }
 
+  /** Fixado à montagem, como na tabela: o painel não muda de dia enquanto está aberto. */
+  private readonly today = startOfToday();
+
+  protected readonly sourceLabel = SOURCE_LABEL;
+  protected slaOf = (item: PendingCase): SlaView => slaOf(item, this.settings(), this.today);
+  protected slaPhrase = slaPhrase;
+  protected slaTone = slaToneOf;
+  protected slaDotTone = slaDotOf;
+
   protected caseStatus = (status: string) => CASE_STATUS_LABEL[status] ?? status;
   protected amount = formatAmount;
   protected signed = formatSignedAmount;
   protected date = formatDate;
+  protected dateValue = formatDateValue;
+  protected dayCount = formatDayCount;
   protected n = (value: number) => numberFormatter.format(value);
 }
