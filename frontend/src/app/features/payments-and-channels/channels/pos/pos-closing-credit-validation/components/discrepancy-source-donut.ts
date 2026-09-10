@@ -50,8 +50,7 @@ export class DiscrepancySourceDonutComponent {
         short: 'em períodos duplicados',
         count: s.duplicatedPeriods,
         color: '#fe9a00',
-        description:
-          'Um POS tem o mesmo período registado em mais de um fecho — a chave (POS + período) repete-se.',
+        description: 'Um POS tem mais de um fecho para o mesmo período — a chave é POS + período.',
       },
     ];
   });

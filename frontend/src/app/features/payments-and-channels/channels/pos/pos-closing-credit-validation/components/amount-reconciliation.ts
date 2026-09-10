@@ -234,8 +234,7 @@ export class AmountReconciliationComponent {
         banka: s.bankaAmountDuplicated,
         barClass: 'bg-amber-500',
         dotClass: 'bg-amber-500',
-        description:
-          'Um POS tem o mesmo período registado em mais de um fecho — a chave (POS + período) repete-se.',
+        description: 'Um POS tem mais de um fecho para o mesmo período — a chave é POS + período.',
       },
     ];
   });
