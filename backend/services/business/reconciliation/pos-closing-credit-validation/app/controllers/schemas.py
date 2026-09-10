@@ -17,7 +17,13 @@ from typing import Any, Literal
 from pydantic import BaseModel, ConfigDict
 from pydantic.alias_generators import to_camel
 
-from app.domain.vocabulary import CaseStatus, CaseType, ClosingType, Validation
+from app.domain.vocabulary import (
+    CaseDateSource,
+    CaseStatus,
+    CaseType,
+    ClosingType,
+    Validation,
+)
 from app.infrastructure.tables import ClosingDetail, CreditMovement, Execution, PendingCase
 from app.services.settings_service import SlaSettings
 
@@ -129,9 +135,10 @@ class PendingCaseOut(Schema):
     simo_amount: float
     banka_amount: float
     type: CaseType
-    # A data limite não vem daqui: é `closing_date` mais o prazo em vigor, e
-    # quem a calcula é o SPA, que já traz as definições e sabe que dia é hoje.
-    closing_date: date
+    # A data limite não vem daqui: é `first_date` mais o prazo em vigor, e quem
+    # a calcula é o SPA, que já traz as definições e sabe que dia é hoje.
+    first_date: date
+    first_date_source: CaseDateSource
     e_ticket: str | None
     status: CaseStatusLabel
     resolved_at: date | None
@@ -148,7 +155,8 @@ class PendingCaseOut(Schema):
             simo_amount=float(row.simo_amount),
             banka_amount=float(row.banka_amount),
             type=row.type,
-            closing_date=row.closing_date,
+            first_date=row.first_date,
+            first_date_source=row.first_date_source,
             e_ticket=row.e_ticket,
             status=CASE_STATUS_LABELS[row.status],
             resolved_at=row.resolved_at,

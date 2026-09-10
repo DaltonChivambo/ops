@@ -23,6 +23,9 @@ export type CaseStatus = 'pending' | 'in-review' | 'resolved';
 
 export type CaseType = 'missing' | 'mismatch' | 'duplicated';
 
+/** De que lado veio a primeira data da chave — a que abre o prazo. */
+export type CaseDateSource = 'simo' | 'banka';
+
 export type UploadSlotId = 'posList' | 'simoClosings' | 'bankaCredits';
 
 /** Uma linha da folha "Detalhes Validacao" — um fecho registado na SIMO. */
@@ -80,8 +83,9 @@ export interface PendingCase {
   simoAmount: number;
   bankaAmount: number; // 0 quando não creditado
   type: CaseType;
-  /** Fecho mais antigo da chave — é daqui que conta o prazo de tratamento. */
-  closingDate: string; // ISO
+  /** Primeira data da chave, venha de que lado vier — o prazo conta daqui. */
+  firstDate: string; // ISO
+  firstDateSource: CaseDateSource;
   eTicket: string | null;
   status: CaseStatus;
   resolvedAt: string | null;

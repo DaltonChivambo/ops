@@ -18,6 +18,7 @@ import {
   SLA_DOT,
   SLA_LABEL,
   SLA_TEXT,
+  SOURCE_LABEL,
   slaOf,
   startOfToday,
   type SlaState,
@@ -247,15 +248,17 @@ export interface CasePatch {
                   @let sla = slaOf(item);
                   <span
                     class="flex items-center gap-1.5 whitespace-nowrap"
-                    [attr.title]="slaTitle(sla)"
+                    [attr.title]="slaTitle(item, sla)"
                   >
-                    <span class="size-1.5 shrink-0 rounded-full" [class]="slaDot[sla.state]"></span>
-                    <span class="text-xs font-semibold" [class]="slaTextClass[sla.state]">
+                    <span class="size-1.5 shrink-0 rounded-full" [class]="slaDotTone(sla)"></span>
+                    <span class="text-xs font-semibold" [class]="slaTone(sla)">
                       {{ slaPhrase(sla) }}
                     </span>
                   </span>
-                  <div class="mt-0.5 text-2xs text-gray-400 tabular-nums">
-                    limite {{ dateValue(sla.deadline) }}
+                  <!-- De que lado veio a data que está a contar, e há quanto tempo
+                       conta: é o que o operador precisa de saber sem abrir nada. -->
+                  <div class="mt-0.5 text-2xs whitespace-nowrap text-gray-400">
+                    {{ sourceLabel[item.firstDateSource] }} · {{ slaAge(sla) }}
                   </div>
                 </td>
                 <td class="hidden px-3 py-3.5 tabular-nums text-gray-400 @4xl:table-cell">
@@ -329,8 +332,7 @@ export class PendingCasesTableComponent {
 
   /** Fixado à montagem: uma tabela aberta não muda de dia a meio de um clique. */
   protected readonly today = startOfToday();
-  protected readonly slaDot = SLA_DOT;
-  protected readonly slaTextClass = SLA_TEXT;
+  protected readonly sourceLabel = SOURCE_LABEL;
 
   /**
    * O prazo de cada caso, numa passagem só — e não uma função por célula, que
@@ -434,21 +436,41 @@ export class PendingCasesTableComponent {
 
   protected slaOf = (item: PendingCase): SlaView => this.slaByCase().get(item.id)!;
 
-  /** O que a linha diz: o que falta, o que já passou, ou quanto demorou. */
+  /** Um caso regularizado depois da data limite: tratado, mas fora de horas. */
+  private late(sla: SlaView): boolean {
+    return sla.state === 'settled' && sla.remaining < 0;
+  }
+
+  /** O que a linha diz sobre a data limite. */
   protected slaPhrase(sla: SlaView): string {
-    if (sla.state === 'settled') return `Tratado em ${formatDayCount(sla.age)}`;
+    if (sla.state === 'settled')
+      return this.late(sla) ? 'Tratado fora do prazo' : 'Tratado a tempo';
     if (sla.remaining < 0) return `${formatDayCount(-sla.remaining)} em atraso`;
     if (sla.remaining === 0) return 'Vence hoje';
     return `Faltam ${formatDayCount(sla.remaining)}`;
   }
 
-  /** Ao passar o rato: o estado por extenso e o tempo em aberto. */
-  protected slaTitle(sla: SlaView): string {
-    const age =
-      sla.state === 'settled'
-        ? `Fechado ${formatDayCount(sla.age)} depois do fecho.`
-        : `Em aberto há ${formatDayCount(sla.age)}.`;
-    return `${SLA_LABEL[sla.state]}. ${age}`;
+  /** Quanto tempo levou (ou leva) desde a primeira data da chave. */
+  protected slaAge(sla: SlaView): string {
+    return sla.state === 'settled'
+      ? `levou ${formatDayCount(sla.age)}`
+      : `em aberto há ${formatDayCount(sla.age)}`;
+  }
+
+  /** Verde só quando foi mesmo tratado a tempo — senão o âmbar diz a verdade. */
+  protected slaTone = (sla: SlaView) =>
+    this.late(sla) ? SLA_TEXT['due-soon'] : SLA_TEXT[sla.state];
+  protected slaDotTone = (sla: SlaView) =>
+    this.late(sla) ? SLA_DOT['due-soon'] : SLA_DOT[sla.state];
+
+  /** Ao passar o rato: donde conta o prazo, e até quando. */
+  protected slaTitle(item: PendingCase, sla: SlaView): string {
+    const side = SOURCE_LABEL[item.firstDateSource];
+    return (
+      `${SLA_LABEL[sla.state]}. Conta desde ${this.date(item.firstDate)} — ` +
+      `a primeira data da chave, do lado ${side === 'SIMO' ? 'da' : 'do'} ${side}. ` +
+      `Data limite ${this.dateValue(sla.deadline)}.`
+    );
   }
 
   protected stripe = (item: PendingCase) => TYPE_STRIPE[item.type];

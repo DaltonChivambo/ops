@@ -19,7 +19,7 @@ from decimal import Decimal
 
 from app.domain.models import BankaCredit, BankaMovement, PosInfo, SimoClosing
 from app.domain.reconciliation import build_report_name, reconcile, validation_rate
-from app.domain.vocabulary import CaseType, ClosingType, Validation
+from app.domain.vocabulary import CaseDateSource, CaseType, ClosingType, Validation
 
 DIA = date(2026, 6, 23)
 
@@ -115,13 +115,48 @@ def test_caso_leva_a_data_do_fecho_mais_antigo_da_chave() -> None:
 
     r = reconcile(pos(), fechos, {"200001101": credito("300.00")})
 
-    assert r.cases[0].closing_date == antes
+    assert r.cases[0].first_date == antes
+    assert r.cases[0].first_date_source is CaseDateSource.SIMO
 
 
 def test_caso_de_um_fecho_so_leva_a_data_desse_fecho() -> None:
     r = reconcile(pos(), [fecho(total="100.00")], {})
 
-    assert r.cases[0].closing_date == DIA
+    assert r.cases[0].first_date == DIA
+    assert r.cases[0].first_date_source is CaseDateSource.SIMO
+
+
+# ─── De que lado vem a primeira data ─────────────────────────────────────────
+
+
+def test_credito_anterior_ao_fecho_manda_no_prazo() -> None:
+    """A primeira data é a primeira, venha de que lado vier."""
+    antes = date(2026, 6, 20)
+    credito_cedo = BankaCredit(
+        amount=Decimal("100.01"),
+        credit_date=antes,
+        description="P24-Fecho TPA 0000200001 - 101",
+        movements=[BankaMovement(date=antes, amount=Decimal("100.01"), description=None)],
+    )
+
+    r = reconcile(pos(), [fecho(total="100.00", dia=DIA)], {"200001101": credito_cedo})
+
+    assert r.cases[0].first_date == antes
+    assert r.cases[0].first_date_source is CaseDateSource.BANKA
+
+
+def test_no_mesmo_dia_o_fecho_ganha_ao_credito() -> None:
+    """Empate fica para a SIMO: o fecho vem antes do crédito que lhe corresponde."""
+    r = reconcile(pos(), [fecho(total="100.00", dia=DIA)], {"200001101": credito("100.01")})
+
+    assert r.cases[0].first_date == DIA
+    assert r.cases[0].first_date_source is CaseDateSource.SIMO
+
+
+def test_sem_credito_a_data_e_sempre_a_da_simo() -> None:
+    r = reconcile(pos(), [fecho(total="100.00")], {})
+
+    assert r.cases[0].first_date_source is CaseDateSource.SIMO
 
 
 # ─── A regra central: somar por chave antes de comparar ──────────────────────
