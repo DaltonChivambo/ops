@@ -60,6 +60,17 @@ export function formatDate(iso: string): string {
   return dateFormatter.format(parseIsoDate(iso));
 }
 
+/**
+ * O mesmo para uma `Date` já construída.
+ *
+ * Existe para não haver a tentação de lhe chamar `toISOString()` primeiro: a
+ * meia-noite local a leste de Greenwich é o dia anterior em UTC, e a data
+ * saía um dia atrás.
+ */
+export function formatDateValue(value: Date): string {
+  return dateFormatter.format(value);
+}
+
 /** Uma data ISO como data local, sem o desvio de fuso que o `new Date(iso)` traz. */
 export function parseIsoDate(iso: string): Date {
   return new Date(`${iso.slice(0, 10)}T00:00:00`);
