@@ -15,9 +15,13 @@ import { NgTemplateOutlet } from '@angular/common';
 import { LucideChevronRight, LucideCornerDownRight, LucideSearch, LucideX } from '@lucide/angular';
 
 import { formatDate, formatSignedAmount, numberFormatter } from '../../../../../../shared/format';
-import { DataTableComponent, TABLE_CLASS, THEAD_CLASS } from '../../../../../../shared/ui/data-table';
+import {
+  DataTableComponent,
+  TABLE_CLASS,
+  THEAD_CLASS,
+} from '../../../../../../shared/ui/data-table';
 import { ReconciliationApi } from '../data/reconciliation-api.service';
-import type { ClosingDetail, DetailCounts } from '../data/models';
+import type { ClosingDetail, DetailCounts, SlaSettings } from '../data/models';
 import {
   ALL_STATES,
   STATE_CHIP,
@@ -349,6 +353,7 @@ const STRUCK_ROW =
       <app-key-detail-panel
         [executionId]="executionId()"
         [detail]="detail"
+        [settings]="settings()"
         (closed)="opened.set(null)"
       />
     }
@@ -387,6 +392,8 @@ export class ReconciliationTableComponent {
   private readonly api = inject(ReconciliationApi);
 
   readonly executionId = input.required<string>();
+  /** Só de passagem para o painel de detalhe, que calcula a data limite do caso. */
+  readonly settings = input.required<SlaSettings>();
   /** Onde o scroll da página assenta antes de a lista correr — a barra de separadores. */
   readonly scrollAnchor = input<HTMLElement | undefined>(undefined);
 

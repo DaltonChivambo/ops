@@ -9,7 +9,7 @@
  * **Não confundir com prazo de crédito.** Isto conta o tempo que um caso já
  * divergente leva por tratar; não decide validação nenhuma.
  */
-import { daysBetween, parseIsoDate } from '../../../../../../shared/format';
+import { daysBetween, formatDayCount, parseIsoDate } from '../../../../../../shared/format';
 import type { CaseDateSource, PendingCase, SlaSettings } from './models';
 
 /** Como se nomeia cada lado ao operador. */
@@ -71,6 +71,26 @@ export function slaOf(item: PendingCase, settings: SlaSettings, today: Date): Sl
   return { state: 'on-track', deadline, remaining, age };
 }
 
+/** Regularizado depois da data limite: tratado, mas fora de horas. */
+export function isLate(sla: SlaView): boolean {
+  return sla.state === 'settled' && sla.remaining < 0;
+}
+
+/** O que se diz sobre a data limite — a leitura principal. */
+export function slaPhrase(sla: SlaView): string {
+  if (sla.state === 'settled') return isLate(sla) ? 'Tratado fora do prazo' : 'Tratado a tempo';
+  if (sla.remaining < 0) return `${formatDayCount(-sla.remaining)} em atraso`;
+  if (sla.remaining === 0) return 'Vence hoje';
+  return `Faltam ${formatDayCount(sla.remaining)}`;
+}
+
+/** Quanto tempo levou, ou leva, desde a primeira data da chave. */
+export function slaAgePhrase(sla: SlaView): string {
+  return sla.state === 'settled'
+    ? `levou ${formatDayCount(sla.age)}`
+    : `em aberto há ${formatDayCount(sla.age)}`;
+}
+
 export const SLA_LABEL: Record<SlaState, string> = {
   'on-track': 'Dentro do prazo',
   'due-soon': 'Prestes a vencer',
@@ -92,3 +112,12 @@ export const SLA_TEXT: Record<SlaState, string> = {
   overdue: 'text-alert-700',
   settled: 'text-emerald-700',
 };
+
+/** Verde só quando foi mesmo tratado a tempo — senão o âmbar diz a verdade. */
+export function slaToneOf(sla: SlaView): string {
+  return isLate(sla) ? SLA_TEXT['due-soon'] : SLA_TEXT[sla.state];
+}
+
+export function slaDotOf(sla: SlaView): string {
+  return isLate(sla) ? SLA_DOT['due-soon'] : SLA_DOT[sla.state];
+}
