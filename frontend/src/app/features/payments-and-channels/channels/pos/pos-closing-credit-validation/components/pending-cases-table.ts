@@ -8,6 +8,7 @@ import {
   THEAD_CLASS,
 } from '../../../../../../shared/ui/data-table';
 import type { CaseStatus, CaseType, ClosingDetail, PendingCase } from '../data/models';
+import { CaseTypeFilterComponent } from './case-type-filter';
 import { KeyDetailPanelComponent } from './key-detail-panel';
 import { MoneyComponent } from './money';
 
@@ -58,6 +59,7 @@ export interface CasePatch {
   selector: 'app-pending-cases-table',
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
+    CaseTypeFilterComponent,
     DataTableComponent,
     KeyDetailPanelComponent,
     MoneyComponent,
@@ -83,6 +85,12 @@ export interface CasePatch {
     } @else {
       <app-data-table [scrollAnchor]="scrollAnchor()">
         <ng-container toolbar>
+          <app-case-type-filter
+            [counts]="typeCounts()"
+            [selected]="selectedTypes()"
+            (changed)="selectedTypes.set($event)"
+          />
+
           <div class="inline-flex rounded-xl border border-gray-100 bg-gray-50 p-1">
             @for (filter of statusFilters; track filter.id) {
               @let active = status() === filter.id;
@@ -271,6 +279,7 @@ export class PendingCasesTableComponent {
 
   protected readonly status = signal<StatusFilter>('all');
   protected readonly query = signal('');
+  protected readonly selectedTypes = signal<CaseType[]>(['mismatch', 'duplicated', 'missing']);
 
   protected readonly counts = computed(() => {
     const cases = this.cases();
@@ -284,12 +293,20 @@ export class PendingCasesTableComponent {
     return result;
   });
 
+  protected readonly typeCounts = computed(() => {
+    const result: Record<CaseType, number> = { mismatch: 0, duplicated: 0, missing: 0 };
+    for (const item of this.cases()) result[item.type] += 1;
+    return result;
+  });
+
   protected readonly visible = computed(() => {
     const term = this.query().trim().toLowerCase();
     const status = this.status();
+    const types = this.selectedTypes();
     return this.cases().filter(
       (item) =>
         (status === 'all' || item.status === status) &&
+        types.includes(item.type) &&
         (!term ||
           item.posId.toLowerCase().includes(term) ||
           item.merchant.toLowerCase().includes(term) ||
