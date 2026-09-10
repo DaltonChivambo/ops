@@ -28,7 +28,7 @@ from app.infrastructure.tables import ClosingDetail, CreditMovement, Execution, 
 from app.services.settings_service import SlaSettings
 
 ClosingTypeLabel = Literal["D", "D+1", "n.a"]
-CaseStatusLabel = Literal["pending", "in-review", "resolved"]
+CaseStatusLabel = Literal["pending", "in-review-internal", "in-review-simo", "resolved"]
 
 CLOSING_TYPE_LABELS: dict[ClosingType, ClosingTypeLabel] = {
     ClosingType.D: "D",
@@ -37,7 +37,8 @@ CLOSING_TYPE_LABELS: dict[ClosingType, ClosingTypeLabel] = {
 }
 CASE_STATUS_LABELS: dict[CaseStatus, CaseStatusLabel] = {
     CaseStatus.PENDING: "pending",
-    CaseStatus.IN_REVIEW: "in-review",
+    CaseStatus.IN_REVIEW_INTERNAL: "in-review-internal",
+    CaseStatus.IN_REVIEW_SIMO: "in-review-simo",
     CaseStatus.RESOLVED: "resolved",
 }
 
@@ -141,6 +142,8 @@ class PendingCaseOut(Schema):
     first_date_source: CaseDateSource
     e_ticket: str | None
     status: CaseStatusLabel
+    # Desde quando está neste estado — «submetido à SIMO há 5 dias» sai daqui.
+    status_since: date
     resolved_at: date | None
 
     @classmethod
@@ -159,6 +162,7 @@ class PendingCaseOut(Schema):
             first_date_source=row.first_date_source,
             e_ticket=row.e_ticket,
             status=CASE_STATUS_LABELS[row.status],
+            status_since=row.status_since,
             resolved_at=row.resolved_at,
         )
 

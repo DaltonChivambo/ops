@@ -14,11 +14,12 @@ from app.infrastructure.tables import PendingCase
 from app.repositories.case_repository import CaseRepository
 from app.repositories.execution_repository import ExecutionRepository
 
-# `in-review` é o que viaja no JSON; `in_review` é o valor do enum na base. É a
-# única diferença entre os dois lados, e vive aqui em vez de num `if`.
+# O JSON usa hífens onde o enum usa underscores. É a única diferença entre os
+# dois lados, e vive aqui em vez de num `if`.
 STATUS_FROM_JSON = {
     "pending": CaseStatus.PENDING,
-    "in-review": CaseStatus.IN_REVIEW,
+    "in-review-internal": CaseStatus.IN_REVIEW_INTERNAL,
+    "in-review-simo": CaseStatus.IN_REVIEW_SIMO,
     "resolved": CaseStatus.RESOLVED,
 }
 
@@ -41,11 +42,15 @@ class CaseService:
         if "status" in patch:
             status = STATUS_FROM_JSON.get(patch["status"])
             if status is None:
+                possiveis = "», «".join(STATUS_FROM_JSON)
                 raise InvalidCaseStatusError(
                     f"Estado de caso inválido: «{patch['status']}». "
-                    "Os estados possíveis são «pending», «in-review» e «resolved»."
+                    f"Os estados possíveis são «{possiveis}»."
                 )
             data["status"] = status
+            # O relógio do estado recomeça a cada mudança: é o que responde a
+            # «submetido à SIMO há quanto tempo?» e a «e a análise interna?».
+            data["status_since"] = date.today()
             data["resolved_at"] = date.today() if status is CaseStatus.RESOLVED else None
 
         if not data:

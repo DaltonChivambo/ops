@@ -69,6 +69,7 @@ CONTRATO: dict[str, tuple[type[Any], set[str]]] = {
             "firstDateSource",
             "eTicket",
             "status",
+            "statusSince",
             "resolvedAt",
         },
     ),

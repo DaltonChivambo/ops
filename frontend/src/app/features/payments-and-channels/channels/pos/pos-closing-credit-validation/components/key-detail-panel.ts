@@ -12,12 +12,14 @@ import {
 import { LucideLoaderCircle, LucideX } from '@lucide/angular';
 
 import {
+  daysBetween,
   formatAmount,
   formatDate,
   formatDateValue,
   formatDayCount,
   formatSignedAmount,
   numberFormatter,
+  parseIsoDate,
 } from '../../../../../../shared/format';
 import { ReconciliationApi } from '../data/reconciliation-api.service';
 import {
@@ -30,12 +32,27 @@ import {
   type SlaView,
 } from '../data/sla';
 import { STATE_CHIP, STATE_DOT, STATE_LABEL } from '../data/state-options';
-import type { ClosingDetail, KeyBreakdown, PendingCase, SlaSettings } from '../data/models';
+import type {
+  CaseStatus,
+  ClosingDetail,
+  KeyBreakdown,
+  PendingCase,
+  SlaSettings,
+} from '../data/models';
 
-const CASE_STATUS_LABEL: Record<string, string> = {
+const CASE_STATUS_LABEL: Record<CaseStatus, string> = {
   pending: 'Pendente',
-  'in-review': 'Em análise',
+  'in-review-internal': 'Em análise interna',
+  'in-review-simo': 'Em análise na SIMO',
   resolved: 'Regularizado',
+};
+
+/** O que se diz do tempo que o caso leva no estado em que está. */
+const STATUS_WAIT: Record<CaseStatus, string> = {
+  pending: 'Por analisar há',
+  'in-review-internal': 'Em análise há',
+  'in-review-simo': 'Submetido à SIMO há',
+  resolved: 'Regularizado há',
 };
 
 /**
@@ -313,7 +330,7 @@ function creditedWhen(closingIso: string | undefined, creditIso: string | null):
               <!-- O estado do prazo à cabeça, como na tabela: é a leitura que se
                    vem cá fazer. O detalhe da conta fica na grelha por baixo. -->
               <div class="flex flex-wrap items-center justify-between gap-x-4 gap-y-1">
-                <h3 [class]="sectionTitle">Caso pendente na SIMO</h3>
+                <h3 [class]="sectionTitle">Caso para análise</h3>
                 <span class="flex items-center gap-1.5 whitespace-nowrap">
                   <span class="size-1.5 shrink-0 rounded-full" [class]="slaDotTone(sla)"></span>
                   <span class="text-xs font-semibold" [class]="slaTone(sla)">
@@ -323,9 +340,14 @@ function creditedWhen(closingIso: string | undefined, creditIso: string | null):
               </div>
 
               <dl class="mt-2.5 grid grid-cols-2 gap-x-4 gap-y-3 sm:grid-cols-3">
+                <!-- O tempo vai colado ao estado, e não num campo à parte: é
+                     dele que se está a falar, e muda quando ele muda. -->
                 <div class="min-w-0">
                   <dt [class]="fieldLabel">Estado</dt>
                   <dd [class]="fieldValue">{{ caseStatus(pendingCase.status) }}</dd>
+                  <p class="mt-0.5 text-2xs text-gray-400">
+                    {{ statusWait[pendingCase.status] }} {{ dayCount(daysInStatus(pendingCase)) }}
+                  </p>
                 </div>
                 <div class="min-w-0">
                   <dt [class]="fieldLabel">e-Ticket</dt>
@@ -484,12 +506,17 @@ export class KeyDetailPanelComponent {
   private readonly today = startOfToday();
 
   protected readonly sourceLabel = SOURCE_LABEL;
+  protected readonly statusWait = STATUS_WAIT;
+
+  /** Dias no estado actual — o relógio recomeça a cada mudança de estado. */
+  protected daysInStatus = (item: PendingCase): number =>
+    daysBetween(parseIsoDate(item.statusSince), this.today);
   protected slaOf = (item: PendingCase): SlaView => slaOf(item, this.settings(), this.today);
   protected slaPhrase = slaPhrase;
   protected slaTone = slaToneOf;
   protected slaDotTone = slaDotOf;
 
-  protected caseStatus = (status: string) => CASE_STATUS_LABEL[status] ?? status;
+  protected caseStatus = (status: CaseStatus) => CASE_STATUS_LABEL[status];
   protected amount = formatAmount;
   protected signed = formatSignedAmount;
   protected date = formatDate;

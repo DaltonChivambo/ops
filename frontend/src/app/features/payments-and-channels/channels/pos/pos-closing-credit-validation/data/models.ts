@@ -19,7 +19,12 @@ export type ClosingType = 'D' | 'D+1' | 'n.a';
 /** Confere · incorrecto · não creditado · zerado (0,00) · períodos duplicados. */
 export type Validation = 'match' | 'mismatch' | 'missing' | 'zero' | 'duplicated';
 
-export type CaseStatus = 'pending' | 'in-review' | 'resolved';
+/**
+ * «Em análise» não é um estado só: enquanto foi, não se sabia se o caso estava
+ * parado à espera de nós ou já submetido à SIMO — e é isso que muda quem tem
+ * de agir, e o tempo de espera que interessa medir.
+ */
+export type CaseStatus = 'pending' | 'in-review-internal' | 'in-review-simo' | 'resolved';
 
 export type CaseType = 'missing' | 'mismatch' | 'duplicated';
 
@@ -88,6 +93,8 @@ export interface PendingCase {
   firstDateSource: CaseDateSource;
   eTicket: string | null;
   status: CaseStatus;
+  /** Desde quando está neste estado — «submetido à SIMO há 5 dias» sai daqui. */
+  statusSince: string; // ISO
   resolvedAt: string | null;
 }
 

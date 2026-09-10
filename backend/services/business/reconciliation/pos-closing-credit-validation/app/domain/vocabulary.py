@@ -49,10 +49,18 @@ class ClosingType(StrEnum):
 
 
 class CaseStatus(StrEnum):
-    """Onde está o tratamento de um caso pelo operador."""
+    """Onde está o tratamento de um caso.
+
+    «Em análise» não é um estado só: um caso pode estar a ser analisado cá
+    dentro ou já ter sido submetido à SIMO, e quem espera por quem muda com
+    isso. Enquanto foi um estado único, o operador não conseguia dizer se
+    estava à espera de si próprio ou do outro lado — e o tempo de espera de
+    cada um é precisamente o que se quer medir.
+    """
 
     PENDING = "pending"
-    IN_REVIEW = "in_review"
+    IN_REVIEW_INTERNAL = "in_review_internal"
+    IN_REVIEW_SIMO = "in_review_simo"
     RESOLVED = "resolved"
 
 
