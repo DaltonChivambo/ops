@@ -9,12 +9,18 @@ import { ToastComponent } from '../../../../../shared/ui/toast';
 import { AmountReconciliationComponent } from './components/amount-reconciliation';
 import { DiscrepancySourceDonutComponent } from './components/discrepancy-source-donut';
 import { PageHeaderComponent } from './components/page-header';
-import { type CasePatch } from './components/pending-cases-table';
+
 import { ResultStatsComponent } from './components/result-stats';
 import { ResultTabsComponent } from './components/result-tabs';
 import { UploadZoneComponent } from './components/upload-zone';
 import { ReconciliationApi } from './data/reconciliation-api.service';
-import type { ProgressPhase, SlaSettings, UploadSlotId, ValidationResult } from './data/models';
+import type {
+  CasePatch,
+  ProgressPhase,
+  SlaSettings,
+  UploadSlotId,
+  ValidationResult,
+} from './data/models';
 import { DEFAULT_SLA } from './data/sla';
 
 /**

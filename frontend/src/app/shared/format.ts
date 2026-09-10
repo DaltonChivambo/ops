@@ -76,6 +76,13 @@ export function parseIsoDate(iso: string): Date {
   return new Date(`${iso.slice(0, 10)}T00:00:00`);
 }
 
+/** O inverso do `parseIsoDate`: a data local em ISO, sem passar por UTC. */
+export function toIsoDate(value: Date): string {
+  const month = `${value.getMonth() + 1}`.padStart(2, '0');
+  const day = `${value.getDate()}`.padStart(2, '0');
+  return `${value.getFullYear()}-${month}-${day}`;
+}
+
 /** "1 dia" · "9 dias" — o singular tem de ser singular. */
 export function formatDayCount(days: number): string {
   return `${numberFormatter.format(days)} ${days === 1 ? 'dia' : 'dias'}`;
