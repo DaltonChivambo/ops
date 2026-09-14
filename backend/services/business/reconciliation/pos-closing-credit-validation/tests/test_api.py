@@ -98,6 +98,36 @@ def test_detalhes_devolve_pagina_com_contagens(client):
     assert linha["difference"] == 6641.0
     # O enum da base é `D_PLUS_1`; o que sai para o frontend é `D+1`.
     assert linha["closingType"] == "D+1"
+    # Fora de uma chave duplicada, as contagens são 1/1 — não há ambiguidade
+    # nenhuma a desfazer.
+    assert linha["simoClosingsCount"] == 1
+    assert linha["bankaMovementsCount"] == 1
+
+
+def test_detalhe_duplicado_no_simo_leva_a_contagem_por_lado(client, service: FakeService):
+    """Distingue, no contrato HTTP, uma chave duplicada no lado SIMO de uma
+    duplicada no lado Banka — a ambiguidade que o operador via como
+    «Incorrecto» sem explicação nenhuma (ver a nota em `domain/reconciliation.py`)."""
+    service.details[0].validation = "duplicated"
+    service.key_counts = {KEY: (2, 1)}
+
+    resposta = client.get(f"{BASE}/execucoes/{EXECUTION_ID}/detalhes")
+
+    linha = resposta.json()["items"][0]
+    assert linha["validation"] == "duplicated"
+    assert linha["simoClosingsCount"] == 2
+    assert linha["bankaMovementsCount"] == 1
+
+
+def test_detalhe_duplicado_no_banka_leva_a_contagem_por_lado(client, service: FakeService):
+    service.details[0].validation = "duplicated"
+    service.key_counts = {KEY: (1, 2)}
+
+    resposta = client.get(f"{BASE}/execucoes/{EXECUTION_ID}/detalhes")
+
+    linha = resposta.json()["items"][0]
+    assert linha["simoClosingsCount"] == 1
+    assert linha["bankaMovementsCount"] == 2
 
 
 def test_detalhes_encaminha_pagina_filtro_e_pesquisa(client, service: FakeService):
@@ -164,6 +194,20 @@ def test_actualizar_caso_devolve_o_caso_e_o_summary_recalculado(client):
     assert corpo["case"]["statusSince"] == "2026-09-10"
     assert corpo["case"]["eTicket"] == "INC-4210"
     assert corpo["summary"]["processed"] == 18138
+
+
+def test_actualizar_caso_duplicado_mantem_a_contagem_por_lado(client, service: FakeService):
+    """Regressão: editar o estado/e-Ticket de um caso duplicado não pode repor
+    o badge de lado para o omisso 1/1 — o PATCH é um caminho de escrita à
+    parte do `/detalhes`, com a sua própria contagem a buscar."""
+    service.cases[0].type = "duplicated"
+    service.key_counts = {KEY: (1, 2)}
+
+    resposta = client.patch(f"{BASE}/casos/{CASE_ID}", json={"status": "resolved"})
+
+    caso = resposta.json()["case"]
+    assert caso["simoClosingsCount"] == 1
+    assert caso["bankaMovementsCount"] == 2
 
 
 def test_actualizar_caso_inexistente_da_404(client):

@@ -22,7 +22,7 @@ import {
   THEAD_CLASS,
 } from '../../../../../../shared/ui/data-table';
 import { ReconciliationApi } from '../data/reconciliation-api.service';
-import type { CasePatch, ClosingDetail, DetailCounts, SlaSettings } from '../data/models';
+import type { CasePatch, ClosingDetail, DetailCounts, KeyBreakdown, SlaSettings } from '../data/models';
 import {
   ALL_STATES,
   STATE_CHIP,
@@ -166,11 +166,16 @@ const STRUCK_ROW =
         <tbody>
           @for (group of groups(); track group.key) {
             @let detail = group.items[0];
-            @let duplicated = detail.validation === 'duplicated';
-            @let compared = !duplicated;
+            <!-- "Período duplicado" pode vir de três formas: vários fechos na
+                 SIMO, vários créditos no Banka (outro período real colidindo
+                 em módulo 1000 — ver domain/reconciliation.py), ou as duas ao
+                 mesmo tempo. Mostram-se sempre os dois números — 1 de um lado
+                 não é motivo para esconder o outro. -->
+            @let expandable = detail.validation === 'duplicated';
+            @let simoDuplicated = detail.simoClosingsCount > 1;
             @let open = expanded().has(group.key);
 
-            @if (group.items.length === 1) {
+            @if (!expandable) {
               <tr
                 (click)="opened.set(detail)"
                 class="cursor-pointer border-b border-gray-50 transition-colors last:border-b-0 hover:bg-gray-50/70"
@@ -194,10 +199,10 @@ const STRUCK_ROW =
                   <app-money [value]="detail.simoClosingTotal" />
                 </td>
                 <td class="px-3 py-3.5 text-right">
-                  <app-money [value]="compared ? detail.bankaClosingTotal : null" />
+                  <app-money [value]="detail.bankaClosingTotal" />
                 </td>
                 <td class="px-3 py-3.5 text-right tabular-nums">
-                  @if (compared && detail.difference !== null && detail.difference !== 0) {
+                  @if (detail.difference !== null && detail.difference !== 0) {
                     <span class="font-bold text-alert-600">
                       {{ signed(detail.difference) }}
                     </span>
@@ -213,7 +218,7 @@ const STRUCK_ROW =
                 </td>
               </tr>
             } @else {
-              <!-- Vários fechos no período: linha da CHAVE, fechos por baixo. -->
+              <!-- Chave duplicada (SIMO ou Banka): linha-resumo, detalhe por baixo. -->
               <tr
                 (click)="opened.set(detail)"
                 class="cursor-pointer border-b border-gray-50 bg-amber-50/40 text-gray-600 transition-colors last:border-b-0 hover:bg-amber-50/70"
@@ -225,14 +230,17 @@ const STRUCK_ROW =
                       [attr.aria-expanded]="open"
                       [attr.aria-label]="
                         (open ? 'Encolher' : 'Expandir') +
-                        ' os ' +
-                        group.items.length +
-                        ' fechos do POS ' +
+                        ' o detalhe do POS ' +
                         detail.posId +
                         ' no período ' +
-                        detail.period
+                        detail.period +
+                        ' — ' +
+                        detail.simoClosingsCount +
+                        ' na SIMO, ' +
+                        detail.bankaMovementsCount +
+                        ' no Banka'
                       "
-                      (click)="$event.stopPropagation(); toggle(group.key)"
+                      (click)="$event.stopPropagation(); toggle(group)"
                       class="mt-0.5 inline-flex size-5 shrink-0 items-center justify-center rounded-md text-amber-600 transition-colors hover:bg-amber-100"
                     >
                       <svg
@@ -257,11 +265,15 @@ const STRUCK_ROW =
                     <span
                       class="rounded-full bg-amber-500 px-1.5 py-0.5 text-2xs font-bold whitespace-nowrap text-white"
                     >
-                      {{ n(group.items.length) }} fechos
+                      {{ n(detail.simoClosingsCount) }} SIMO · {{ n(detail.bankaMovementsCount) }}
+                      Banka
                     </span>
                   </span>
                 </td>
-                <td class="hidden px-3 py-3.5 text-gray-300 @5xl:table-cell">—</td>
+                <td class="hidden px-3 py-3.5 tabular-nums text-gray-400 @5xl:table-cell">
+                  <!-- Ambígua só se houver mais de um fecho: com um só, a data é certa. -->
+                  {{ simoDuplicated ? '—' : date(detail.simoClosingDate) }}
+                </td>
                 <td class="px-3 py-3.5 text-right">
                   <app-money [value]="detail.simoKeyTotal" />
                 </td>
@@ -299,7 +311,7 @@ const STRUCK_ROW =
                           [strokeWidth]="2"
                           class="text-amber-400"
                         ></svg>
-                        Fecho {{ n(position + 1) }}
+                        SIMO {{ n(position + 1) }}
                       </button>
                     </td>
                     <td class="px-3 py-2.5 text-right text-xs tabular-nums text-gray-300">
@@ -322,6 +334,59 @@ const STRUCK_ROW =
                       Op. <span class="tabular-nums">{{ item.operationNumber }}</span>
                     </td>
                   </tr>
+                }
+              }
+
+              @if (open) {
+                @let state = breakdowns().get(group.key);
+                @if (state === 'loading' || state === undefined) {
+                  <tr class="border-b border-gray-50 bg-amber-50/20 last:border-b-0">
+                    <td colspan="7" class="px-6 py-2.5 text-xs text-gray-400">
+                      A carregar os créditos do Banka…
+                    </td>
+                  </tr>
+                } @else if (state === 'error') {
+                  <tr class="border-b border-gray-50 bg-amber-50/20 last:border-b-0">
+                    <td colspan="7" class="px-6 py-2.5 text-xs text-alert-600">
+                      Não foi possível carregar os créditos do Banka.
+                    </td>
+                  </tr>
+                } @else {
+                  @for (movement of state.movements; track movement.id; let position = $index) {
+                    <tr
+                      (click)="opened.set(detail)"
+                      class="cursor-pointer border-b border-gray-50 bg-amber-50/20 text-gray-500 transition-colors last:border-b-0 hover:bg-amber-50/50"
+                    >
+                      <td class="py-2.5 pr-3 pl-6 shadow-[inset_3px_0_0_var(--color-amber-200)]">
+                        <span class="inline-flex items-center gap-1.5 text-xs font-semibold text-amber-700/80">
+                          <svg
+                            lucideCornerDownRight
+                            [size]="13"
+                            [strokeWidth]="2"
+                            class="text-amber-400"
+                          ></svg>
+                          Banka {{ n(position + 1) }}
+                        </span>
+                      </td>
+                      <td class="px-3 py-2.5 text-right text-xs text-gray-300">—</td>
+                      <td class="hidden px-3 py-2.5 tabular-nums text-gray-400 @5xl:table-cell">
+                        {{ movement.date ? date(movement.date) : '—' }}
+                      </td>
+                      <!-- Sem SIMO por crédito: o fecho é o único, já está acima. -->
+                      <td class="px-3 py-2.5 text-right">
+                        <span class="text-gray-300">—</span>
+                      </td>
+                      <td class="px-3 py-2.5 text-right">
+                        <app-money [value]="movement.amount" />
+                      </td>
+                      <td class="px-3 py-2.5 text-right">
+                        <span class="text-gray-300">—</span>
+                      </td>
+                      <td class="px-3 py-2.5 text-xs text-gray-400 truncate">
+                        {{ movement.description }}
+                      </td>
+                    </tr>
+                  }
                 }
               }
             }
@@ -434,6 +499,19 @@ export class ReconciliationTableComponent {
     source: this.queryKey,
     computation: () => new Set<string>(),
   });
+  /**
+   * Cache por chave dos movimentos Banka de uma chave duplicada só desse lado
+   * (1 fecho SIMO, >1 movimento) — não vêm em `items()`, que só traz fechos.
+   * Ao contrário dos sub-fechos de uma chave duplicada na SIMO (já em
+   * memória), estes têm de ser pedidos ao abrir a linha.
+   */
+  protected readonly breakdowns = linkedSignal<
+    string,
+    ReadonlyMap<string, KeyBreakdown | 'loading' | 'error'>
+  >({
+    source: this.queryKey,
+    computation: () => new Map(),
+  });
   /** Trava de segurança: uma página vazia encerra a lista, mesmo com `total` inconsistente. */
   private readonly exhausted = linkedSignal({ source: this.queryKey, computation: () => false });
 
@@ -505,12 +583,27 @@ export class ReconciliationTableComponent {
     destroyRef.onDestroy(() => this.opened.set(null));
   }
 
-  protected toggle(key: string): void {
+  protected toggle(group: KeyGroup): void {
+    const key = group.key;
+    const opening = !this.expanded().has(key);
     this.expanded.update((current) => {
       const next = new Set(current);
       if (!next.delete(key)) next.add(key);
       return next;
     });
+
+    // Os créditos do Banka pedem-se sempre ao abrir — mesmo quando é só um,
+    // para o mostrar ao lado dos fechos SIMO (que nunca se pedem: já estão em
+    // `items()`). Esconder o lado que só tem 1 era a mesma confusão que o
+    // resumo já não faz.
+    if (!opening || this.breakdowns().has(key)) return;
+    this.breakdowns.update((current) => new Map(current).set(key, 'loading'));
+    void this.api
+      .getKeyBreakdown(this.executionId(), key)
+      .then((result) =>
+        this.breakdowns.update((current) => new Map(current).set(key, result ?? 'error')),
+      )
+      .catch(() => this.breakdowns.update((current) => new Map(current).set(key, 'error')));
   }
 
   protected clearFilters(): void {

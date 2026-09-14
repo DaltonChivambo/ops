@@ -7,31 +7,23 @@ import { IdentityApi, type PrincipalDto } from './identity-api.service';
 import { TokenStore } from './token.store';
 
 /**
- * O que a aplicação sabe sobre quem está autenticado.
- *
- * Vem do `GET /api/identity/me`, e **não do token**: as áreas do MozaOps não
- * estão lá dentro. O GEEA traz os papéis do sistema dele (`work_queue`,
- * `manage_employee`) e a unidade orgânica; quem decide que áreas isso abre é o
- * backend, por configuração. Interpretar isso aqui obrigaria a publicar o SPA
- * de cada vez que alguém mudasse de unidade.
- *
- * Não há papéis. Dentro da área, quem opera, quem supervisiona e quem chefia
- * fazem hoje o mesmo.
+ * Vem do `GET /api/identity/me`, e não do token: as áreas são atribuídas pelo
+ * backend por configuração, e lê-las aqui obrigaria a publicar o SPA sempre que
+ * alguém mudasse de unidade orgânica.
  */
 export interface Principal {
   readonly sub: string;
   readonly username: string;
   readonly name: string;
   readonly email: string;
-  /** As áreas do catálogo (`navigation.ts`) que esta pessoa pode abrir. */
+  /** Áreas do catálogo em `navigation.ts`. */
   readonly areas: readonly string[];
   readonly departmentCode: string;
   readonly department: string;
-  /** O nome da claim é do GEEA: a função da pessoa, não uma função de código. */
+  /** Claim do GEEA: a função da pessoa, não uma função de código. */
   readonly function: string;
 }
 
-/** A sessão, em signals. Sem tabela local de utilizadores. */
 @Injectable({ providedIn: 'root' })
 export class SessionStore {
   private readonly api = inject(IdentityApi);
@@ -40,15 +32,14 @@ export class SessionStore {
 
   private readonly principalSignal = signal<Principal | null>(null);
 
-  /** Renovação a decorrer. Partilhada, para N pedidos a falhar ao mesmo tempo
-      não dispararem N renovações — e N logins depois delas. */
+  /** Partilhada: N pedidos a levar 401 ao mesmo tempo não podem disparar N renovações. */
   private renewal: Promise<string | null> | null = null;
 
   readonly principal = this.principalSignal.asReadonly();
   readonly isAuthenticated = computed(() => this.principalSignal() !== null);
   readonly areas = computed<readonly string[]>(() => this.principalSignal()?.areas ?? []);
 
-  /** Iniciais para o avatar: «Ana Sousa» → «AS». */
+  /** «Ana Sousa» → «AS». */
   readonly initials = computed(() => {
     const name = this.principalSignal()?.name?.trim();
     if (!name) return '?';
@@ -58,12 +49,7 @@ export class SessionStore {
     return (first + last).toUpperCase();
   });
 
-  /**
-   * Chamado uma vez, no arranque: tenta recuperar a sessão do cookie.
-   *
-   * Falhar aqui é o caso normal de quem ainda não entrou — não é erro, e por
-   * isso não se propaga. Quem decide o que fazer a seguir é a guarda de rota.
-   */
+  /** Falhar é o caso normal de quem ainda não entrou, por isso não se propaga. */
   async restore(): Promise<void> {
     if (environment.authDisabled) {
       this.principalSignal.set(DEV_PRINCIPAL);
@@ -83,13 +69,7 @@ export class SessionStore {
     this.accept(session.accessToken, session.principal);
   }
 
-  /**
-   * Renova o token de acesso. Devolve `null` se a sessão acabou mesmo.
-   *
-   * Usado pelo interceptor quando um pedido leva 401 — o token de acesso dura
-   * menos do que a sessão, e expirar não devia mandar ninguém para o ecrã de
-   * login a meio do trabalho.
-   */
+  /** `null` quando a sessão acabou mesmo. */
   renew(): Promise<string | null> {
     if (environment.authDisabled) return Promise.resolve(null);
 
@@ -117,7 +97,6 @@ export class SessionStore {
 
   async logout(): Promise<void> {
     if (environment.authDisabled) {
-      // Sem sessão a sério não há nada que terminar; recarregar devolve a de dev.
       window.location.reload();
       return;
     }
@@ -125,11 +104,8 @@ export class SessionStore {
     try {
       await this.api.logout();
     } finally {
-      // Mesmo que o pedido falhe, deste lado a sessão acabou: deixar o token
-      // ficar seria manter aberta uma porta que o operador julga fechada.
+      // Mesmo que o pedido falhe, deste lado a sessão acabou.
       this.clear();
-      // Sem isto, quem sai ficava na mesma página, a ver os dados a
-      // desaparecer aos poucos conforme cada pedido levasse 401.
       await this.router.navigateByUrl('/login');
     }
   }
@@ -141,9 +117,6 @@ export class SessionStore {
       username: principal.username,
       name: principal.name || principal.username,
       email: principal.email,
-      // Sem filtro por ids conhecidos: uma área acrescentada na configuração
-      // do backend não devia depender de um SPA publicado de novo para valer.
-      // O que o SPA não conhece não abre nada, porque não há módulo para abrir.
       areas: principal.areas,
       departmentCode: principal.departmentCode,
       department: principal.department,

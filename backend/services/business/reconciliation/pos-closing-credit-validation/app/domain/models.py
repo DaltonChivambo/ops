@@ -133,8 +133,10 @@ class ClosingSummary:
     # Fechos de valor 0,00 (sem crédito a esperar do Banka): não são divergência,
     # ficam fora dos casos pendentes, mas contam-se aqui para se saber que existem.
     zero_closings: int = 0
-    # Fechos em chaves com >1 fecho (período repetido/colidido): não se somam,
-    # ficam fora do match/mismatch e vão para análise manual individual.
+    # Fechos em chaves com >1 fecho na SIMO (período repetido/colidido), OU com
+    # 1 só fecho mas >1 movimento no Banka (outro período real a colidir na
+    # chave): não se somam, ficam fora do match/mismatch e vão para análise
+    # manual individual.
     duplicated_periods: int = 0
     # Linhas repetidas no export da SIMO que foram descartadas antes de somar.
     duplicates_discarded: int = 0

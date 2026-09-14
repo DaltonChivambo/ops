@@ -215,9 +215,96 @@ const SECTIONS: readonly NavSection[] = [
       <app-channel-flyout
         [module]="mod"
         [collapsed]="collapsed()"
-        (closed)="flyoutChannelId.set(null)"
+        (closed)="onFlyoutClose()"
+        (back)="onFlyoutBack()"
         (selected)="onFlyoutSelect()"
       />
+    }
+
+    <!-- Encolhida, a barra não tem onde abrir o grupo por dentro: mostra as
+         opções aqui ao lado em vez de expandir a barra toda. -->
+    @if (flyoutItem(); as flyItem) {
+      <div class="fixed inset-0 z-40" aria-hidden="true" (click)="flyoutItemId.set(null)"></div>
+
+      <div
+        role="menu"
+        [attr.aria-label]="flyItem.label"
+        class="fixed inset-y-0 left-0 z-50 flex w-64 flex-col overflow-y-auto border-r border-gray-100 bg-white px-4 py-5 shadow-xl lg:left-[4.75rem]"
+      >
+        <div class="mb-4 flex items-center gap-3 border-b border-gray-100 pb-4">
+          <span
+            class="inline-flex size-10 shrink-0 items-center justify-center rounded-xl transition-colors"
+            [class.bg-alert-50]="hasActiveChild(flyItem)"
+            [class.text-alert-500]="hasActiveChild(flyItem)"
+            [class.bg-moza-100]="!hasActiveChild(flyItem)"
+            [class.text-moza-700]="!hasActiveChild(flyItem)"
+          >
+            @switch (flyItem.icon) {
+              @case ('layout-grid') {
+                <svg lucideLayoutGrid [size]="18" [strokeWidth]="1.8"></svg>
+              }
+              @case ('monitor-smartphone') {
+                <svg lucideMonitorSmartphone [size]="18" [strokeWidth]="1.8"></svg>
+              }
+              @case ('banknote') {
+                <svg lucideBanknote [size]="18" [strokeWidth]="1.8"></svg>
+              }
+              @case ('shield-alert') {
+                <svg lucideShieldAlert [size]="18" [strokeWidth]="1.8"></svg>
+              }
+            }
+          </span>
+
+          <p class="min-w-0 flex-1 truncate text-base font-bold text-gray-900">
+            {{ flyItem.label }}
+          </p>
+
+          <button
+            type="button"
+            class="inline-flex size-8 shrink-0 items-center justify-center rounded-full text-gray-400 transition-colors hover:bg-moza-50 hover:text-gray-600"
+            aria-label="Fechar"
+            (click)="flyoutItemId.set(null)"
+          >
+            <svg lucideX [size]="18" [strokeWidth]="1.8"></svg>
+          </button>
+        </div>
+
+        <ul class="flex flex-col gap-1">
+          @for (child of flyItem.children; track child.id) {
+            <li>
+              <button
+                type="button"
+                role="menuitem"
+                [attr.aria-current]="isChildActive(child) ? 'page' : null"
+                (click)="onFlyoutChildClick(child)"
+                class="relative flex w-full items-center gap-1 rounded-lg px-3 py-2.5 text-left text-sm transition-colors"
+                [class.bg-moza-100]="isChildActive(child)"
+                [class.font-semibold]="isChildActive(child)"
+                [class.text-moza-700]="isChildActive(child)"
+                [class.text-gray-600]="!isChildActive(child)"
+                [class.hover:bg-moza-50]="!isChildActive(child)"
+                [class.hover:text-gray-900]="!isChildActive(child)"
+              >
+                @if (isChildActive(child)) {
+                  <span
+                    class="absolute inset-y-1 left-0 w-0.5 rounded-full bg-alert-500"
+                    aria-hidden="true"
+                  ></span>
+                }
+                <span class="min-w-0 flex-1 truncate">{{ child.label }}</span>
+                @if (child.channel) {
+                  <svg
+                    lucideChevronRight
+                    [size]="15"
+                    [strokeWidth]="1.8"
+                    class="shrink-0 text-gray-400"
+                  ></svg>
+                }
+              </button>
+            </li>
+          }
+        </ul>
+      </div>
     }
 
     <!-- Um item da barra: o botão, e a sublista quando o grupo está aberto. -->
@@ -362,10 +449,24 @@ export class SidebarComponent {
   /** Canais aberto por omissão: é o único grupo com páginas construídas. */
   protected readonly expandedIds = signal<ReadonlySet<string>>(new Set(['channels']));
   protected readonly flyoutChannelId = signal<string | null>(null);
+  /** Grupo de onde veio o canal aberto — para o botão «voltar» saber para onde ir. */
+  protected readonly flyoutChannelParentId = signal<string | null>(null);
+  /** Grupo cujas opções aparecem à parte porque a barra está encolhida. */
+  protected readonly flyoutItemId = signal<string | null>(null);
 
   protected readonly flyoutModule = computed(() => {
     const id = this.flyoutChannelId();
     return id ? (findModule(id) ?? null) : null;
+  });
+
+  protected readonly flyoutItem = computed(() => {
+    const id = this.flyoutItemId();
+    if (!id) return null;
+    for (const section of this.sections()) {
+      const item = section.items.find((candidate) => candidate.id === id);
+      if (item) return item;
+    }
+    return null;
   });
 
   protected isExpanded(id: string): boolean {
@@ -404,6 +505,8 @@ export class SidebarComponent {
 
   protected toggleCollapse(): void {
     this.flyoutChannelId.set(null);
+    this.flyoutChannelParentId.set(null);
+    this.flyoutItemId.set(null);
     this.collapsed.update((value) => !value);
   }
 
@@ -433,16 +536,45 @@ export class SidebarComponent {
 
   protected onFlyoutSelect(): void {
     this.flyoutChannelId.set(null);
+    this.flyoutChannelParentId.set(null);
+    this.flyoutItemId.set(null);
     this.open.set(false);
+  }
+
+  /** Opção escolhida no painel de um grupo encolhido: fecha esse painel primeiro
+      — se for um canal, o `onChildClick` abre o painel de funcionalidades a seguir,
+      e guarda-se o grupo para o botão «voltar» desse painel saber para onde ir. */
+  protected onFlyoutChildClick(child: NavChild): void {
+    this.flyoutChannelParentId.set(this.flyoutItemId());
+    this.flyoutItemId.set(null);
+    this.onChildClick(child);
+  }
+
+  /** X do painel de funcionalidades: fecha tudo. */
+  protected onFlyoutClose(): void {
+    this.flyoutChannelId.set(null);
+    this.flyoutChannelParentId.set(null);
+  }
+
+  /** Seta de voltar do painel de funcionalidades: volta à lista de canais de
+      onde veio; sem grupo guardado (lista de canais sempre visível, barra
+      expandida), é o mesmo que fechar. */
+  protected onFlyoutBack(): void {
+    const parentId = this.flyoutChannelParentId();
+    this.flyoutChannelId.set(null);
+    this.flyoutChannelParentId.set(null);
+    if (parentId) this.flyoutItemId.set(parentId);
   }
 
   private toggleGroup(id: string): void {
     if (this.collapsed()) {
-      // Num sidebar só de ícones não há onde mostrar os módulos: expandir primeiro.
-      this.collapsed.set(false);
-      this.expandedIds.update((current) => new Set(current).add(id));
+      // Sem espaço para a sublista dentro da barra: mostra as opções ao lado.
+      this.flyoutChannelId.set(null);
+      this.flyoutChannelParentId.set(null);
+      this.flyoutItemId.update((current) => (current === id ? null : id));
       return;
     }
+    this.flyoutItemId.set(null);
     this.expandedIds.update((current) => {
       const next = new Set(current);
       if (next.has(id)) next.delete(id);

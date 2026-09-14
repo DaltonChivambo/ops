@@ -15,6 +15,7 @@ import {
   TABLE_CLASS,
   THEAD_CLASS,
 } from '../../../../../../shared/ui/data-table';
+import { DUPLICATION_SIDE_LABEL, duplicationSideOf } from '../data/duplication-side';
 import type {
   CasePatch,
   CaseStatus,
@@ -232,7 +233,7 @@ const STATUS_FILTERS: ReadonlyArray<{ id: StatusFilter; label: string }> = [
                     [class]="chip(item)"
                   >
                     <span class="size-1.5 rounded-full" [class]="dot(item)"></span>
-                    {{ typeLabel(item) }}
+                    {{ typeLabel(item) }}{{ duplicationSuffix(item) }}
                   </span>
                 </td>
                 <td class="px-3 py-3.5" (click)="$event.stopPropagation()">
@@ -461,6 +462,8 @@ export class PendingCasesTableComponent {
     closingType: 'n.a',
     validation: item.type,
     difference: item.bankaAmount - item.simoAmount,
+    simoClosingsCount: item.simoClosingsCount,
+    bankaMovementsCount: item.bankaMovementsCount,
   });
 
   protected slaOf = (item: PendingCase): SlaView => this.slaByCase().get(item.id)!;
@@ -486,6 +489,14 @@ export class PendingCasesTableComponent {
   protected chip = (item: PendingCase) => TYPE_CHIP[item.type];
   protected dot = (item: PendingCase) => TYPE_DOT[item.type];
   protected typeLabel = (item: PendingCase) => TYPE_LABEL[item.type];
+
+  /** " · SIMO" / " · Banka" / " · SIMO e Banka" — só para casos duplicados. */
+  protected duplicationSuffix(item: PendingCase): string {
+    if (item.type !== 'duplicated') return '';
+    const side = duplicationSideOf(item.simoClosingsCount, item.bankaMovementsCount);
+    return side ? ` · ${DUPLICATION_SIDE_LABEL[side]}` : '';
+  }
+
   protected amount = formatAmount;
   protected date = formatDate;
   protected dateValue = formatDateValue;

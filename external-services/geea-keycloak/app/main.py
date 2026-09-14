@@ -22,7 +22,7 @@ DATA_FILE = Path(__file__).resolve().parent.parent / "data" / "departamentos.jso
 
 # ─── Credenciais aceites pelo login ──────────────────────────────────────
 GEEA_REALM = os.environ.get("GEEA_KEYCLOAK_REALM", "QAS")
-GEEA_USERNAME = os.environ.get("GEEA_KEYCLOAK_USERNAME", "geea.integracao")
+GEEA_USERNAME = os.environ.get("GEEA_KEYCLOAK_USERNAME", "m002000")
 GEEA_PASSWORD = os.environ.get("GEEA_KEYCLOAK_PASSWORD", "mude-me-em-producao")
 GEEA_CLIENT_ID = os.environ.get("GEEA_KEYCLOAK_CLIENT_ID", "qa-workflow-ui")
 GEEA_CLIENT_SECRET = os.environ.get("GEEA_KEYCLOAK_CLIENT_SECRET", "mude-me-em-producao")

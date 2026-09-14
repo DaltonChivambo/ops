@@ -105,6 +105,29 @@ def test_dois_fechos_na_mesma_chave_abrem_um_unico_caso_duplicado() -> None:
     assert r.summary.banka_amount_duplicated == Decimal("300.00")
 
 
+def test_um_fecho_so_mas_varios_movimentos_no_banka_e_periodo_duplicado_nao_incorrecto() -> None:
+    """Um crédito de outro período real do mesmo POS pode colidir na chave (ver
+    a nota no topo de `domain/reconciliation.py`): a chave não bate, mas com
+    mais de um movimento no Banka não é o fecho a estar mal creditado — é
+    ambiguidade a desfazer manualmente, tal como a chave com vários fechos."""
+    r = reconcile(pos(), [fecho(total="2599.00")], {"200001101": credito("6641.00", "2599.00")})
+
+    assert r.details[0].validation is Validation.DUPLICATED
+    assert r.details[0].difference is None
+    assert r.cases[0].type is CaseType.DUPLICATED
+    assert r.summary.mismatch_count == 0
+    assert r.summary.duplicated_periods == 1
+
+
+def test_um_fecho_e_um_movimento_que_nao_batem_e_que_fica_incorrecto() -> None:
+    """Só conta «incorrecto» a chave com uma linha só de cada lado."""
+    r = reconcile(pos(), [fecho(total="2599.00")], {"200001101": credito("9240.00")})
+
+    assert r.details[0].validation is Validation.MISMATCH
+    assert r.details[0].difference == Decimal("6641.00")
+    assert r.cases[0].type is CaseType.MISMATCH
+
+
 def test_caso_leva_a_data_do_fecho_mais_antigo_da_chave() -> None:
     """O prazo conta do fecho que está à espera há mais tempo, não do último."""
     antes = date(2026, 6, 20)

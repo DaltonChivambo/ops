@@ -14,7 +14,7 @@ from typing import IO, Any
 from app.domain.errors import NotFoundError
 from app.domain.models import ReconciliationResult
 from app.domain.reconciliation import reconcile
-from app.domain.vocabulary import UploadSlot
+from app.domain.vocabulary import CaseType, UploadSlot, Validation
 from app.infrastructure.excel import parsers, report
 from app.infrastructure.tables import ClosingDetail, Execution, PendingCase
 from app.pagination import Page
@@ -45,8 +45,13 @@ class ValidationService:
     async def get_latest_execution(self) -> Execution | None:
         return await self._executions.find_latest()
 
-    async def list_cases(self, execution_id: str) -> list[PendingCase]:
-        return await self._cases.list_by_execution(execution_id)
+    async def list_cases(
+        self, execution_id: str
+    ) -> tuple[list[PendingCase], dict[str, tuple[int, int]]]:
+        cases = await self._cases.list_by_execution(execution_id)
+        duplicated_keys = {case.key for case in cases if case.type == CaseType.DUPLICATED}
+        key_counts = await self._executions.count_by_key(execution_id, duplicated_keys)
+        return cases, key_counts
 
     async def list_details(
         self,
@@ -54,10 +59,14 @@ class ValidationService:
         page: Page,
         validation: str | None,
         search: str | None,
-    ) -> tuple[list[ClosingDetail], int, dict[str, int]]:
+    ) -> tuple[list[ClosingDetail], int, dict[str, int], dict[str, tuple[int, int]]]:
         details, total = await self._executions.list_details(execution_id, page, validation, search)
         counts = await self._executions.count_details_by_validation(execution_id, search)
-        return details, total, counts
+        duplicated_keys = {
+            detail.key for detail in details if detail.validation == Validation.DUPLICATED
+        }
+        key_counts = await self._executions.count_by_key(execution_id, duplicated_keys)
+        return details, total, counts, key_counts
 
     async def get_key_breakdown(self, execution_id: str, key: str) -> dict[str, Any]:
         """Os dois lados de uma chave: os fechos da SIMO e os movimentos do Banka.

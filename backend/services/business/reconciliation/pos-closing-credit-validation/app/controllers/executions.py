@@ -62,8 +62,8 @@ async def create_execution(
 
     execution_id = await service.run(files)
     execution = await service.get_execution(execution_id)
-    cases = await service.list_cases(execution_id)
-    return ValidationResultOut.from_row(execution, cases)
+    cases, key_counts = await service.list_cases(execution_id)
+    return ValidationResultOut.from_row(execution, cases, key_counts)
 
 
 def _reject_oversized(uploads: dict[UploadSlot, UploadFile]) -> None:
@@ -99,8 +99,8 @@ async def get_latest_execution(service: ValidationServiceDep) -> Any:
         # 204 e não 200 com `null`: é assim que o SPA distingue «ainda não correu
         # nada» de «correu e não deu resultado».
         return Response(status_code=204)
-    cases = await service.list_cases(execution.id)
-    return ValidationResultOut.from_row(execution, cases)
+    cases, key_counts = await service.list_cases(execution.id)
+    return ValidationResultOut.from_row(execution, cases, key_counts)
 
 
 @router.get("/execucoes/{execution_id}/detalhes")
@@ -114,9 +114,14 @@ async def list_details(
 ) -> DetailsPageOut:
     await service.get_execution(execution_id)  # 404 se não existir
     parsed_page = parse_page(page, per_page)
-    details, total, counts = await service.list_details(execution_id, parsed_page, validation, q)
+    details, total, counts, key_counts = await service.list_details(
+        execution_id, parsed_page, validation, q
+    )
     return DetailsPageOut(
-        items=[ClosingDetailOut.from_row(detail) for detail in details],
+        items=[
+            ClosingDetailOut.from_row(detail, *key_counts.get(detail.key, (1, 1)))
+            for detail in details
+        ],
         total=total,
         page=parsed_page.page,
         per_page=parsed_page.per_page,

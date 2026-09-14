@@ -79,9 +79,21 @@ class ClosingDetailOut(Schema):
     closing_type: ClosingTypeLabel
     validation: Validation
     difference: float | None
+    # Nº de fechos SIMO / movimentos Banka desta chave — não vêm da linha (não
+    # são colunas persistidas, ver `ExecutionRepository.count_by_key`), por
+    # isso `from_row` recebe-os à parte. `1, 1` por omissão: só interessam
+    # quando `validation` é `duplicated`, e desfazem aí a ambiguidade entre
+    # duplicação do lado SIMO, do lado Banka, ou de ambos.
+    simo_closings_count: int
+    banka_movements_count: int
 
     @classmethod
-    def from_row(cls, row: ClosingDetail) -> "ClosingDetailOut":
+    def from_row(
+        cls,
+        row: ClosingDetail,
+        simo_closings_count: int = 1,
+        banka_movements_count: int = 1,
+    ) -> "ClosingDetailOut":
         return cls(
             id=row.id,
             pos_id=row.pos_id,
@@ -101,6 +113,8 @@ class ClosingDetailOut(Schema):
             closing_type=CLOSING_TYPE_LABELS[row.closing_type],
             validation=row.validation,
             difference=float(row.difference) if row.difference is not None else None,
+            simo_closings_count=simo_closings_count,
+            banka_movements_count=banka_movements_count,
         )
 
 
@@ -145,9 +159,18 @@ class PendingCaseOut(Schema):
     # Desde quando está neste estado — «submetido à SIMO há 5 dias» sai daqui.
     status_since: date
     resolved_at: date | None
+    # Ver o comentário equivalente em `ClosingDetailOut` — mesma origem e
+    # omissão a `1, 1`.
+    simo_closings_count: int
+    banka_movements_count: int
 
     @classmethod
-    def from_row(cls, row: PendingCase) -> "PendingCaseOut":
+    def from_row(
+        cls,
+        row: PendingCase,
+        simo_closings_count: int = 1,
+        banka_movements_count: int = 1,
+    ) -> "PendingCaseOut":
         return cls(
             id=row.id,
             key=row.key,
@@ -164,6 +187,8 @@ class PendingCaseOut(Schema):
             status=CASE_STATUS_LABELS[row.status],
             status_since=row.status_since,
             resolved_at=row.resolved_at,
+            simo_closings_count=simo_closings_count,
+            banka_movements_count=banka_movements_count,
         )
 
 
@@ -191,7 +216,12 @@ class ValidationResultOut(Schema):
     cases: list[PendingCaseOut]
 
     @classmethod
-    def from_row(cls, row: Execution, cases: list[PendingCase]) -> "ValidationResultOut":
+    def from_row(
+        cls,
+        row: Execution,
+        cases: list[PendingCase],
+        key_counts: dict[str, tuple[int, int]],
+    ) -> "ValidationResultOut":
         return cls(
             execution_id=row.id,
             executed_at=row.executed_at,
@@ -204,7 +234,9 @@ class ValidationResultOut(Schema):
                 banka_credits=row.banka_credits_file,
             ),
             summary=row.summary,
-            cases=[PendingCaseOut.from_row(case) for case in cases],
+            cases=[
+                PendingCaseOut.from_row(case, *key_counts.get(case.key, (1, 1))) for case in cases
+            ],
         )
 
 
@@ -224,11 +256,15 @@ class KeyBreakdownOut(Schema):
         movements: list[CreditMovement],
         case: PendingCase | None,
     ) -> "KeyBreakdownOut":
+        # As duas listas já vêm completas (ver `list_details_by_key`/
+        # `list_movements_by_key`), por isso a contagem é grátis aqui — sem
+        # repetir a query que `count_by_key` faz para as listas paginadas.
+        simo_count, banka_count = len(closings), len(movements)
         return cls(
             key=key,
-            closings=[ClosingDetailOut.from_row(row) for row in closings],
+            closings=[ClosingDetailOut.from_row(row, simo_count, banka_count) for row in closings],
             movements=[CreditMovementOut.from_row(row) for row in movements],
-            case=PendingCaseOut.from_row(case) if case else None,
+            case=PendingCaseOut.from_row(case, simo_count, banka_count) if case else None,
         )
 
 
