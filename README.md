@@ -23,12 +23,12 @@ Compose.
 
 | | |
 |---|---|
-| `business/reconciliation/pos-closing-credit-validation` (POS) | construído — parse, reconciliação, persistência e relatório |
-| `platform/identity` | construído — sessões contra o GEEA, com as rotas das automações fechadas |
+| [`platform/identity`](backend/services/platform/identity/README.md) | construído — sessões contra o GEEA, com as rotas das automações fechadas |
 | Autenticação | ligada: credenciais do domínio, acesso por área |
+| CI | por fazer |
+| [`business/reconciliation/pos-closing-credit-validation`](backend/services/business/reconciliation/pos-closing-credit-validation/README.md) (POS) | construído — parse, reconciliação, persistência e relatório |
 | Canais ATM e Quiosques | por fazer — serviços próprios, independentes do POS |
 | Serviço `cases` | por fazer |
-| CI | por fazer |
 
 ## Pré-requisitos
 
@@ -39,6 +39,10 @@ Compose.
 
 ## Arrancar
 
+Tudo a partir desta pasta (a raiz do repo — onde está este ficheiro, o
+`docker-compose.yml` e o `.env.example`; não de dentro de `backend/` nem de
+`frontend/`).
+
 ```bash
 cp .env.example .env     # ajustar as senhas
 make up                  # traefik, postgres, identity, otel, jaeger e os serviços
@@ -47,6 +51,22 @@ make migrate             # alembic upgrade head
 # Em desenvolvimento o GEEA é simulado, e sobe à parte — não é um serviço nosso:
 docker compose -f external-services/geea-keycloak/docker-compose.yml up -d
 ```
+
+### Windows, sem `make`
+
+O `Makefile` exige `bash` (`SHELL := /bin/bash`) — corre em Git Bash ou WSL. Em
+PowerShell nativo, sem `make`, o equivalente é:
+
+```powershell
+Copy-Item .env.example .env      # ajustar as senhas
+docker compose up -d --build     # traefik, postgres, identity, otel, jaeger e os serviços
+docker compose run --rm pos-closing-credit-validation alembic upgrade head
+docker compose -f external-services/geea-keycloak/docker-compose.yml up -d
+```
+
+Os passos seguintes (`make test`, `make down`, etc.) também têm equivalente
+directo em `docker compose` — ver os alvos no [`Makefile`](Makefile) para o
+comando exacto de cada um.
 
 E o frontend, noutro terminal:
 
