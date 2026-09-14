@@ -142,6 +142,10 @@ class FakeService:
             "zero": 0,
             "duplicated": 0,
         }
+        # (nº fechos SIMO, nº movimentos Banka) por chave — só preenchido pelos
+        # testes que precisam de simular uma chave `duplicated`. Vazio por
+        # omissão: a fixture por omissão é `mismatch`, não pede contagem nenhuma.
+        self.key_counts: dict[str, tuple[int, int]] = {}
         self.chamadas: dict[str, Any] = {}
 
     def _guard(self, execution_id: str) -> Execution:
@@ -159,12 +163,14 @@ class FakeService:
     async def get_latest_execution(self) -> Execution | None:
         return self.execution
 
-    async def list_cases(self, _execution_id: str) -> list[PendingCase]:
-        return self.cases
+    async def list_cases(
+        self, _execution_id: str
+    ) -> tuple[list[PendingCase], dict[str, tuple[int, int]]]:
+        return self.cases, self.key_counts
 
     async def list_details(
         self, execution_id: str, page: Any, validation: Any, search: Any
-    ) -> tuple[list[ClosingDetail], int, dict[str, int]]:
+    ) -> tuple[list[ClosingDetail], int, dict[str, int], dict[str, tuple[int, int]]]:
         self.chamadas["list_details"] = {
             "page": page.page,
             # A chave é o nome do PARÂMETRO da query, não o do campo Python:
@@ -174,7 +180,7 @@ class FakeService:
             "search": search,
         }
         self._guard(execution_id)
-        return self.details, len(self.details), self.counts
+        return self.details, len(self.details), self.counts, self.key_counts
 
     async def get_key_breakdown(self, execution_id: str, key: str) -> dict[str, Any]:
         self._guard(execution_id)
@@ -189,7 +195,7 @@ class FakeService:
 
     async def update(
         self, case_id: str, patch: dict[str, Any]
-    ) -> tuple[PendingCase, dict[str, Any]]:
+    ) -> tuple[PendingCase, dict[str, Any], tuple[int, int]]:
         self.chamadas["update_case"] = patch
         if case_id != CASE_ID:
             raise NotFoundError("O caso indicado não existe.")
@@ -209,7 +215,7 @@ class FakeService:
         if "status" in patch:
             caso.status = STATUS_FROM_JSON[patch["status"]]
             caso.status_since = date(2026, 9, 10)
-        return caso, dict(SUMMARY)
+        return caso, dict(SUMMARY), self.key_counts.get(caso.key, (1, 1))
 
     async def build_report(self, execution_id: str) -> tuple[bytes, str]:
         execucao = self._guard(execution_id)

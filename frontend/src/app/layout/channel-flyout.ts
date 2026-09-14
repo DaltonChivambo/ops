@@ -59,11 +59,17 @@ function comparavel(texto: string): string {
       [class]="collapsed() ? 'left-0 lg:left-[4.75rem]' : 'left-0 lg:left-[16.5rem]'"
     >
       <div class="mb-5 flex items-center gap-3 border-b border-gray-100 pb-5">
+        <!-- Encolhida, a barra não guarda a lista de canais visível por trás
+             deste painel — sem este botão não havia como voltar a ela. -->
         <button
           type="button"
-          class="inline-flex size-8 shrink-0 items-center justify-center rounded-full text-gray-600 hover:bg-moza-50 lg:hidden"
-          aria-label="Voltar ao menu"
-          (click)="closed.emit()"
+          [class]="
+            collapsed()
+              ? 'inline-flex size-8 shrink-0 items-center justify-center rounded-full text-gray-600 hover:bg-moza-50'
+              : 'inline-flex size-8 shrink-0 items-center justify-center rounded-full text-gray-600 hover:bg-moza-50 lg:hidden'
+          "
+          aria-label="Voltar às opções"
+          (click)="back.emit()"
         >
           <svg lucideArrowLeft [size]="18" [strokeWidth]="1.8"></svg>
         </button>
@@ -179,6 +185,7 @@ export class ChannelFlyoutComponent {
   readonly collapsed = input(false);
 
   readonly closed = output<void>();
+  readonly back = output<void>();
   readonly selected = output<void>();
 
   /** Reposta ao trocar de canal: o painel é o mesmo componente para os três. */

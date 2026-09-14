@@ -9,7 +9,7 @@ from datetime import date
 from typing import Any
 
 from app.domain.errors import InvalidCaseStatusError, NotFoundError, NothingToUpdateError
-from app.domain.vocabulary import CaseStatus
+from app.domain.vocabulary import CaseStatus, CaseType
 from app.infrastructure.tables import PendingCase
 from app.repositories.case_repository import CaseRepository
 from app.repositories.execution_repository import ExecutionRepository
@@ -31,7 +31,7 @@ class CaseService:
 
     async def update(
         self, case_id: str, patch: dict[str, Any]
-    ) -> tuple[PendingCase, dict[str, Any]]:
+    ) -> tuple[PendingCase, dict[str, Any], tuple[int, int]]:
         """Actualiza estado/e-Ticket de um caso e recalcula o `summary` da execução."""
         data: dict[str, Any] = {}
         if "e_ticket" in patch:
@@ -62,7 +62,12 @@ class CaseService:
         if case is None:
             raise NotFoundError("O caso indicado não existe.")
 
-        return case, await self._refresh_counters(case.execution_id)
+        counts = (1, 1)
+        if case.type == CaseType.DUPLICATED:
+            key_counts = await self._executions.count_by_key(case.execution_id, {case.key})
+            counts = key_counts.get(case.key, (1, 1))
+
+        return case, await self._refresh_counters(case.execution_id), counts
 
     async def _refresh_counters(self, execution_id: str) -> dict[str, Any]:
         """Reflecte no `summary` guardado as contagens de casos abertos/regularizados."""

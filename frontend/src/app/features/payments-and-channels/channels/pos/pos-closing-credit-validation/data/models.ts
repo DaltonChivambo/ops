@@ -56,6 +56,10 @@ export interface ClosingDetail {
   validation: Validation;
   /** somaBanka − somaSimo da chave; null quando não creditado. */
   difference: number | null;
+  /** Fechos SIMO nesta chave. >1 é duplicação do lado SIMO; 1 fora de `duplicated`. */
+  simoClosingsCount: number;
+  /** Movimentos Banka nesta chave. >1 é duplicação do lado Banka; 1 fora de `duplicated`. */
+  bankaMovementsCount: number;
 }
 
 /** Um movimento de crédito do Banka atribuído a uma chave — a parcela do total. */
@@ -96,6 +100,9 @@ export interface PendingCase {
   /** Desde quando está neste estado — «submetido à SIMO há 5 dias» sai daqui. */
   statusSince: string; // ISO
   resolvedAt: string | null;
+  /** Ver o comentário equivalente em `ClosingDetail`. */
+  simoClosingsCount: number;
+  bankaMovementsCount: number;
 }
 
 /** O prazo de tratamento em vigor, em dias, e quem o pôs assim. */

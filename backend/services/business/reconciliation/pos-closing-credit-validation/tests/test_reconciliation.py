@@ -49,21 +49,22 @@ def test_summary_matches_reference_numbers():
     assert summary.processed == 18_138
     assert summary.validation_rate == 99.3
     assert summary.missing_count == 118
-    assert summary.mismatch_count == 1
-    assert summary.duplicated_periods == 16
+    assert summary.mismatch_count == 0
+    assert summary.duplicated_periods == 17
     assert float(summary.simo_amount_missing) == 1_021_564.32
     assert float(summary.simo_amount_matched) == 543_350_098.30
     assert float(summary.banka_amount_matched) == 543_350_098.30
 
 
-def test_known_collision_key_is_a_mismatch_not_missing():
-    """A chave `259342209`: colisão real em `% 1000` — ver o comentário em
-    `domain/reconciliation.py` sobre a janela de crédito removida."""
+def test_known_collision_key_is_duplicated_not_mismatch():
+    """A chave `259342209`: um só fecho na SIMO, mas dois movimentos no Banka
+    — colisão real em `% 1000` de outro período do mesmo POS (ver o comentário
+    em `domain/reconciliation.py`). Não é o fecho a estar mal creditado."""
     result = _reconcile_fixtures()
     detail = next(d for d in result.details if d.key == "259342209")
 
-    assert detail.validation == "mismatch"
-    assert float(detail.difference) == 6_641.0
+    assert detail.validation == "duplicated"
+    assert detail.difference is None
 
 
 def test_cases_are_one_per_divergent_key():

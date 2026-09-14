@@ -10,7 +10,7 @@ recebe, e é por isso que tudo o que corre num pedido partilha a transacção.
 """
 
 import uuid
-from collections.abc import Mapping
+from collections.abc import Collection, Mapping
 from typing import Any
 
 import sqlalchemy as sa
@@ -221,6 +221,38 @@ class ExecutionRepository:
             counts[validation] = total
             counts["all"] += total
         return counts
+
+    async def count_by_key(
+        self, execution_id: str, keys: Collection[str]
+    ) -> dict[str, tuple[int, int]]:
+        """(nº fechos SIMO, nº movimentos Banka) por chave — só para as chaves pedidas.
+
+        Chamado só com as chaves `duplicated` de uma página/lista, nunca com a
+        execução inteira: é o que desfaz, no frontend, a ambiguidade entre uma
+        chave com vários fechos na SIMO e uma com um só fecho mas vários
+        movimentos no Banka (ver a nota central em `domain/reconciliation.py`).
+        Duas queries planas em vez de um join — as duas tabelas não têm FK
+        entre si, e um join duplicaria linhas ou pedia `COUNT(DISTINCT ...)`.
+        """
+        if not keys:
+            return {}
+        simo = await self._session.execute(
+            sa.select(ClosingDetail.key, sa.func.count())
+            .where(ClosingDetail.execution_id == execution_id, ClosingDetail.key.in_(keys))
+            .group_by(ClosingDetail.key)
+        )
+        simo_counts: dict[str, int] = {}
+        for key, count in simo.all():
+            simo_counts[key] = count
+        banka = await self._session.execute(
+            sa.select(CreditMovement.key, sa.func.count())
+            .where(CreditMovement.execution_id == execution_id, CreditMovement.key.in_(keys))
+            .group_by(CreditMovement.key)
+        )
+        banka_counts: dict[str, int] = {}
+        for key, count in banka.all():
+            banka_counts[key] = count
+        return {key: (simo_counts.get(key, 0), banka_counts.get(key, 0)) for key in keys}
 
     async def save_summary(self, execution_id: str, summary: dict[str, Any]) -> None:
         await self._session.execute(

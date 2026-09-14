@@ -15,9 +15,15 @@ chave somam, aconteça isso quando acontecer.
 Houve aqui uma janela de dias úteis que descartava o que caísse fora dela. Fazia
 mais mal do que bem: nos ficheiros de Junho dava 72 chaves por «não creditado»
 que o Banka tinha creditado pelo valor exacto, três dias depois. Tirá-la troca
-esses 72 enganos por 1 — a chave `259342209`, onde um crédito de outro período
-real do mesmo POS colide em `% 1000` e soma indevidamente. Setenta e dois contra
-um, e o que fica é um valor a mais numa chave, não dinheiro dado por desaparecido.
+esses 72 enganos por um risco novo — a chave `259342209`, onde um crédito de
+outro período real do mesmo POS colide em `% 1000` e soma indevidamente ao
+lado do Banka. Um só fecho na SIMO, mas dois movimentos no Banka de datas bem
+diferentes (um antes do fecho, outro depois): não é o crédito daquele fecho a
+sair errado, é a chave a levar dinheiro de outro período. Por isso uma chave só
+conta como incorrecta quando os DOIS lados têm uma linha só — um fecho na SIMO
+e um movimento no Banka — e mesmo assim não bate. Mais que um movimento no
+Banka (ou mais que um fecho na SIMO) é ambiguidade a desfazer manualmente, não
+uma divergência: fica «períodos duplicados», ao lado da chave com vários fechos.
 
 Camada de domínio: sem I/O, sem framework — recebe estruturas já parseadas.
 """
@@ -230,6 +236,12 @@ def _validate_keys(
         # — sem tolerância de arredondamento.
         if difference == 0:
             result[key] = (Validation.MATCH, Decimal(0))
+        elif len(credit.movements) > 1:
+            # A chave não bate, mas o Banka tem mais de um movimento — pode ser
+            # um crédito de outro período real a colidir na mesma chave (ver a
+            # nota no topo do ficheiro), não necessariamente um erro do fecho.
+            # Só conta «incorrecto» a chave com uma linha só de cada lado.
+            result[key] = (Validation.DUPLICATED, None)
         else:
             result[key] = (Validation.MISMATCH, difference)
     return result

@@ -40,7 +40,7 @@ Query params: `realm`, `username`, `password`, `clientId`, `clientSecret`,
 `clientIpAdress` (opcional).
 
 ```
-GET /geea/idmUtils/SSOLogin?realm=QAS&username=geea.integracao&password=mude-me-em-producao&clientId=qa-workflow-ui&clientSecret=mude-me-em-producao&clientIpAdress=127.0.0.1
+GET /geea/idmUtils/SSOLogin?realm=QAS&username=m002000&password=mude-me-em-producao&clientId=qa-workflow-ui&clientSecret=mude-me-em-producao&clientIpAdress=127.0.0.1
 ```
 
 Resposta (forma real replicada — `accessToken`/`idToken` com as claims
@@ -97,7 +97,7 @@ Sem autenticação — só para healthcheck.
 ## Exemplo completo
 
 ```bash
-TOKEN=$(curl -s "http://localhost:8100/geea/idmUtils/SSOLogin?realm=QAS&username=geea.integracao&password=mude-me-em-producao&clientId=qa-workflow-ui&clientSecret=mude-me-em-producao&clientIpAdress=127.0.0.1" \
+TOKEN=$(curl -s "http://localhost:8100/geea/idmUtils/SSOLogin?realm=QAS&username=m002000&password=mude-me-em-producao&clientId=qa-workflow-ui&clientSecret=mude-me-em-producao&clientIpAdress=127.0.0.1" \
   | jq -r .output.accessToken)
 
 curl -s http://localhost:8100/departamentos \

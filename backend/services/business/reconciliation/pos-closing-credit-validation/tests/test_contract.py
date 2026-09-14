@@ -47,6 +47,8 @@ CONTRATO: dict[str, tuple[type[Any], set[str]]] = {
             "closingType",
             "validation",
             "difference",
+            "simoClosingsCount",
+            "bankaMovementsCount",
         },
     ),
     "CreditMovement": (
@@ -71,6 +73,8 @@ CONTRATO: dict[str, tuple[type[Any], set[str]]] = {
             "status",
             "statusSince",
             "resolvedAt",
+            "simoClosingsCount",
+            "bankaMovementsCount",
         },
     ),
     "KeyBreakdown": (

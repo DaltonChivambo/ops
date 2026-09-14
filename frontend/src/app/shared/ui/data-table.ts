@@ -82,7 +82,7 @@ export const THEAD_CLASS = 'sticky top-0 z-10';
             class="ml-auto inline-flex cursor-pointer items-center gap-1.5 rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-semibold text-gray-500 transition-colors hover:bg-gray-50 hover:text-gray-900"
           >
             <svg lucideArrowUp [size]="14" [strokeWidth]="2.2"></svg>
-            Voltar ao início
+            Voltar ao iníciotete
           </button>
         }
       </div>

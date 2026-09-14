@@ -21,5 +21,5 @@ async def update_case(
     # Corpo ausente trata-se como «nada a mudar»: é o serviço que decide o que
     # responder a isso, e responde o mesmo que a um `{}`.
     campos = patch.model_dump(exclude_unset=True) if patch else {}
-    case, summary = await service.update(case_id, campos)
-    return CaseUpdateOut(case=PendingCaseOut.from_row(case), summary=summary)
+    case, summary, counts = await service.update(case_id, campos)
+    return CaseUpdateOut(case=PendingCaseOut.from_row(case, *counts), summary=summary)
