@@ -428,6 +428,13 @@ def _write_header(sheet: Worksheet, row: int, values: list[str]) -> None:
 def _write_row(sheet: Worksheet, row: int, values: list[Any], *, total: bool = False) -> None:
     for offset, value in enumerate(values):
         cell = sheet.cell(row=row, column=FIRST_COLUMN + offset, value=_excel_value(value))
+        # O openpyxl grava como FÓRMULA qualquer texto que comece por «=». Nada
+        # do que aqui se escreve é fórmula: nomes de comerciante e descritivos
+        # vêm dos ficheiros carregados, o e-Ticket é escrito à mão. Sem isto, um
+        # «=HYPERLINK(...)» num desses campos corria no Excel de quem abrisse
+        # o relatório.
+        if cell.data_type == "f":
+            cell.data_type = "s"
         if total:
             cell.font = Font(bold=True)
             cell.fill = _TOTAL_FILL
