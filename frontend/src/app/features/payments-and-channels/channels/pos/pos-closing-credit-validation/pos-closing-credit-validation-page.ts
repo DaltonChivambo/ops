@@ -221,6 +221,8 @@ export class PosClosingCreditValidationPageComponent {
     const current = this.result();
     if (!current) return;
 
+    const before = current.cases.find((item) => item.id === caseId);
+
     try {
       const { case: updated, summary } = await this.api.updateCase(caseId, patch);
       this.result.set({
@@ -228,8 +230,25 @@ export class PosClosingCreditValidationPageComponent {
         summary,
         cases: current.cases.map((item) => (item.id === updated.id ? updated : item)),
       });
-    } catch {
-      this.error.set('Não foi possível actualizar o caso. Tente novamente.');
+
+      // Regularizar tira o caso da fila, e reabrir devolve-o: sem aviso, a linha
+      // simplesmente desaparecia de uma lista e aparecia na outra.
+      const pos = `POS ${updated.posId}, período ${updated.period}`;
+      if (updated.status === 'resolved' && before?.status !== 'resolved') {
+        this.success.set(`Caso do ${pos} regularizado — passou para «Regularizados».`);
+      } else if (before?.status === 'resolved' && updated.status !== 'resolved') {
+        this.success.set(`Caso do ${pos} reaberto — voltou aos casos em aberto.`);
+      } else {
+        this.success.set(`Caso do ${pos} actualizado.`);
+      }
+    } catch (problem) {
+      // Uma recusa do servidor (e-Ticket sem forma de referência, estado que não
+      // existe) traz a razão em português; só o resto fica com a mensagem genérica.
+      this.error.set(
+        problem instanceof ApiError && problem.status === 422
+          ? problem.message
+          : 'Não foi possível actualizar o caso. Tente novamente.',
+      );
     }
   }
 

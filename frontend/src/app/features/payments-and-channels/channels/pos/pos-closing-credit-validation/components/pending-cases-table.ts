@@ -1,5 +1,5 @@
 import { ChangeDetectionStrategy, Component, computed, input, output, signal } from '@angular/core';
-import { LucideCircleCheck, LucideSearch, LucideX } from '@lucide/angular';
+import { LucideChevronRight, LucideCircleCheck, LucideSearch, LucideX } from '@lucide/angular';
 
 import {
   daysBetween,
@@ -7,6 +7,7 @@ import {
   formatDate,
   formatDateValue,
   formatDayCount,
+  formatSignedAmount,
   numberFormatter,
   parseIsoDate,
 } from '../../../../../../shared/format';
@@ -15,6 +16,14 @@ import {
   TABLE_CLASS,
   THEAD_CLASS,
 } from '../../../../../../shared/ui/data-table';
+import {
+  CASE_STATUSES,
+  CASE_STATUS_BADGE,
+  CASE_STATUS_DOT,
+  CASE_STATUS_LABEL,
+  CASE_STATUS_WAIT,
+  OPEN_CASE_STATUSES,
+} from '../data/case-status';
 import { DUPLICATION_SIDE_LABEL, duplicationSideOf } from '../data/duplication-side';
 import type {
   CasePatch,
@@ -36,7 +45,9 @@ import {
   type SlaState,
   type SlaView,
 } from '../data/sla';
+import { CaseStatusFilterComponent } from './case-status-filter';
 import { CaseTypeFilterComponent } from './case-type-filter';
+import { CaseViewSelectComponent, type CaseView } from './case-view-select';
 import { KeyDetailPanelComponent } from './key-detail-panel';
 import { MoneyComponent } from './money';
 import { SlaFilterComponent } from './sla-filter';
@@ -63,41 +74,25 @@ const TYPE_STRIPE: Record<CaseType, string> = {
   duplicated: 'shadow-[inset_3px_0_0_var(--color-amber-500)]',
 };
 
-const STATUS_LABELS: Record<CaseStatus, string> = {
-  pending: 'Pendente',
-  'in-review-internal': 'Em análise interna',
-  'in-review-simo': 'Em análise na SIMO',
-  resolved: 'Regularizado',
-};
+const ALL_SLA_STATES: readonly SlaState[] = ['overdue', 'due-soon', 'on-track', 'settled'];
+const OPEN_SLA_STATES: readonly SlaState[] = ['overdue', 'due-soon', 'on-track'];
 
-/** O que se diz do tempo que o caso leva no estado em que está. */
-const STATUS_WAIT: Record<CaseStatus, string> = {
-  pending: 'por analisar há',
-  'in-review-internal': 'em análise há',
-  'in-review-simo': 'submetido há',
-  resolved: 'regularizado há',
-};
-
-type StatusFilter = CaseStatus | 'all';
-
-const STATUS_FILTERS: ReadonlyArray<{ id: StatusFilter; label: string }> = [
-  { id: 'all', label: 'Todos' },
-  { id: 'pending', label: 'Pendentes' },
-  { id: 'in-review-internal', label: 'Análise interna' },
-  { id: 'in-review-simo', label: 'Análise SIMO' },
-  { id: 'resolved', label: 'Regularizados' },
-];
-
-/** Fila de trabalho do operador (incorrectos e não creditados) — edita e-Ticket e estado in-line. */
+/**
+ * Fila de trabalho do operador — só leitura. O estado e o e-Ticket editam-se no
+ * painel do caso, que abre ao clicar na linha.
+ */
 @Component({
   selector: 'app-pending-cases-table',
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
+    CaseStatusFilterComponent,
     CaseTypeFilterComponent,
+    CaseViewSelectComponent,
     DataTableComponent,
     KeyDetailPanelComponent,
     MoneyComponent,
     SlaFilterComponent,
+    LucideChevronRight,
     LucideCircleCheck,
     LucideSearch,
     LucideX,
@@ -120,44 +115,46 @@ const STATUS_FILTERS: ReadonlyArray<{ id: StatusFilter; label: string }> = [
     } @else {
       <app-data-table [scrollAnchor]="scrollAnchor()">
         <ng-container toolbar>
+          <!-- Que casos a lista mostra: em aberto (a fila de trabalho, por
+               defeito), regularizados (o histórico) ou todos. Primeiro na barra,
+               porque decide o que os filtros ao lado filtram. -->
+          <app-case-view-select
+            [value]="view()"
+            [counts]="viewCounts()"
+            (changed)="setView($event)"
+          />
+
+          @if (view() !== 'resolved') {
+            <app-case-status-filter
+              [statuses]="statusOptions()"
+              [counts]="statusCounts()"
+              [selected]="selectedStatuses()"
+              (changed)="selectedStatuses.set($event)"
+            />
+          }
+
           <app-case-type-filter
             [counts]="typeCounts()"
             [selected]="selectedTypes()"
             (changed)="selectedTypes.set($event)"
           />
 
-          <app-sla-filter
-            [counts]="slaCounts()"
-            [selected]="selectedSla()"
-            (changed)="selectedSla.set($event)"
-          />
-
-          <div class="inline-flex rounded-xl border border-gray-100 bg-gray-50 p-1">
-            @for (filter of statusFilters; track filter.id) {
-              @let active = status() === filter.id;
-              <button
-                type="button"
-                (click)="status.set(filter.id)"
-                class="inline-flex items-center gap-2 rounded-lg px-3 py-1.5 text-sm font-semibold transition-colors"
-                [class]="
-                  active ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-900'
-                "
-              >
-                {{ filter.label }}
-                <span class="text-2xs text-gray-400 tabular-nums">
-                  {{ n(counts()[filter.id]) }}
-                </span>
-              </button>
-            }
-          </div>
+          @if (view() !== 'resolved') {
+            <app-sla-filter
+              [states]="slaOptions()"
+              [counts]="slaCounts()"
+              [selected]="selectedSla()"
+              (changed)="selectedSla.set($event)"
+            />
+          }
 
           <label
-            class="flex min-w-[15rem] flex-1 items-center gap-2.5 rounded-xl border border-gray-100 bg-gray-50 px-3.5 py-2.5 sm:max-w-xs sm:flex-none"
+            class="flex min-w-[15rem] flex-1 items-center gap-2.5 rounded-xl border border-gray-100 bg-gray-50 px-3.5 py-2.5 transition-colors focus-within:border-moza-300 focus-within:bg-white sm:max-w-xs"
           >
             <svg lucideSearch [size]="16" [strokeWidth]="1.8" class="shrink-0 text-gray-400"></svg>
             <input
               type="search"
-              placeholder="Pesquisar caso"
+              placeholder="Pesquisar por POS, comerciante ou e-Ticket"
               [value]="query()"
               (input)="query.set($any($event.target).value)"
               class="w-full bg-transparent text-sm text-gray-900 outline-none placeholder:text-gray-400"
@@ -175,98 +172,97 @@ const STATUS_FILTERS: ReadonlyArray<{ id: StatusFilter; label: string }> = [
           </label>
         </ng-container>
 
-        <table [class]="tableClass + ' min-w-3xl @4xl:min-w-4xl'">
+        <!-- Oito colunas, e cada célula com uma leitura principal e, no máximo,
+             uma nota por baixo. O período vive junto ao POS: numa coluna à
+             parte, encostado ao Valor SIMO, lia-se como parte do montante. A
+             data de regularização vai para a nota do estado — só existe quando
+             o caso está regularizado, e uma coluna de travessões não diz nada. -->
+        <table [class]="tableClass + ' min-w-4xl'">
           <thead [class]="theadClass">
             <tr class="border-b border-gray-100 text-gray-400">
-              <th scope="col" [class]="th + ' w-[17rem] py-2.5 pr-3 pl-5 text-left'">
+              <th scope="col" [class]="th + ' w-[15rem] py-2.5 pr-3 pl-5 text-left'">
                 POS / Comerciante
               </th>
-              <th scope="col" [class]="th + ' hidden px-3 py-2.5 text-right @2xl:table-cell'">
-                Período
-              </th>
+              <th scope="col" [class]="th + ' px-3 py-2.5 text-left'">Tipo</th>
               <th scope="col" [class]="th + ' px-3 py-2.5 text-right'">Valor SIMO</th>
               <th scope="col" [class]="th + ' px-3 py-2.5 text-right'">Valor Banka</th>
-              <th scope="col" [class]="th + ' px-3 py-2.5 text-left'">Tipo</th>
-              <th scope="col" [class]="th + ' px-3 py-2.5 text-left'">e-Ticket</th>
-              <th scope="col" [class]="th + ' px-3 py-2.5 text-left'">Estado</th>
-              <th scope="col" [class]="th + ' px-3 py-2.5 text-left'">Prazo</th>
-              <th scope="col" [class]="th + ' hidden px-3 py-2.5 text-left @4xl:table-cell'">
-                Data Reg.
+              <th scope="col" [class]="th + ' px-3 py-2.5 text-right'">Diferença</th>
+              <th scope="col" [class]="th + ' py-2.5 pr-3 pl-6 text-left'">Prazo</th>
+              <th scope="col" [class]="th + ' px-3 py-2.5 text-left'">
+                {{ view() === 'resolved' ? 'Regularizado em' : 'Estado' }}
               </th>
+              <th scope="col" [class]="th + ' px-3 py-2.5 text-left'">e-Ticket</th>
+              <th scope="col" [class]="th + ' w-8'"><span class="sr-only">Abrir</span></th>
             </tr>
           </thead>
 
           <tbody>
             @for (item of visible(); track item.id) {
+              @let resolved = item.status === 'resolved';
               <tr
                 (click)="opened.set(toDetail(item))"
-                class="cursor-pointer border-b border-gray-50 text-gray-600 transition-colors last:border-b-0"
-                [class]="item.status === 'resolved' ? 'bg-emerald-50/40' : 'hover:bg-gray-50/70'"
+                class="cursor-pointer border-b border-gray-100/70 text-gray-600 transition-colors last:border-b-0 hover:bg-gray-50/70"
               >
                 <td class="py-3.5 pr-3 pl-5" [class]="stripe(item)">
-                  <button
-                    type="button"
-                    (click)="$event.stopPropagation(); opened.set(toDetail(item))"
-                    class="font-bold text-gray-900 tabular-nums underline-offset-2 transition-colors hover:text-moza-600 hover:underline focus-visible:text-moza-600 focus-visible:underline"
+                  <div class="flex items-center gap-2">
+                    <button
+                      type="button"
+                      (click)="$event.stopPropagation(); opened.set(toDetail(item))"
+                      class="font-bold text-gray-900 tabular-nums underline-offset-2 transition-colors hover:text-moza-600 hover:underline focus-visible:text-moza-600 focus-visible:underline"
+                    >
+                      {{ item.posId }}
+                      <span class="sr-only"> — ver os dados da SIMO e do Banka</span>
+                    </button>
+                    <span
+                      class="rounded-md bg-gray-100 px-1.5 py-0.5 text-2xs font-semibold whitespace-nowrap text-gray-500 tabular-nums"
+                      [attr.title]="'Período ' + item.period"
+                    >
+                      P. {{ item.period }}
+                    </span>
+                  </div>
+                  <div
+                    class="mt-1 max-w-52 truncate text-xs text-gray-400"
+                    [attr.title]="item.merchant"
                   >
-                    {{ item.posId }}
-                    <span class="sr-only"> — ver os dados da SIMO e do Banka</span>
-                  </button>
-                  <div class="mt-0.5 max-w-48 truncate text-sm text-gray-400">
                     {{ item.merchant }}
                   </div>
                 </td>
-                <td
-                  class="hidden px-3 py-3.5 text-right tabular-nums text-gray-400 @2xl:table-cell"
-                >
-                  {{ item.period }}
-                </td>
-                <td class="px-3 py-3.5 text-right">
-                  <app-money [value]="item.simoAmount" />
-                </td>
-                <td class="px-3 py-3.5 text-right">
-                  <app-money [value]="item.type === 'missing' ? null : item.bankaAmount" />
-                </td>
+
                 <td class="px-3 py-3.5">
                   <span
                     class="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-bold whitespace-nowrap"
                     [class]="chip(item)"
                   >
                     <span class="size-1.5 rounded-full" [class]="dot(item)"></span>
-                    {{ typeLabel(item) }}{{ duplicationSuffix(item) }}
+                    {{ typeLabel(item) }}
                   </span>
+                  <!-- O lado da duplicação sai da pastilha: dentro dela, «Período
+                       duplicado · SIMO e Banka» fazia a coluna mais larga da tabela. -->
+                  @if (duplicationSide(item); as side) {
+                    <div class="mt-1 pl-1 text-2xs whitespace-nowrap text-gray-400">
+                      em {{ side }}
+                    </div>
+                  }
                 </td>
-                <td class="px-3 py-3.5" (click)="$event.stopPropagation()">
-                  <!-- Grava ao sair do campo: um PATCH por tecla era de mais.
-                       Enter sai do campo (dispara o mesmo blur) para quem prefere confirmar sem tocar no rato. -->
-                  <input
-                    type="text"
-                    [value]="item.eTicket ?? ''"
-                    placeholder="—"
-                    [attr.aria-label]="'e-Ticket do caso ' + item.posId"
-                    (blur)="onETicketBlur(item, $any($event.target).value)"
-                    (keydown.enter)="$any($event.target).blur()"
-                    class="w-28 rounded-lg border border-gray-200 bg-white px-2.5 py-1.5 text-xs font-medium text-gray-700 outline-none placeholder:text-gray-300 focus:border-moza-400 focus:ring-2 focus:ring-moza-100"
-                  />
+
+                <td class="px-3 py-3.5 text-right">
+                  <app-money [value]="item.simoAmount" />
                 </td>
-                <td class="px-3 py-3.5" (click)="$event.stopPropagation()">
-                  <select
-                    [value]="item.status"
-                    [attr.aria-label]="'Estado do caso ' + item.posId"
-                    (change)="onStatusChange(item, $any($event.target).value)"
-                    class="rounded-lg border border-gray-200 bg-white px-2.5 py-1.5 text-xs font-semibold text-gray-700 outline-none focus:border-moza-400 focus:ring-2 focus:ring-moza-100"
-                  >
-                    @for (option of statusOptions; track option.value) {
-                      <option [value]="option.value">{{ option.label }}</option>
-                    }
-                  </select>
-                  <!-- Há quanto tempo está assim: é o que responde a «submetido
-                       à SIMO há quanto tempo?» sem abrir o fecho. -->
-                  <div class="mt-0.5 text-2xs whitespace-nowrap text-gray-400">
-                    {{ statusWait[item.status] }} {{ dayCount(daysInStatus(item)) }}
-                  </div>
+                <td class="px-3 py-3.5 text-right">
+                  <app-money [value]="item.type === 'missing' ? null : item.bankaAmount" />
                 </td>
-                <td class="px-3 py-3.5">
+                <td class="px-3 py-3.5 text-right whitespace-nowrap tabular-nums">
+                  @let diff = difference(item);
+                  @if (diff === null || diff === 0) {
+                    <span class="text-gray-300" [attr.title]="diffTitle(item)">—</span>
+                  } @else {
+                    <span class="font-bold" [class]="resolved ? 'text-gray-400' : 'text-alert-600'">
+                      {{ signed(diff) }}
+                    </span>
+                  }
+                </td>
+
+                <td class="py-3.5 pr-3 pl-6">
                   @let sla = slaOf(item);
                   <span
                     class="flex items-center gap-1.5 whitespace-nowrap"
@@ -279,18 +275,80 @@ const STATUS_FILTERS: ReadonlyArray<{ id: StatusFilter; label: string }> = [
                   </span>
                   <!-- De que lado veio a data que está a contar, e há quanto tempo
                        conta: é o que o operador precisa de saber sem abrir nada. -->
-                  <div class="mt-0.5 text-2xs whitespace-nowrap text-gray-400">
-                    {{ sourceLabel[item.firstDateSource] }} · {{ slaAge(sla) }}
+                  <div class="mt-1 pl-3 text-2xs whitespace-nowrap text-gray-400">
+                    {{ slaAge(sla) }} · data {{ sourceLabel[item.firstDateSource] }}
                   </div>
                 </td>
-                <td class="hidden px-3 py-3.5 tabular-nums text-gray-400 @4xl:table-cell">
-                  {{ item.resolvedAt ? date(item.resolvedAt) : '—' }}
+
+                <!-- Estado e e-Ticket só se lêem aqui; mudam-se no painel do caso,
+                     com «Guardar». Campos soltos na lista gravavam ao sair do
+                     campo ou ao escolher uma opção — um toque ao lado e o caso
+                     mudava sem ninguém confirmar. -->
+                <td class="px-3 py-3.5">
+                  @if (view() === 'resolved') {
+                    <!-- Na lista dos regularizados o estado é o mesmo em todas as
+                         linhas; o que distingue é quando fechou. -->
+                    <span
+                      class="text-sm font-semibold whitespace-nowrap text-gray-900 tabular-nums"
+                    >
+                      {{ item.resolvedAt ? date(item.resolvedAt) : '—' }}
+                    </span>
+                    <div class="mt-1 text-2xs whitespace-nowrap text-gray-400">
+                      há {{ dayCount(daysInStatus(item)) }}
+                    </div>
+                  } @else {
+                    <span
+                      class="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold whitespace-nowrap"
+                      [class]="statusBadge[item.status]"
+                    >
+                      <span class="size-1.5 rounded-full" [class]="statusDot[item.status]"></span>
+                      {{ statusLabel[item.status] }}
+                    </span>
+                    <!-- Há quanto tempo está assim: é o que responde a «submetido
+                         à SIMO há quanto tempo?» sem abrir o fecho. Regularizado
+                         (na vista de todos), o que interessa é o dia em que fechou. -->
+                    <div class="mt-1 pl-1 text-2xs whitespace-nowrap text-gray-400">
+                      @if (resolved && item.resolvedAt) {
+                        em {{ date(item.resolvedAt) }}
+                      } @else {
+                        {{ statusWait[item.status] }} {{ dayCount(daysInStatus(item)) }}
+                      }
+                    </div>
+                  }
+                </td>
+
+                <td class="px-3 py-3.5 whitespace-nowrap">
+                  @if (item.eTicket) {
+                    <span class="font-mono text-xs font-semibold text-gray-800">
+                      {{ item.eTicket }}
+                    </span>
+                  } @else {
+                    <span class="text-xs text-gray-300">Sem e-Ticket</span>
+                  }
+                </td>
+
+                <td class="py-3.5 pr-4 pl-1 text-gray-300">
+                  <svg lucideChevronRight [size]="16" [strokeWidth]="2.2" aria-hidden="true"></svg>
                 </td>
               </tr>
             } @empty {
               <tr>
-                <td colspan="9" class="px-4 py-10 text-center text-gray-400">
-                  Nenhum caso corresponde aos critérios seleccionados.
+                <td colspan="9" class="px-4 py-14 text-center">
+                  @if (inView().length === 0) {
+                    @if (view() !== 'resolved') {
+                      <p class="font-semibold text-gray-900">Nenhum caso em aberto</p>
+                      <p class="mt-1 text-sm text-gray-500">
+                        Todos os casos desta validação estão regularizados.
+                      </p>
+                    } @else {
+                      <p class="font-semibold text-gray-900">Ainda não há casos regularizados</p>
+                      <p class="mt-1 text-sm text-gray-500">
+                        Os casos aparecem aqui quando, no painel do caso, passam a «Regularizado».
+                      </p>
+                    }
+                  } @else {
+                    <p class="text-gray-400">Nenhum caso corresponde aos filtros seleccionados.</p>
+                  }
                 </td>
               </tr>
             }
@@ -300,12 +358,19 @@ const STATUS_FILTERS: ReadonlyArray<{ id: StatusFilter; label: string }> = [
         <p footer class="text-sm text-gray-400">
           A mostrar
           <span class="font-semibold text-gray-500 tabular-nums">{{ n(visible().length) }}</span> de
-          <span class="font-semibold text-gray-500 tabular-nums">{{ n(cases().length) }}</span>
-          casos ·
-          <span class="font-semibold text-gray-600 tabular-nums">
-            {{ amount(pendingAmount()) }} MZN
-          </span>
-          por regularizar
+          <span class="font-semibold text-gray-500 tabular-nums">{{ n(inView().length) }}</span>
+          @switch (view()) {
+            @case ('resolved') {
+              casos regularizados
+            }
+            @default {
+              {{ view() === 'open' ? 'casos em aberto' : 'casos' }} ·
+              <span class="font-semibold text-gray-600 tabular-nums">
+                {{ amount(pendingAmount()) }} MZN
+              </span>
+              por regularizar
+            }
+          }
         </p>
       </app-data-table>
 
@@ -338,26 +403,37 @@ export class PendingCasesTableComponent {
   protected readonly th = 'bg-gray-50 text-2xs font-bold tracking-wider uppercase';
   protected readonly tableClass = TABLE_CLASS;
   protected readonly theadClass = THEAD_CLASS;
-  protected readonly statusFilters = STATUS_FILTERS;
-  protected readonly statusOptions = Object.entries(STATUS_LABELS).map(([value, label]) => ({
-    value,
-    label,
-  }));
 
-  protected readonly status = signal<StatusFilter>('all');
+  /** A fila de trabalho abre por defeito — é para isso que se vem a este separador. */
+  protected readonly view = signal<CaseView>('open');
+
+  /** Os estados e os prazos que existem na vista: em aberto não há «Regularizado». */
+  protected readonly statusOptions = computed(() =>
+    this.view() === 'all' ? CASE_STATUSES : OPEN_CASE_STATUSES,
+  );
+  protected readonly slaOptions = computed<readonly SlaState[]>(() =>
+    this.view() === 'all' ? ALL_SLA_STATES : OPEN_SLA_STATES,
+  );
+
+  protected readonly selectedStatuses = signal<CaseStatus[]>([...OPEN_CASE_STATUSES]);
   protected readonly query = signal('');
   protected readonly selectedTypes = signal<CaseType[]>(['mismatch', 'duplicated', 'missing']);
-  protected readonly selectedSla = signal<SlaState[]>([
-    'overdue',
-    'due-soon',
-    'on-track',
-    'settled',
-  ]);
+  protected readonly selectedSla = signal<SlaState[]>([...OPEN_SLA_STATES]);
+
+  /** Mudar de vista repõe os filtros de estado e prazo: as opções deixam de ser as mesmas. */
+  protected setView(view: CaseView): void {
+    this.view.set(view);
+    this.selectedStatuses.set([...this.statusOptions()]);
+    this.selectedSla.set([...this.slaOptions()]);
+  }
 
   /** Fixado à montagem: uma tabela aberta não muda de dia a meio de um clique. */
   protected readonly today = startOfToday();
   protected readonly sourceLabel = SOURCE_LABEL;
-  protected readonly statusWait = STATUS_WAIT;
+  protected readonly statusLabel = CASE_STATUS_LABEL;
+  protected readonly statusWait = CASE_STATUS_WAIT;
+  protected readonly statusBadge = CASE_STATUS_BADGE;
+  protected readonly statusDot = CASE_STATUS_DOT;
 
   /** Dias no estado actual — o relógio recomeça a cada mudança de estado. */
   protected daysInStatus = (item: PendingCase): number =>
@@ -373,6 +449,29 @@ export class PendingCasesTableComponent {
     return new Map(this.cases().map((item) => [item.id, slaOf(item, settings, today)]));
   });
 
+  protected readonly openCases = computed(() =>
+    this.cases().filter((item) => item.status !== 'resolved'),
+  );
+  protected readonly resolvedCases = computed(() =>
+    this.cases().filter((item) => item.status === 'resolved'),
+  );
+  protected readonly inView = computed(() => {
+    switch (this.view()) {
+      case 'open':
+        return this.openCases();
+      case 'resolved':
+        return this.resolvedCases();
+      default:
+        return this.cases();
+    }
+  });
+
+  protected readonly viewCounts = computed<Record<CaseView, number>>(() => ({
+    all: this.cases().length,
+    open: this.openCases().length,
+    resolved: this.resolvedCases().length,
+  }));
+
   protected readonly slaCounts = computed(() => {
     const result: Record<SlaState, number> = {
       overdue: 0,
@@ -380,64 +479,64 @@ export class PendingCasesTableComponent {
       'on-track': 0,
       settled: 0,
     };
-    for (const view of this.slaByCase().values()) result[view.state] += 1;
+    const sla = this.slaByCase();
+    for (const item of this.inView()) result[sla.get(item.id)!.state] += 1;
     return result;
   });
 
-  protected readonly counts = computed(() => {
-    const cases = this.cases();
-    const result: Record<StatusFilter, number> = {
-      all: cases.length,
+  protected readonly statusCounts = computed(() => {
+    const result: Record<CaseStatus, number> = {
       pending: 0,
       'in-review-internal': 0,
       'in-review-simo': 0,
       resolved: 0,
     };
-    for (const item of cases) result[item.status] += 1;
+    for (const item of this.inView()) result[item.status] += 1;
     return result;
   });
 
   protected readonly typeCounts = computed(() => {
     const result: Record<CaseType, number> = { mismatch: 0, duplicated: 0, missing: 0 };
-    for (const item of this.cases()) result[item.type] += 1;
+    for (const item of this.inView()) result[item.type] += 1;
     return result;
   });
 
   protected readonly visible = computed(() => {
     const term = this.query().trim().toLowerCase();
-    const status = this.status();
+    const filtersApply = this.view() !== 'resolved';
+    const statuses = this.selectedStatuses();
     const types = this.selectedTypes();
     const slaStates = this.selectedSla();
     const sla = this.slaByCase();
-    return this.cases().filter(
+    const rows = this.inView().filter(
       (item) =>
-        (status === 'all' || item.status === status) &&
+        (!filtersApply || statuses.includes(item.status)) &&
         types.includes(item.type) &&
-        slaStates.includes(sla.get(item.id)!.state) &&
+        (!filtersApply || slaStates.includes(sla.get(item.id)!.state)) &&
         (!term ||
           item.posId.toLowerCase().includes(term) ||
           item.merchant.toLowerCase().includes(term) ||
           (item.eTicket ?? '').toLowerCase().includes(term)),
     );
+
+    // Em aberto, o mais urgente primeiro: mais dias em atraso à cabeça, o que
+    // ainda tem folga no fim. Regularizados, o mais recente primeiro — e, na
+    // vista de todos, depois de todos os que ainda estão em aberto.
+    return rows.sort((a, b) => {
+      const aResolved = a.status === 'resolved';
+      const bResolved = b.status === 'resolved';
+      if (aResolved !== bResolved) return aResolved ? 1 : -1;
+      if (aResolved) return (b.resolvedAt ?? '').localeCompare(a.resolvedAt ?? '');
+      return sla.get(a.id)!.remaining - sla.get(b.id)!.remaining || a.posId.localeCompare(b.posId);
+    });
   });
 
   protected readonly pendingAmount = computed(() =>
-    this.cases()
-      .filter((item) => item.status !== 'resolved')
-      .reduce(
-        (total, item) => total + Math.abs(item.bankaAmount - item.simoAmount || item.simoAmount),
-        0,
-      ),
+    this.openCases().reduce(
+      (total, item) => total + Math.abs(item.bankaAmount - item.simoAmount || item.simoAmount),
+      0,
+    ),
   );
-
-  protected onETicketBlur(item: PendingCase, raw: string): void {
-    const value = raw.trim() || null;
-    if (value !== item.eTicket) this.updated.emit({ caseId: item.id, patch: { eTicket: value } });
-  }
-
-  protected onStatusChange(item: PendingCase, status: string): void {
-    this.updated.emit({ caseId: item.id, patch: { status: status as CaseStatus } });
-  }
 
   /**
    * O caso é da chave inteira, não de um fecho — não há um `id`/data/nº de
@@ -490,14 +589,32 @@ export class PendingCasesTableComponent {
   protected dot = (item: PendingCase) => TYPE_DOT[item.type];
   protected typeLabel = (item: PendingCase) => TYPE_LABEL[item.type];
 
-  /** " · SIMO" / " · Banka" / " · SIMO e Banka" — só para casos duplicados. */
-  protected duplicationSuffix(item: PendingCase): string {
-    if (item.type !== 'duplicated') return '';
+  /** "SIMO" / "Banka" / "SIMO e Banka" — só para casos duplicados. */
+  protected duplicationSide(item: PendingCase): string | null {
+    if (item.type !== 'duplicated') return null;
     const side = duplicationSideOf(item.simoClosingsCount, item.bankaMovementsCount);
-    return side ? ` · ${DUPLICATION_SIDE_LABEL[side]}` : '';
+    return side ? DUPLICATION_SIDE_LABEL[side] : null;
+  }
+
+  /**
+   * Banka menos SIMO, como no "Todos os Fechos". Não creditado é o valor SIMO
+   * inteiro em falta. Duplicado não tem diferença: com um dos lados a somar
+   * vários fechos, a conta não confere nada — mesma regra da outra tabela.
+   */
+  protected difference(item: PendingCase): number | null {
+    if (item.type === 'duplicated') return null;
+    if (item.type === 'missing') return -item.simoAmount;
+    return item.bankaAmount - item.simoAmount;
+  }
+
+  protected diffTitle(item: PendingCase): string | null {
+    return item.type === 'duplicated'
+      ? 'Sem diferença num período duplicado: um dos lados soma vários fechos.'
+      : null;
   }
 
   protected amount = formatAmount;
+  protected signed = formatSignedAmount;
   protected date = formatDate;
   protected dateValue = formatDateValue;
   protected dayCount = formatDayCount;

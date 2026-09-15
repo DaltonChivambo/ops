@@ -6,10 +6,17 @@ import {
   effect,
   inject,
   input,
+  linkedSignal,
   output,
   signal,
 } from '@angular/core';
-import { LucideLoaderCircle, LucideX } from '@lucide/angular';
+import {
+  LucideCheck,
+  LucideChevronDown,
+  LucideLoaderCircle,
+  LucideTicket,
+  LucideX,
+} from '@lucide/angular';
 
 import {
   daysBetween,
@@ -22,6 +29,13 @@ import {
   parseIsoDate,
   toIsoDate,
 } from '../../../../../../shared/format';
+import {
+  CASE_STATUSES,
+  CASE_STATUS_DOT,
+  CASE_STATUS_LABEL,
+  CASE_STATUS_WAIT,
+} from '../data/case-status';
+import { MAX_E_TICKET_LENGTH, eTicketProblem } from '../data/e-ticket';
 import { ReconciliationApi } from '../data/reconciliation-api.service';
 import {
   SOURCE_LABEL,
@@ -41,21 +55,6 @@ import type {
   PendingCase,
   SlaSettings,
 } from '../data/models';
-
-const CASE_STATUS_LABEL: Record<CaseStatus, string> = {
-  pending: 'Pendente',
-  'in-review-internal': 'Em análise interna',
-  'in-review-simo': 'Em análise na SIMO',
-  resolved: 'Regularizado',
-};
-
-/** O que se diz do tempo que o caso leva no estado em que está. */
-const STATUS_WAIT: Record<CaseStatus, string> = {
-  pending: 'Por analisar há',
-  'in-review-internal': 'Em análise há',
-  'in-review-simo': 'Submetido à SIMO há',
-  resolved: 'Regularizado há',
-};
 
 /**
  * "3 dias depois" / "no mesmo dia" — o sentido vai no valor, não no cabeçalho.
@@ -80,7 +79,7 @@ function creditedWhen(closingIso: string | undefined, creditIso: string | null):
 @Component({
   selector: 'app-key-detail-panel',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [LucideLoaderCircle, LucideX],
+  imports: [LucideCheck, LucideChevronDown, LucideLoaderCircle, LucideTicket, LucideX],
   host: {
     '(document:keydown.escape)': 'closed.emit()',
   },
@@ -182,6 +181,156 @@ function creditedWhen(closingIso: string | undefined, creditIso: string | null):
               </p>
             </div>
           </section>
+
+          @if (breakdown.case; as pendingCase) {
+            @let sla = slaOf(pendingCase);
+            <!-- Logo a seguir ao apuramento, antes das listas: é o que se vem cá
+                 fazer quando se abre um caso, e no fim do painel obrigava a descer. -->
+            <section class="mt-4 rounded-xl border border-gray-100 px-4 py-3.5">
+              <!-- O estado do prazo à cabeça, como na tabela: é a leitura que se
+                   vem cá fazer. O detalhe da conta fica na grelha por baixo. -->
+              <div class="flex flex-wrap items-center justify-between gap-x-4 gap-y-1">
+                <h3 [class]="sectionTitle">Caso para análise</h3>
+                <span class="flex items-center gap-1.5 whitespace-nowrap">
+                  <span class="size-1.5 shrink-0 rounded-full" [class]="slaDotTone(sla)"></span>
+                  <span class="text-xs font-semibold" [class]="slaTone(sla)">
+                    {{ slaPhrase(sla) }}
+                  </span>
+                </span>
+              </div>
+
+              <!-- É aqui, e só aqui, que o caso se trata: um formulário com os
+                   dois campos e um «Guardar» explícito. Nada grava ao escolher
+                   uma opção ou ao sair de um campo — muda-se, revê-se, guarda-se. -->
+              <form
+                class="mt-3 rounded-xl bg-gray-50/80 p-3.5 ring-1 ring-gray-100"
+                (submit)="$event.preventDefault(); save(pendingCase)"
+              >
+                <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                  <label class="block min-w-0">
+                    <span [class]="fieldLabel">Estado</span>
+                    <span class="relative mt-1 block">
+                      <span
+                        class="pointer-events-none absolute top-1/2 left-3 size-2 -translate-y-1/2 rounded-full"
+                        [class]="statusDot[draftStatus()]"
+                      ></span>
+                      <select
+                        [value]="draftStatus()"
+                        (change)="draftStatus.set($any($event.target).value)"
+                        class="w-full cursor-pointer appearance-none rounded-lg border border-gray-200 bg-white py-2 pr-9 pl-7 text-sm font-semibold text-gray-900 outline-none transition-colors hover:border-gray-300 focus:border-moza-400 focus:ring-2 focus:ring-moza-100"
+                      >
+                        @for (status of statuses; track status) {
+                          <option [value]="status">{{ statusLabel[status] }}</option>
+                        }
+                      </select>
+                      <svg
+                        lucideChevronDown
+                        [size]="15"
+                        [strokeWidth]="2.2"
+                        class="pointer-events-none absolute top-1/2 right-3 -translate-y-1/2 text-gray-400"
+                      ></svg>
+                    </span>
+                    <!-- O tempo é do estado GUARDADO: um rascunho ainda não mudou nada. -->
+                    <span class="mt-1 block text-2xs text-gray-400">
+                      @if (pendingCase.status === 'resolved' && pendingCase.resolvedAt) {
+                        Regularizado em {{ date(pendingCase.resolvedAt) }}
+                      } @else {
+                        {{ capitalize(statusWait[pendingCase.status]) }}
+                        {{ dayCount(daysInStatus(pendingCase)) }}
+                      }
+                    </span>
+                  </label>
+
+                  <label class="block min-w-0">
+                    <span [class]="fieldLabel">e-Ticket</span>
+                    <span class="relative mt-1 block">
+                      <svg
+                        lucideTicket
+                        [size]="15"
+                        [strokeWidth]="2"
+                        class="pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-gray-400"
+                      ></svg>
+                      <!-- O maxlength é conforto, não protecção: quem recusa o que
+                           não tem forma de referência é o servidor (domain/e_ticket.py). -->
+                      <input
+                        type="text"
+                        autocomplete="off"
+                        spellcheck="false"
+                        [attr.maxlength]="maxETicket"
+                        placeholder="Ex.: INC-4210"
+                        [value]="draftETicket()"
+                        (input)="draftETicket.set($any($event.target).value)"
+                        [attr.aria-invalid]="eTicketError() ? 'true' : null"
+                        aria-describedby="e-ticket-hint"
+                        class="w-full rounded-lg border bg-white py-2 pr-3 pl-9 font-mono text-sm font-semibold text-gray-900 outline-none transition-colors placeholder:font-sans placeholder:font-normal placeholder:text-gray-400 focus:ring-2"
+                        [class]="
+                          eTicketError()
+                            ? 'border-alert-300 focus:border-alert-500 focus:ring-alert-100'
+                            : 'border-gray-200 hover:border-gray-300 focus:border-moza-400 focus:ring-moza-100'
+                        "
+                      />
+                    </span>
+                    <span
+                      id="e-ticket-hint"
+                      class="mt-1 block text-2xs"
+                      [class]="eTicketError() ? 'text-alert-600' : 'text-gray-400'"
+                    >
+                      {{ eTicketError() ?? 'A referência do pedido aberto na SIMO.' }}
+                    </span>
+                  </label>
+                </div>
+
+                <div
+                  class="mt-3.5 flex flex-wrap items-center justify-end gap-2 border-t border-gray-200/70 pt-3"
+                >
+                  @if (dirty()) {
+                    <span class="mr-auto text-xs font-medium text-amber-700">
+                      Alterações por guardar
+                    </span>
+                    <button
+                      type="button"
+                      (click)="discard(pendingCase)"
+                      class="rounded-lg px-3 py-2 text-sm font-semibold text-gray-600 transition-colors hover:bg-gray-100 hover:text-gray-900"
+                    >
+                      Cancelar
+                    </button>
+                  }
+                  <button
+                    type="submit"
+                    [disabled]="!dirty() || eTicketError() !== null"
+                    class="inline-flex items-center gap-1.5 rounded-lg bg-moza-700 px-3.5 py-2 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-moza-800 disabled:cursor-not-allowed disabled:bg-gray-200 disabled:text-gray-400 disabled:shadow-none"
+                  >
+                    <svg lucideCheck [size]="15" [strokeWidth]="2.6"></svg>
+                    Guardar
+                  </button>
+                </div>
+              </form>
+
+              <dl class="mt-3.5 grid grid-cols-2 gap-x-4 gap-y-3 sm:grid-cols-3">
+                <!-- Donde conta, até quando, e há quanto tempo. A origem vai
+                     junto da data: é ela que diz qual dos dois lados manda. -->
+                <div class="min-w-0">
+                  <dt [class]="fieldLabel">Conta desde</dt>
+                  <dd [class]="fieldValue">
+                    {{ date(pendingCase.firstDate) }}
+                    <span class="text-2xs font-medium text-gray-400">
+                      · {{ sourceLabel[pendingCase.firstDateSource] }}
+                    </span>
+                  </dd>
+                </div>
+                <div class="min-w-0">
+                  <dt [class]="fieldLabel">Data limite</dt>
+                  <dd [class]="fieldValue">{{ dateValue(sla.deadline) }}</dd>
+                </div>
+                <div class="min-w-0">
+                  <dt [class]="fieldLabel">
+                    {{ pendingCase.status === 'resolved' ? 'Levou' : 'Em aberto há' }}
+                  </dt>
+                  <dd [class]="fieldValue">{{ dayCount(sla.age) }}</dd>
+                </div>
+              </dl>
+            </section>
+          }
 
           <!-- Fundo neutro: os dois lados levam tons diferentes, não cores — não há bom/mau aqui. -->
           <section class="mt-4 rounded-xl bg-gray-50/80 px-4 py-3.5 ring-1 ring-gray-100">
@@ -325,80 +474,6 @@ function creditedWhen(closingIso: string | undefined, creditIso: string | null):
               </div>
             }
           </section>
-
-          @if (breakdown.case; as pendingCase) {
-            @let sla = slaOf(pendingCase);
-            <section class="mt-4 rounded-xl border border-gray-100 px-4 py-3.5">
-              <!-- O estado do prazo à cabeça, como na tabela: é a leitura que se
-                   vem cá fazer. O detalhe da conta fica na grelha por baixo. -->
-              <div class="flex flex-wrap items-center justify-between gap-x-4 gap-y-1">
-                <h3 [class]="sectionTitle">Caso para análise</h3>
-                <span class="flex items-center gap-1.5 whitespace-nowrap">
-                  <span class="size-1.5 shrink-0 rounded-full" [class]="slaDotTone(sla)"></span>
-                  <span class="text-xs font-semibold" [class]="slaTone(sla)">
-                    {{ slaPhrase(sla) }}
-                  </span>
-                </span>
-              </div>
-
-              <dl class="mt-2.5 grid grid-cols-2 gap-x-4 gap-y-3 sm:grid-cols-3">
-                <!-- O estado muda-se aqui: é neste painel que se analisa o caso,
-                     e obrigar a fechá-lo para mexer na tabela era um passo a
-                     mais. O tempo vai colado a ele — é dele que se fala, e muda
-                     quando ele muda. -->
-                <div class="min-w-0">
-                  <dt [class]="fieldLabel">Estado</dt>
-                  <dd class="mt-0.5">
-                    <select
-                      [value]="pendingCase.status"
-                      [attr.aria-label]="'Estado do caso do POS ' + pendingCase.posId"
-                      (change)="onStatusChange(pendingCase, $any($event.target).value)"
-                      class="w-full rounded-lg border border-gray-200 bg-white px-2.5 py-1.5 text-xs font-semibold text-gray-900 outline-none focus:border-moza-400 focus:ring-2 focus:ring-moza-100"
-                    >
-                      @for (option of statusOptions; track option.value) {
-                        <option [value]="option.value">{{ option.label }}</option>
-                      }
-                    </select>
-                  </dd>
-                  <p class="mt-1 text-2xs text-gray-400">
-                    {{ statusWait[pendingCase.status] }} {{ dayCount(daysInStatus(pendingCase)) }}
-                  </p>
-                </div>
-                <div class="min-w-0">
-                  <dt [class]="fieldLabel">e-Ticket</dt>
-                  <dd [class]="fieldValue">{{ pendingCase.eTicket || '—' }}</dd>
-                </div>
-                <div class="min-w-0">
-                  <dt [class]="fieldLabel">Data Reg.</dt>
-                  <dd [class]="fieldValue">
-                    {{ pendingCase.resolvedAt ? date(pendingCase.resolvedAt) : '—' }}
-                  </dd>
-                </div>
-
-                <!-- Donde conta, até quando, e há quanto tempo. A origem vai
-                     junto da data: é ela que diz qual dos dois lados manda. -->
-                <div class="min-w-0">
-                  <dt [class]="fieldLabel">Conta desde</dt>
-                  <dd [class]="fieldValue">
-                    {{ date(pendingCase.firstDate) }}
-                    <span class="text-2xs font-medium text-gray-400">
-                      · {{ sourceLabel[pendingCase.firstDateSource] }}
-                    </span>
-                  </dd>
-                </div>
-                <div class="min-w-0">
-                  <dt [class]="fieldLabel">Data limite</dt>
-                  <dd [class]="fieldValue">{{ dateValue(sla.deadline) }}</dd>
-                </div>
-                <div class="min-w-0">
-                  <dt [class]="fieldLabel">
-                    {{ pendingCase.status === 'resolved' ? 'Levou' : 'Em aberto há' }}
-                  </dt>
-                  <dd [class]="fieldValue">{{ dayCount(sla.age) }}</dd>
-                </div>
-              </dl>
-            </section>
-          }
         }
       </div>
     </aside>
@@ -523,16 +598,43 @@ export class KeyDetailPanelComponent {
   private readonly today = startOfToday();
 
   protected readonly sourceLabel = SOURCE_LABEL;
-  protected readonly statusWait = STATUS_WAIT;
-  protected readonly statusOptions = Object.entries(CASE_STATUS_LABEL).map(([value, label]) => ({
-    value,
-    label,
-  }));
+  protected readonly statuses = CASE_STATUSES;
+  protected readonly statusLabel = CASE_STATUS_LABEL;
+  protected readonly statusWait = CASE_STATUS_WAIT;
+  protected readonly statusDot = CASE_STATUS_DOT;
 
-  protected onStatusChange(item: PendingCase, status: string): void {
-    const next = status as CaseStatus;
-    if (next === item.status) return;
-    this.updated.emit({ caseId: item.id, patch: { status: next } });
+  /** O que está no formulário e ainda não foi guardado. Volta ao do caso sempre que ele muda. */
+  protected readonly draftStatus = linkedSignal<CaseStatus>(
+    () => this.data()?.case?.status ?? 'pending',
+  );
+  protected readonly draftETicket = linkedSignal(() => this.data()?.case?.eTicket ?? '');
+  protected readonly eTicketError = computed(() => eTicketProblem(this.draftETicket()));
+  protected readonly maxETicket = MAX_E_TICKET_LENGTH;
+
+  protected readonly dirty = computed(() => {
+    const item = this.data()?.case;
+    if (!item) return false;
+    return (
+      this.draftStatus() !== item.status ||
+      (this.draftETicket().trim() || null) !== (item.eTicket ?? null)
+    );
+  });
+
+  protected discard(item: PendingCase): void {
+    this.draftStatus.set(item.status);
+    this.draftETicket.set(item.eTicket ?? '');
+  }
+
+  /** Um pedido só, com o que mudou — estado, e-Ticket, ou os dois. */
+  protected save(item: PendingCase): void {
+    if (!this.dirty() || this.eTicketError()) return;
+    const status = this.draftStatus();
+    const eTicket = this.draftETicket().trim() || null;
+
+    const patch: CasePatch['patch'] = {};
+    if (status !== item.status) patch.status = status;
+    if (eTicket !== (item.eTicket ?? null)) patch.eTicket = eTicket;
+    this.updated.emit({ caseId: item.id, patch });
 
     // O painel tem a sua própria cópia da chave (foi ele que a foi buscar), por
     // isso acompanha a mudança em vez de esperar por ela — como a tabela faz.
@@ -541,9 +643,18 @@ export class KeyDetailPanelComponent {
     if (!current?.case) return;
     this.data.set({
       ...current,
-      case: { ...current.case, status: next, statusSince: toIsoDate(this.today) },
+      case: {
+        ...current.case,
+        eTicket,
+        status,
+        resolvedAt:
+          status === 'resolved' ? (current.case.resolvedAt ?? toIsoDate(this.today)) : null,
+        statusSince: patch.status ? toIsoDate(this.today) : current.case.statusSince,
+      },
     });
   }
+
+  protected capitalize = (text: string) => text.charAt(0).toUpperCase() + text.slice(1);
 
   /** Dias no estado actual — o relógio recomeça a cada mudança de estado. */
   protected daysInStatus = (item: PendingCase): number =>

@@ -16,7 +16,7 @@ import type { CaseType } from '../data/models';
 /** Mesma prioridade usada em todo o ecrã: incorrecto, duplicado, não creditado. */
 const OPTIONS: ReadonlyArray<{ id: CaseType; label: string; dot: string }> = [
   { id: 'mismatch', label: 'Incorrecto', dot: 'bg-alert-500' },
-  { id: 'duplicated', label: 'Duplicados', dot: 'bg-amber-500' },
+  { id: 'duplicated', label: 'Período duplicado', dot: 'bg-amber-500' },
   { id: 'missing', label: 'Não creditado', dot: 'bg-moza-500' },
 ];
 const ALL_TYPES = OPTIONS.map((option) => option.id);
@@ -48,15 +48,8 @@ const ALL_TYPES = OPTIONS.map((option) => option.id);
       "
     >
       <svg lucideListFilter [size]="15" [strokeWidth]="2" class="shrink-0"></svg>
+      <span class="font-medium opacity-60">Divergência:</span>
       {{ label() }}
-
-      @if (!allSelected()) {
-        <span
-          class="inline-flex size-4 items-center justify-center rounded-full bg-moza-700 text-2xs font-bold text-white tabular-nums"
-        >
-          {{ n(selected().length) }}
-        </span>
-      }
 
       <svg
         lucideChevronDown
@@ -96,7 +89,7 @@ const ALL_TYPES = OPTIONS.map((option) => option.id);
             (change)="changed.emit(allSelected() ? [] : allTypes)"
             class="sr-only"
           />
-          <span class="flex-1">Todos os tipos</span>
+          <span class="flex-1">Todas as divergências</span>
           <span class="text-xs font-medium text-gray-400 tabular-nums">{{ n(total()) }}</span>
         </label>
 
@@ -158,12 +151,12 @@ export class CaseTypeFilterComponent {
 
   protected readonly label = computed(() => {
     const selected = this.selected();
-    if (this.allSelected()) return 'Todos os tipos';
-    if (selected.length === 0) return 'Nenhum tipo';
+    if (this.allSelected()) return 'Todas';
+    if (selected.length === 0) return 'Nenhuma';
     if (selected.length === 1) {
       return OPTIONS.find((option) => option.id === selected[0])?.label ?? '';
     }
-    return `${this.n(selected.length)} de ${this.n(OPTIONS.length)} tipos`;
+    return `${this.n(selected.length)} de ${this.n(OPTIONS.length)}`;
   });
 
   protected toggle(id: CaseType): void {

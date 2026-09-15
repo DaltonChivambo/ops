@@ -8,25 +8,22 @@ import {
   output,
   signal,
 } from '@angular/core';
-import { LucideCheck, LucideChevronDown, LucideClock, LucideMinus } from '@lucide/angular';
+import { LucideCheck, LucideChevronDown, LucideCircleDot, LucideMinus } from '@lucide/angular';
 
 import { numberFormatter } from '../../../../../../shared/format';
-import { SLA_DOT, SLA_LABEL, type SlaState } from '../data/sla';
+import { CASE_STATUSES, CASE_STATUS_DOT, CASE_STATUS_LABEL } from '../data/case-status';
+import type { CaseStatus } from '../data/models';
 
-/** Em atraso primeiro: é o que exige acção hoje. */
-const OPTIONS: ReadonlyArray<{ id: SlaState; label: string; dot: string }> = [
-  { id: 'overdue', label: SLA_LABEL.overdue, dot: SLA_DOT.overdue },
-  { id: 'due-soon', label: SLA_LABEL['due-soon'], dot: SLA_DOT['due-soon'] },
-  { id: 'on-track', label: SLA_LABEL['on-track'], dot: SLA_DOT['on-track'] },
-  { id: 'settled', label: SLA_LABEL.settled, dot: SLA_DOT.settled },
-];
-const ALL_STATES = OPTIONS.map((option) => option.id);
-
-/** Filtro do «Prazo» — o mesmo padrão do app-case-type-filter. */
+/**
+ * Filtro do «Estado» em Casos para Análise — o mesmo padrão do filtro de tipo e
+ * do de prazo. Substitui a fila de separadores: cinco botões com contadores
+ * ocupavam a barra inteira e liam-se como números soltos, e aqui cabe também
+ * escolher mais de um («pendentes e em análise interna»).
+ */
 @Component({
-  selector: 'app-sla-filter',
+  selector: 'app-case-status-filter',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [LucideCheck, LucideChevronDown, LucideClock, LucideMinus],
+  imports: [LucideCheck, LucideChevronDown, LucideCircleDot, LucideMinus],
   host: {
     class: 'relative shrink-0',
     '(document:mousedown)': 'onDocumentMouseDown($event)',
@@ -45,8 +42,8 @@ const ALL_STATES = OPTIONS.map((option) => option.id);
           : 'border-moza-200 bg-moza-50 text-moza-700'
       "
     >
-      <svg lucideClock [size]="15" [strokeWidth]="2" class="shrink-0"></svg>
-      <span class="font-medium opacity-60">Prazo:</span>
+      <svg lucideCircleDot [size]="15" [strokeWidth]="2" class="shrink-0"></svg>
+      <span class="font-medium opacity-60">Estado:</span>
       {{ label() }}
 
       <svg
@@ -84,17 +81,17 @@ const ALL_STATES = OPTIONS.map((option) => option.id);
             type="checkbox"
             [checked]="allSelected()"
             [indeterminate]="masterState() === 'partial'"
-            (change)="changed.emit(allSelected() ? [] : [...states()])"
+            (change)="changed.emit(allSelected() ? [] : [...statuses()])"
             class="sr-only"
           />
-          <span class="flex-1">Todos os prazos</span>
+          <span class="flex-1">Todos os estados</span>
           <span class="text-xs font-medium text-gray-400 tabular-nums">{{ n(total()) }}</span>
         </label>
 
         <div class="my-1 h-px bg-gray-100"></div>
 
-        @for (option of options(); track option.id) {
-          @let checked = selected().includes(option.id);
+        @for (status of statuses(); track status) {
+          @let checked = selected().includes(status);
 
           <label
             class="flex cursor-pointer items-center gap-2.5 px-3 py-2 text-sm text-gray-600 transition-colors hover:bg-gray-50"
@@ -110,40 +107,36 @@ const ALL_STATES = OPTIONS.map((option) => option.id);
               }
             </span>
 
-            <input
-              type="checkbox"
-              [checked]="checked"
-              (change)="toggle(option.id)"
-              class="sr-only"
-            />
-            <span class="size-2 shrink-0 rounded-[3px]" [class]="option.dot"></span>
-            <span class="flex-1 font-medium">{{ option.label }}</span>
-            <span class="text-xs text-gray-400 tabular-nums">{{ n(counts()[option.id]) }}</span>
+            <input type="checkbox" [checked]="checked" (change)="toggle(status)" class="sr-only" />
+            <span class="size-2 shrink-0 rounded-full" [class]="dot[status]"></span>
+            <span class="flex-1 font-medium">{{ labels[status] }}</span>
+            <span class="text-xs text-gray-400 tabular-nums">{{ n(counts()[status]) }}</span>
           </label>
         }
       </div>
     }
   `,
 })
-export class SlaFilterComponent {
+export class CaseStatusFilterComponent {
   private readonly host = inject<ElementRef<HTMLElement>>(ElementRef);
 
-  readonly counts = input.required<Record<SlaState, number>>();
-  readonly selected = input.required<SlaState[]>();
-  readonly changed = output<SlaState[]>();
-  /** Os prazos que fazem sentido na vista: nos casos em aberto não há «Regularizado». */
-  readonly states = input<readonly SlaState[]>(ALL_STATES);
+  readonly counts = input.required<Record<CaseStatus, number>>();
+  readonly selected = input.required<CaseStatus[]>();
+  readonly changed = output<CaseStatus[]>();
+  /** Os estados que fazem sentido na vista — nos casos em aberto, sem «Regularizado». */
+  readonly statuses = input<readonly CaseStatus[]>(CASE_STATUSES);
 
   protected readonly open = signal(false);
-  protected readonly options = computed(() =>
-    OPTIONS.filter((option) => this.states().includes(option.id)),
-  );
+  protected readonly labels = CASE_STATUS_LABEL;
+  protected readonly dot = CASE_STATUS_DOT;
 
   protected readonly total = computed(() =>
-    this.states().reduce((sum, state) => sum + this.counts()[state], 0),
+    this.statuses().reduce((sum, status) => sum + this.counts()[status], 0),
   );
 
-  protected readonly allSelected = computed(() => this.selected().length === this.states().length);
+  protected readonly allSelected = computed(
+    () => this.selected().length === this.statuses().length,
+  );
 
   protected readonly masterState = computed<'on' | 'off' | 'partial'>(() => {
     if (this.allSelected()) return 'on';
@@ -154,18 +147,16 @@ export class SlaFilterComponent {
     const selected = this.selected();
     if (this.allSelected()) return 'Todos';
     if (selected.length === 0) return 'Nenhum';
-    if (selected.length === 1) {
-      return OPTIONS.find((option) => option.id === selected[0])?.label ?? '';
-    }
-    return `${this.n(selected.length)} de ${this.n(this.states().length)}`;
+    if (selected.length === 1) return CASE_STATUS_LABEL[selected[0]];
+    return `${this.n(selected.length)} de ${this.n(this.statuses().length)}`;
   });
 
-  protected toggle(id: SlaState): void {
+  protected toggle(status: CaseStatus): void {
     const selected = this.selected();
     this.changed.emit(
-      selected.includes(id)
-        ? selected.filter((item) => item !== id)
-        : this.states().filter((item) => item === id || selected.includes(item)),
+      selected.includes(status)
+        ? selected.filter((item) => item !== status)
+        : this.statuses().filter((item) => item === status || selected.includes(item)),
     );
   }
 
