@@ -22,6 +22,7 @@ from app.controllers.dependencies import (
     get_settings_service,
     get_validation_service,
 )
+from app.domain.e_ticket import normalize_e_ticket
 from app.domain.errors import InvalidCaseStatusError, NotFoundError, NothingToUpdateError
 from app.domain.sla import DEFAULT_SLA_DAYS, DEFAULT_WARNING_DAYS, validate_sla
 from app.infrastructure.auth import auth
@@ -209,9 +210,14 @@ class FakeService:
                 f"Os estados possíveis são «{'», «'.join(STATUS_FROM_JSON)}»."
             )
 
+        # Valida antes de mexer no caso, como o serviço a sério: um e-Ticket
+        # recusado não pode deixar o estado já mudado. A função é a do domínio —
+        # a mensagem em português que chega ao operador nasce ali.
+        e_ticket = normalize_e_ticket(patch["e_ticket"]) if "e_ticket" in patch else None
+
         caso = self.cases[0]
         if "e_ticket" in patch:
-            caso.e_ticket = patch["e_ticket"]
+            caso.e_ticket = e_ticket
         if "status" in patch:
             caso.status = STATUS_FROM_JSON[patch["status"]]
             caso.status_since = date(2026, 9, 10)

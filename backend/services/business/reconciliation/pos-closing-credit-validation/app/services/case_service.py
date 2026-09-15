@@ -8,6 +8,7 @@ lê sem ter de contar linhas.
 from datetime import date
 from typing import Any
 
+from app.domain.e_ticket import normalize_e_ticket
 from app.domain.errors import InvalidCaseStatusError, NotFoundError, NothingToUpdateError
 from app.domain.vocabulary import CaseStatus, CaseType
 from app.infrastructure.tables import PendingCase
@@ -35,10 +36,7 @@ class CaseService:
         """Actualiza estado/e-Ticket de um caso e recalcula o `summary` da execução."""
         data: dict[str, Any] = {}
         if "e_ticket" in patch:
-            e_ticket = patch["e_ticket"]
-            data["e_ticket"] = (
-                e_ticket.strip() if isinstance(e_ticket, str) and e_ticket.strip() else None
-            )
+            data["e_ticket"] = normalize_e_ticket(patch["e_ticket"])
         if "status" in patch:
             status = STATUS_FROM_JSON.get(patch["status"])
             if status is None:
