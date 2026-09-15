@@ -25,7 +25,7 @@ class InvalidCredentialsError(DomainError):
 
 class TooManyAttemptsError(DomainError):
     def __init__(self) -> None:
-        super().__init__("Demasiadas tentativas seguidas. Aguarde um minuto e tente de novo.")
+        super().__init__("Demasiadas tentativas seguidas. Aguarde um momento e tente de novo.")
 
 
 class GeeaUnavailableError(DomainError):
