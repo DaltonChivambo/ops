@@ -93,6 +93,7 @@ make test      # os testes, em contentor
 | `test_api.py` | as seis rotas, os estados de erro e o envelope | nada |
 | `test_contract.py` | os schemas contra o `models.ts` do SPA | nada |
 | `test_reconciliation_rules.py` | as regras da reconciliação, com dados inventados | nada |
+| `test_report.py` | o relatório Excel: o que cai em cada folha, e se as três fecham entre si | nada |
 | `test_reconciliation.py` | os números reais: 18 138 fechos, 99,3% | os três `.xlsx` |
 
 O último **salta-se sozinho** sem os ficheiros do departamento — são dados

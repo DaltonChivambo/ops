@@ -17,7 +17,7 @@ de a obter.
 Todo o texto destas folhas é **conteúdo** — logo, em português.
 """
 
-from collections.abc import Iterable
+from collections.abc import Sequence
 from datetime import datetime
 from decimal import Decimal
 from io import BytesIO
@@ -123,7 +123,7 @@ _HEADER_BORDER = Border(top=_THIN, bottom=_THIN, left=_THIN, right=_THIN)
 _TOTAL_FILL = PatternFill("solid", fgColor=LIGHT_GREY)
 
 
-def build_workbook(execution: Any, details: Iterable[Any], cases: list[Any]) -> bytes:
+def build_workbook(execution: Any, details: Sequence[Any], cases: list[Any]) -> bytes:
     workbook = Workbook()
     # O Workbook() nasce com uma folha vazia que não queremos; as três folhas do
     # relatório são criadas a seguir. O `active` é opcional no tipo, nunca na
@@ -132,7 +132,7 @@ def build_workbook(execution: Any, details: Iterable[Any], cases: list[Any]) -> 
     if blank is not None:
         workbook.remove(blank)
 
-    _add_summary_sheet(workbook, execution, cases)
+    _add_summary_sheet(workbook, execution, details, cases)
     _add_details_sheet(workbook, details, cases)
     _add_pending_cases_sheet(workbook, details, cases)
 
@@ -141,7 +141,9 @@ def build_workbook(execution: Any, details: Iterable[Any], cases: list[Any]) -> 
     return buffer.getvalue()
 
 
-def _add_summary_sheet(workbook: Workbook, execution: Any, cases: list[Any]) -> None:
+def _add_summary_sheet(
+    workbook: Workbook, execution: Any, details: Sequence[Any], cases: list[Any]
+) -> None:
     sheet = workbook.create_sheet("Resumo")
     summary = execution.summary or {}
 
@@ -160,110 +162,113 @@ def _add_summary_sheet(workbook: Workbook, execution: Any, cases: list[Any]) -> 
         ],
     )
 
-    # «Fecho creditado incorrectamente» é a linha única de tudo o que não conferiu:
-    # creditado a menos/mais, não creditado e períodos duplicados. Para o DOP o
-    # crédito não bateu certo — a causa (diferença, ausência de crédito ou
-    # duplicação) lê-se no detalhe, não no resumo.
+    # Uma linha por causa, pelas mesmas quatro categorias que a execução mostra no
+    # ecrã: um período duplicado é ambiguidade por desfazer, não um crédito errado,
+    # e juntá-lo aos incorrectos punha no Excel incorrectos que a execução não tem.
     #
-    # Do lado do Banka entram os incorrectos e os duplicados: nas chaves duplicadas
-    # o Banka duplica também, e o crédito foi feito — só não se pode conferir por
-    # soma. Os não creditados são os únicos sem contrapartida no Banka.
-    matched_simo = _amount(summary.get("simoAmountMatched"))
-    matched_banka = _amount(summary.get("bankaAmountMatched"))
-    matched_count = summary.get("matched", 0)
-    incorrect_simo = (
-        _amount(summary.get("simoAmountMismatched"))
-        + _amount(summary.get("simoAmountDuplicated"))
-        + _amount(summary.get("simoAmountMissing"))
-    )
-    incorrect_banka = _amount(summary.get("bankaAmountMismatched")) + _amount(
-        summary.get("bankaAmountDuplicated")
-    )
-    incorrect_count = (
-        summary.get("mismatchCount", 0)
-        + summary.get("duplicatedPeriods", 0)
-        + summary.get("missingCount", 0)
-    )
-
+    # Do lado do Banka, os duplicados levam o que foi creditado nessas chaves: o
+    # crédito existe, só não se pode conferir por soma. Os não creditados são os
+    # únicos sem contrapartida no Banka.
+    validation_rows = [
+        (Validation.MISMATCH, "mismatchCount", "simoAmountMismatched", "bankaAmountMismatched"),
+        (Validation.MISSING, "missingCount", "simoAmountMissing", None),
+        (
+            Validation.DUPLICATED,
+            "duplicatedPeriods",
+            "simoAmountDuplicated",
+            "bankaAmountDuplicated",
+        ),
+        (Validation.MATCH, "matched", "simoAmountMatched", "bankaAmountMatched"),
+    ]
+    first_row = 7
+    total_count = 0
+    total_simo = total_banka = Decimal(0)
+    for offset, (validation, count_key, simo_key, banka_key) in enumerate(validation_rows):
+        count = summary.get(count_key, 0)
+        simo = _amount(summary.get(simo_key))
+        banka = _amount(summary.get(banka_key)) if banka_key else Decimal(0)
+        _write_row(
+            sheet,
+            first_row + offset,
+            [VALIDATION_LABELS[validation], count, simo, banka, banka - simo],
+        )
+        total_count += count
+        total_simo += simo
+        total_banka += banka
+    total_row = first_row + len(validation_rows)
     _write_row(
         sheet,
-        7,
-        [
-            VALIDATION_LABELS[Validation.MISMATCH],
-            incorrect_count,
-            incorrect_simo,
-            incorrect_banka,
-            incorrect_banka - incorrect_simo,
-        ],
-    )
-    _write_row(
-        sheet,
-        8,
-        [
-            "Crédito Confere",
-            matched_count,
-            matched_simo,
-            matched_banka,
-            matched_banka - matched_simo,
-        ],
-    )
-    _write_row(
-        sheet,
-        9,
-        [
-            "Total",
-            incorrect_count + matched_count,
-            incorrect_simo + matched_simo,
-            incorrect_banka + matched_banka,
-            (incorrect_banka + matched_banka) - (incorrect_simo + matched_simo),
-        ],
+        total_row,
+        ["Total", total_count, total_simo, total_banka, total_banka - total_simo],
         total=True,
     )
 
-    sheet.merge_cells("B13:D13")
-    sheet["B13"] = "Total Casos Pendentes na SIMO"
-    sheet["B13"].font = Font(bold=True, size=12)
+    title_row = total_row + 4
+    sheet.merge_cells(f"B{title_row}:D{title_row}")
+    sheet[f"B{title_row}"] = "Total Casos Pendentes na SIMO"
+    sheet[f"B{title_row}"].font = Font(bold=True, size=12)
 
-    _write_header(sheet, 16, ["Descrição", "N° Fechos", "Montante de Fecho's"])
+    header_row = title_row + 3
+    _write_header(sheet, header_row, ["Descrição", "N° Fechos", "Montante de Fecho's"])
 
-    # Espelha a folha «Total Casos Pendentes na SIMO»: o que já foi regularizado e,
-    # a seguir, tudo o que continua por tratar numa só linha — não creditados,
-    # creditados a menos/mais e duplicados —, com a mesma regra do bloco de cima.
-    resolved = [case for case in cases if case.status == "resolved"]
-    awaiting = [case for case in cases if case.status != "resolved"]
-    awaiting_count = len(awaiting) + summary.get("duplicatedPeriods", 0)
-    awaiting_simo = _sum_simo(awaiting) + _amount(summary.get("simoAmountDuplicated"))
+    # Conta-se fecho a fecho, a partir dos detalhes, e não caso a caso: um caso de
+    # período duplicado junta vários fechos, e a folha «Total Casos Pendentes na
+    # SIMO» lista-os um por linha. Todo o fecho que não confere tem caso, por isso
+    # o Total deste bloco fecha com as três causas do bloco de cima, e as linhas por
+    # tratar fecham com a folha de pendentes. Não se usa o `summary` aqui: é uma
+    # fotografia da execução e não sabe o que já foi regularizado.
+    pending_causes = [Validation.MISMATCH, Validation.MISSING, Validation.DUPLICATED]
+    counts: dict[str, int] = {"resolved": 0, **dict.fromkeys(pending_causes, 0)}
+    amounts: dict[str, Decimal] = {
+        "resolved": Decimal(0),
+        **dict.fromkeys(pending_causes, Decimal(0)),
+    }
+    case_by_key = {case.key: case for case in cases}
+    for detail in details:
+        case = case_by_key.get(detail.key)
+        if case is None:
+            continue
+        bucket = "resolved" if case.status == "resolved" else detail.validation
+        counts[bucket] += 1
+        amounts[bucket] += detail.simo_closing_total
 
-    _write_row(sheet, 17, ["Fecho Regularizado", len(resolved), _sum_simo(resolved)])
-    _write_row(sheet, 18, [VALIDATION_LABELS[Validation.MISMATCH], awaiting_count, awaiting_simo])
+    block_rows = [("Fecho Regularizado", "resolved")] + [
+        (VALIDATION_LABELS[cause], cause) for cause in pending_causes
+    ]
+    for offset, (label, bucket) in enumerate(block_rows, start=1):
+        _write_row(sheet, header_row + offset, [label, counts[bucket], amounts[bucket]])
+    block_total_row = header_row + len(block_rows) + 1
     _write_row(
         sheet,
-        19,
-        [
-            "Total",
-            len(resolved) + awaiting_count,
-            _sum_simo(resolved) + awaiting_simo,
-        ],
+        block_total_row,
+        ["Total", sum(counts.values()), sum(amounts.values(), Decimal(0))],
         total=True,
     )
 
     _set_widths(sheet, [48, 12, 32, 34, 26])
-    _set_format(sheet, ["D", "E"], MONEY_FORMAT, rows=range(7, 10))
+    _set_format(sheet, ["D", "E"], MONEY_FORMAT, rows=range(first_row, total_row + 1))
     # F é «Total (diferença apurada)» — leva sinal.
-    _set_format(sheet, ["F"], SIGNED_MONEY_FORMAT, rows=range(7, 10))
-    _set_format(sheet, ["D"], MONEY_FORMAT, rows=range(17, 20))
+    _set_format(sheet, ["F"], SIGNED_MONEY_FORMAT, rows=range(first_row, total_row + 1))
+    _set_format(sheet, ["D"], MONEY_FORMAT, rows=range(header_row + 1, block_total_row + 1))
 
 
-def _add_details_sheet(workbook: Workbook, details: Iterable[Any], cases: list[Any]) -> None:
+def _add_details_sheet(workbook: Workbook, details: Sequence[Any], cases: list[Any]) -> None:
     sheet = workbook.create_sheet("Detalhes Validacao")
     _write_header(sheet, 2, DETAILS_HEADERS)
 
     # e-Ticket e Data Reg. são colunas do modelo, preenchidas quando a chave tem
     # um caso em tratamento — vazias nos fechos que conferem.
     case_by_key = {case.key: case for case in cases}
+    # O crédito do Banka é da chave: numa chave com vários fechos vai só na primeira
+    # linha, pela mesma razão da folha de pendentes — repeti-lo inflacionava a soma
+    # da coluna, que tem de dar o que o Banka creditou.
+    credited_keys: set[str] = set()
     row_number = 3
     for detail in details:
         case = case_by_key.get(detail.key)
+        first_of_key = detail.key not in credited_keys
+        credited_keys.add(detail.key)
+        banka_total = detail.banka_closing_total if detail.banka_closing_total is not None else 0
         _write_row(
             sheet,
             row_number,
@@ -278,7 +283,7 @@ def _add_details_sheet(workbook: Workbook, details: Iterable[Any], cases: list[A
                 detail.simo_closing_total,
                 detail.closing_description or NOT_APPLICABLE,
                 detail.banka_credit_date or NOT_APPLICABLE,
-                detail.banka_closing_total if detail.banka_closing_total is not None else 0,
+                banka_total if first_of_key else NOT_APPLICABLE,
                 CLOSING_TYPE_LABELS.get(detail.closing_type, NOT_APPLICABLE),
                 VALIDATION_LABELS.get(detail.validation, detail.validation),
                 detail.difference if detail.difference is not None else NOT_APPLICABLE,
@@ -297,7 +302,7 @@ def _add_details_sheet(workbook: Workbook, details: Iterable[Any], cases: list[A
     sheet.freeze_panes = "A3"
 
 
-def _add_pending_cases_sheet(workbook: Workbook, details: Iterable[Any], cases: list[Any]) -> None:
+def _add_pending_cases_sheet(workbook: Workbook, details: Sequence[Any], cases: list[Any]) -> None:
     """A lista do que fica por tratar — o que se leva à SIMO.
 
     Entram os três problemas que exigem acção, e só enquanto não estiverem
@@ -307,11 +312,9 @@ def _add_pending_cases_sheet(workbook: Workbook, details: Iterable[Any], cases: 
     fecho a fecho que se desfaz a duplicação; o caso só decide se a chave ainda
     entra ou já saiu (foi regularizada).
 
-    Os duplicados vão rotulados como «Fecho creditado incorrectamente»: para o DOP
-    o crédito não bateu certo, e a duplicação do período é a causa, não uma
-    categoria à parte. O Resumo soma-os na mesma linha, para as duas folhas
-    fecharem uma com a outra — incluindo o que o Banka já creditou nessas chaves,
-    onde os movimentos vêm duplicados tal como os fechos da SIMO.
+    Cada linha leva o rótulo da sua causa, pela mesma ordem do Resumo — os
+    duplicados como «Períodos duplicados», e não como incorrectos, para o Excel
+    dizer o mesmo que a execução.
     """
     sheet = workbook.create_sheet("Total Casos Pendentes na SIMO")
     _write_header(sheet, 2, CASES_HEADERS)
@@ -356,7 +359,6 @@ def _add_pending_cases_sheet(workbook: Workbook, details: Iterable[Any], cases: 
     # da chave inteira (lá os movimentos também vêm duplicados), por isso vai só na
     # primeira linha de cada chave — repeti-lo em todas inflacionaria a coluna, que
     # é exactamente o erro do VLOOKUP manual que esta automação veio corrigir.
-    # Assim a coluna M soma para o mesmo que o Resumo.
     #
     # Cada chave duplicada tem um caso próprio (um só, o `_build_cases` já
     # colapsa os vários fechos) — regularizá-lo tira a chave inteira daqui,
@@ -387,7 +389,7 @@ def _add_pending_cases_sheet(workbook: Workbook, details: Iterable[Any], cases: 
                 detail.banka_closing_total
                 if first_of_key and detail.banka_closing_total is not None
                 else NOT_APPLICABLE,
-                VALIDATION_LABELS[Validation.MISMATCH],
+                VALIDATION_LABELS[Validation.DUPLICATED],
                 NOT_APPLICABLE,
             ],
         )
@@ -452,10 +454,6 @@ def _set_format(sheet: Worksheet, columns: list[str], number_format: str, rows: 
     for column in columns:
         for row in rows:
             sheet[f"{column}{row}"].number_format = number_format
-
-
-def _sum_simo(cases: list[Any]) -> Decimal:
-    return sum((case.simo_amount for case in cases), Decimal(0))
 
 
 def _amount(value: Any) -> Decimal:
