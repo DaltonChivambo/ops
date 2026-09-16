@@ -16,6 +16,7 @@ import {
   TABLE_CLASS,
   THEAD_CLASS,
 } from '../../../../../../shared/ui/data-table';
+import { TooltipDirective } from '../../../../../../shared/ui/tooltip';
 import {
   CASE_STATUSES,
   CASE_STATUS_BADGE,
@@ -92,6 +93,7 @@ const OPEN_SLA_STATES: readonly SlaState[] = ['overdue', 'due-soon', 'on-track']
     KeyDetailPanelComponent,
     MoneyComponent,
     SlaFilterComponent,
+    TooltipDirective,
     LucideChevronRight,
     LucideCircleCheck,
     LucideSearch,
@@ -213,20 +215,24 @@ const OPEN_SLA_STATES: readonly SlaState[] = ['overdue', 'due-soon', 'on-track']
                       {{ item.posId }}
                       <span class="sr-only"> — ver os dados da SIMO e do Banka</span>
                     </button>
+                    <!-- As pastilhas explicam-se na caixa da app (appTooltip),
+                         não no tooltip do browser: é o mesmo estilo do "i" que
+                         o resto da página usa para informação a pedido. -->
                     <span
                       class="rounded-md bg-gray-100 px-1.5 py-0.5 text-2xs font-semibold whitespace-nowrap text-gray-500 tabular-nums"
-                      [attr.title]="'Período ' + item.period"
+                      [appTooltip]="'Período ' + item.period"
                     >
                       P. {{ item.period }}
                     </span>
                     <!-- Como no "Todos os Fechos": num período duplicado mostram-se
                          sempre os dois números, ao lado do período — 1 de um lado
                          não é motivo para esconder o outro, e «em SIMO e Banka»
-                         dizia de que lado era mas não quantos eram. -->
+                         dizia de que lado era mas não quantos eram. De que lado
+                         duplica fica na caixa, que a pastilha já é o resumo. -->
                     @if (item.type === 'duplicated') {
                       <span
                         class="rounded-full bg-amber-500 px-1.5 py-0.5 text-2xs font-bold whitespace-nowrap text-white tabular-nums"
-                        [attr.title]="duplicationTitle(item)"
+                        [appTooltip]="duplicationNote(item)"
                       >
                         {{ n(item.simoClosingsCount) }} SIMO ·
                         {{ n(item.bankaMovementsCount) }} Banka
@@ -260,7 +266,7 @@ const OPEN_SLA_STATES: readonly SlaState[] = ['overdue', 'due-soon', 'on-track']
                 <td class="px-3 py-3.5 text-right whitespace-nowrap tabular-nums">
                   @let diff = difference(item);
                   @if (diff === null || diff === 0) {
-                    <span class="text-gray-300" [attr.title]="diffTitle(item)">—</span>
+                    <span class="text-gray-300" [appTooltip]="diffTitle(item)">—</span>
                   } @else {
                     <span class="font-bold" [class]="resolved ? 'text-gray-400' : 'text-alert-600'">
                       {{ signed(diff) }}
@@ -272,7 +278,7 @@ const OPEN_SLA_STATES: readonly SlaState[] = ['overdue', 'due-soon', 'on-track']
                   @let sla = slaOf(item);
                   <span
                     class="flex items-center gap-1.5 whitespace-nowrap"
-                    [attr.title]="slaTitle(item, sla)"
+                    [appTooltip]="slaTitle(item, sla)"
                   >
                     <span class="size-1.5 shrink-0 rounded-full" [class]="slaDotTone(sla)"></span>
                     <span class="text-xs font-semibold" [class]="slaTone(sla)">
@@ -595,8 +601,8 @@ export class PendingCasesTableComponent {
   protected dot = (item: PendingCase) => TYPE_DOT[item.type];
   protected typeLabel = (item: PendingCase) => TYPE_LABEL[item.type];
 
-  /** Ao passar o rato: os números por extenso, e de que lado está a duplicação. */
-  protected duplicationTitle(item: PendingCase): string {
+  /** Na caixa da pastilha: os mesmos números por extenso, e de que lado duplicam. */
+  protected duplicationNote(item: PendingCase): string {
     const closings = `${this.n(item.simoClosingsCount)} ${item.simoClosingsCount === 1 ? 'fecho' : 'fechos'} na SIMO`;
     const movements = `${this.n(item.bankaMovementsCount)} ${item.bankaMovementsCount === 1 ? 'movimento' : 'movimentos'} no Banka`;
     const side = duplicationSideOf(item.simoClosingsCount, item.bankaMovementsCount);
