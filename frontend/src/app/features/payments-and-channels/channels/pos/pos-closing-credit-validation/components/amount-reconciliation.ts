@@ -81,7 +81,7 @@ type Source = 'simo' | 'banka' | 'difference';
         <table class="w-full min-w-xl border-collapse text-sm">
           <thead>
             <tr class="border-b border-gray-100 text-gray-400">
-              <th scope="col" [class]="th + ' py-2 pr-3 pl-1.5 text-left'">Estado</th>
+              <th scope="col" [class]="th + ' py-2 pr-3 pl-1.5 text-left'">Validação</th>
               <th scope="col" [class]="th + ' px-4 py-2 text-right'">Fechos</th>
               <th scope="col" [class]="th + ' px-4 py-2 text-right'">Montante SIMO</th>
               <th scope="col" [class]="th + ' px-4 py-2 text-right'">Montante Banka</th>
@@ -295,7 +295,7 @@ export class AmountReconciliationComponent {
   );
 
   protected readonly totalDescription =
-    'Soma de todos os fechos processados nesta execução, em todos os estados.';
+    'Soma de todos os fechos processados nesta execução, seja qual for a validação.';
 
   /**
    * Quota de cada estado no total do lado escolhido — o que a barra desenha.

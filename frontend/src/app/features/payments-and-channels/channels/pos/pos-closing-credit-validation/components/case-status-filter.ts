@@ -15,7 +15,7 @@ import { CASE_STATUSES, CASE_STATUS_DOT, CASE_STATUS_LABEL } from '../data/case-
 import type { CaseStatus } from '../data/models';
 
 /**
- * Filtro do «Estado» em Casos para Análise — o mesmo padrão do filtro de tipo e
+ * Filtro da «Fase» do tratamento em Casos para Análise — o mesmo padrão do filtro de tipo e
  * do de prazo. Substitui a fila de separadores: cinco botões com contadores
  * ocupavam a barra inteira e liam-se como números soltos, e aqui cabe também
  * escolher mais de um («pendentes e em análise interna»).
@@ -43,7 +43,7 @@ import type { CaseStatus } from '../data/models';
       "
     >
       <svg lucideCircleDot [size]="15" [strokeWidth]="2" class="shrink-0"></svg>
-      <span class="font-medium opacity-60">Estado:</span>
+      <span class="font-medium opacity-60">Fase:</span>
       {{ label() }}
 
       <svg
@@ -84,7 +84,7 @@ import type { CaseStatus } from '../data/models';
             (change)="changed.emit(allSelected() ? [] : [...statuses()])"
             class="sr-only"
           />
-          <span class="flex-1">Todos os estados</span>
+          <span class="flex-1">Todas as fases</span>
           <span class="text-xs font-medium text-gray-400 tabular-nums">{{ n(total()) }}</span>
         </label>
 
@@ -145,8 +145,8 @@ export class CaseStatusFilterComponent {
 
   protected readonly label = computed(() => {
     const selected = this.selected();
-    if (this.allSelected()) return 'Todos';
-    if (selected.length === 0) return 'Nenhum';
+    if (this.allSelected()) return 'Todas';
+    if (selected.length === 0) return 'Nenhuma';
     if (selected.length === 1) return CASE_STATUS_LABEL[selected[0]];
     return `${this.n(selected.length)} de ${this.n(this.statuses().length)}`;
   });

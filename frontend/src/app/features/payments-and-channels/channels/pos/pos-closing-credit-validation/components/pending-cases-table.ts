@@ -180,16 +180,16 @@ const OPEN_SLA_STATES: readonly SlaState[] = ['overdue', 'due-soon', 'on-track']
         <table [class]="tableClass + ' min-w-4xl'">
           <thead [class]="theadClass">
             <tr class="border-b border-gray-100 text-gray-400">
-              <th scope="col" [class]="th + ' w-[15rem] py-2.5 pr-3 pl-5 text-left'">
+              <th scope="col" [class]="th + ' w-[18rem] py-2.5 pr-3 pl-5 text-left'">
                 POS / Comerciante
               </th>
-              <th scope="col" [class]="th + ' px-3 py-2.5 text-left'">Tipo</th>
+              <th scope="col" [class]="th + ' px-3 py-2.5 text-left'">Divergência</th>
               <th scope="col" [class]="th + ' px-3 py-2.5 text-right'">Valor SIMO</th>
               <th scope="col" [class]="th + ' px-3 py-2.5 text-right'">Valor Banka</th>
               <th scope="col" [class]="th + ' px-3 py-2.5 text-right'">Diferença</th>
               <th scope="col" [class]="th + ' py-2.5 pr-3 pl-6 text-left'">Prazo</th>
               <th scope="col" [class]="th + ' px-3 py-2.5 text-left'">
-                {{ view() === 'resolved' ? 'Regularizado em' : 'Estado' }}
+                {{ view() === 'resolved' ? 'Regularizado em' : 'Fase' }}
               </th>
               <th scope="col" [class]="th + ' px-3 py-2.5 text-left'">e-Ticket</th>
               <th scope="col" [class]="th + ' w-8'"><span class="sr-only">Abrir</span></th>
@@ -204,7 +204,7 @@ const OPEN_SLA_STATES: readonly SlaState[] = ['overdue', 'due-soon', 'on-track']
                 class="cursor-pointer border-b border-gray-100/70 text-gray-600 transition-colors last:border-b-0 hover:bg-gray-50/70"
               >
                 <td class="py-3.5 pr-3 pl-5" [class]="stripe(item)">
-                  <div class="flex items-center gap-2">
+                  <div class="flex flex-wrap items-center gap-x-2 gap-y-1">
                     <button
                       type="button"
                       (click)="$event.stopPropagation(); opened.set(toDetail(item))"
@@ -219,6 +219,19 @@ const OPEN_SLA_STATES: readonly SlaState[] = ['overdue', 'due-soon', 'on-track']
                     >
                       P. {{ item.period }}
                     </span>
+                    <!-- Como no "Todos os Fechos": num período duplicado mostram-se
+                         sempre os dois números, ao lado do período — 1 de um lado
+                         não é motivo para esconder o outro, e «em SIMO e Banka»
+                         dizia de que lado era mas não quantos eram. -->
+                    @if (item.type === 'duplicated') {
+                      <span
+                        class="rounded-full bg-amber-500 px-1.5 py-0.5 text-2xs font-bold whitespace-nowrap text-white tabular-nums"
+                        [attr.title]="duplicationTitle(item)"
+                      >
+                        {{ n(item.simoClosingsCount) }} SIMO ·
+                        {{ n(item.bankaMovementsCount) }} Banka
+                      </span>
+                    }
                   </div>
                   <div
                     class="mt-1 max-w-52 truncate text-xs text-gray-400"
@@ -236,13 +249,6 @@ const OPEN_SLA_STATES: readonly SlaState[] = ['overdue', 'due-soon', 'on-track']
                     <span class="size-1.5 rounded-full" [class]="dot(item)"></span>
                     {{ typeLabel(item) }}
                   </span>
-                  <!-- O lado da duplicação sai da pastilha: dentro dela, «Período
-                       duplicado · SIMO e Banka» fazia a coluna mais larga da tabela. -->
-                  @if (duplicationSide(item); as side) {
-                    <div class="mt-1 pl-1 text-2xs whitespace-nowrap text-gray-400">
-                      em {{ side }}
-                    </div>
-                  }
                 </td>
 
                 <td class="px-3 py-3.5 text-right">
@@ -589,11 +595,14 @@ export class PendingCasesTableComponent {
   protected dot = (item: PendingCase) => TYPE_DOT[item.type];
   protected typeLabel = (item: PendingCase) => TYPE_LABEL[item.type];
 
-  /** "SIMO" / "Banka" / "SIMO e Banka" — só para casos duplicados. */
-  protected duplicationSide(item: PendingCase): string | null {
-    if (item.type !== 'duplicated') return null;
+  /** Ao passar o rato: os números por extenso, e de que lado está a duplicação. */
+  protected duplicationTitle(item: PendingCase): string {
+    const closings = `${this.n(item.simoClosingsCount)} ${item.simoClosingsCount === 1 ? 'fecho' : 'fechos'} na SIMO`;
+    const movements = `${this.n(item.bankaMovementsCount)} ${item.bankaMovementsCount === 1 ? 'movimento' : 'movimentos'} no Banka`;
     const side = duplicationSideOf(item.simoClosingsCount, item.bankaMovementsCount);
-    return side ? DUPLICATION_SIDE_LABEL[side] : null;
+    return side
+      ? `${closings}, ${movements} — duplicado em ${DUPLICATION_SIDE_LABEL[side]}.`
+      : `${closings}, ${movements}.`;
   }
 
   /**
