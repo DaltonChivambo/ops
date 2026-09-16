@@ -159,7 +159,7 @@ const STRUCK_ROW =
             <th scope="col" [class]="th + ' px-3 py-2.5 text-right'">Total SIMO</th>
             <th scope="col" [class]="th + ' px-3 py-2.5 text-right'">Total Banka</th>
             <th scope="col" [class]="th + ' px-3 py-2.5 text-right'">Diferença</th>
-            <th scope="col" [class]="th + ' px-3 py-2.5 text-left'">Estado</th>
+            <th scope="col" [class]="th + ' px-3 py-2.5 text-left'">Validação</th>
           </tr>
         </thead>
 
@@ -397,7 +397,7 @@ const STRUCK_ROW =
               <td colspan="7" class="px-4 py-12 text-center text-gray-400">
                 {{
                   selected().length === 0
-                    ? 'Nenhum estado seleccionado — marque pelo menos um acima.'
+                    ? 'Nenhuma validação seleccionada — marque pelo menos uma acima.'
                     : 'Nenhum fecho corresponde aos critérios seleccionados.'
                 }}
               </td>

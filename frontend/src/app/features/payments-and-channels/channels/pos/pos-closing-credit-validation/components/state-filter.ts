@@ -41,15 +41,8 @@ import { ALL_STATES, STATE_OPTIONS, type StateId } from '../data/state-options';
       "
     >
       <svg lucideListFilter [size]="15" [strokeWidth]="2" class="shrink-0"></svg>
+      <span class="font-medium opacity-60">Validação:</span>
       {{ label() }}
-
-      @if (!allSelected()) {
-        <span
-          class="inline-flex size-4 items-center justify-center rounded-full bg-moza-700 text-2xs font-bold text-white tabular-nums"
-        >
-          {{ n(selected().length) }}
-        </span>
-      }
 
       <svg
         lucideChevronDown
@@ -90,7 +83,7 @@ import { ALL_STATES, STATE_OPTIONS, type StateId } from '../data/state-options';
             (change)="changed.emit(allSelected() ? [] : allStates)"
             class="sr-only"
           />
-          <span class="flex-1">Todos os estados</span>
+          <span class="flex-1">Todas as validações</span>
           <span class="text-xs font-medium text-gray-400 tabular-nums">
             {{ n(counts().all) }}
           </span>
@@ -152,12 +145,12 @@ export class StateFilterComponent {
 
   protected readonly label = computed(() => {
     const selected = this.selected();
-    if (this.allSelected()) return 'Todos os estados';
-    if (selected.length === 0) return 'Nenhum estado';
+    if (this.allSelected()) return 'Todas';
+    if (selected.length === 0) return 'Nenhuma';
     if (selected.length === 1) {
       return STATE_OPTIONS.find((item) => item.id === selected[0])?.label ?? '';
     }
-    return `${this.n(selected.length)} de ${this.n(STATE_OPTIONS.length)} estados`;
+    return `${this.n(selected.length)} de ${this.n(STATE_OPTIONS.length)}`;
   });
 
   protected toggle(id: StateId): void {

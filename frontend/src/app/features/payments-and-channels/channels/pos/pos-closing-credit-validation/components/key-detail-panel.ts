@@ -208,7 +208,7 @@ function creditedWhen(closingIso: string | undefined, creditIso: string | null):
               >
                 <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
                   <label class="block min-w-0">
-                    <span [class]="fieldLabel">Estado</span>
+                    <span [class]="fieldLabel">Fase do tratamento</span>
                     <span class="relative mt-1 block">
                       <span
                         class="pointer-events-none absolute top-1/2 left-3 size-2 -translate-y-1/2 rounded-full"
