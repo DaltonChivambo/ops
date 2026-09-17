@@ -20,7 +20,7 @@ BASE = "/pos/validacao-credito-fecho"
 
 
 @pytest.mark.parametrize(
-    ("raw", "esperado"),
+    ("raw", "expected"),
     [
         ("INC-4210", "INC-4210"),
         ("  SIMO/2026.0913_7  ", "SIMO/2026.0913_7"),
@@ -30,14 +30,14 @@ BASE = "/pos/validacao-credito-fecho"
         (None, None),
     ],
 )
-def test_referencias_validas_guardam_se_aparadas_e_vazio_apaga(raw, esperado) -> None:
-    assert normalize_e_ticket(raw) == esperado
+def test_valid_references_are_trimmed_and_empty_clears(raw, expected) -> None:
+    assert normalize_e_ticket(raw) == expected
 
 
 @pytest.mark.parametrize(
     "raw",
     [
-        "=HYPERLINK(\"http://x\",\"abrir\")",  # fórmula no Excel
+        '=HYPERLINK("http://x","abrir")',  # fórmula no Excel
         "+1+1",
         "-2",
         "@SUM(A1)",
@@ -48,18 +48,18 @@ def test_referencias_validas_guardam_se_aparadas_e_vazio_apaga(raw, esperado) ->
         "ÇÃO-1",
     ],
 )
-def test_o_que_nao_tem_forma_de_referencia_e_recusado(raw) -> None:
+def test_non_reference_shape_is_rejected(raw) -> None:
     with pytest.raises(InvalidETicketError):
         normalize_e_ticket(raw)
 
 
-def test_limite_de_tamanho() -> None:
+def test_length_limit() -> None:
     assert normalize_e_ticket("A" * MAX_E_TICKET_LENGTH) == "A" * MAX_E_TICKET_LENGTH
     with pytest.raises(InvalidETicketError):
         normalize_e_ticket("A" * (MAX_E_TICKET_LENGTH + 1))
 
 
-def test_so_texto_e_aceite() -> None:
+def test_only_text_is_accepted() -> None:
     with pytest.raises(InvalidETicketError):
         normalize_e_ticket(4210)
 
@@ -67,31 +67,31 @@ def test_so_texto_e_aceite() -> None:
 # ─── Rota ────────────────────────────────────────────────────────────────────
 
 
-def test_e_ticket_invalido_e_regra_de_negocio_e_nao_muda_o_caso(client, service) -> None:
-    antes = service.cases[0].status
+def test_invalid_e_ticket_is_business_rule_and_leaves_case_unchanged(client, service) -> None:
+    before = service.cases[0].status
 
-    resposta = client.patch(
+    response = client.patch(
         f"{BASE}/casos/{CASE_ID}", json={"status": "resolved", "eTicket": "=1+1"}
     )
 
-    assert resposta.status_code == 422
-    erro = resposta.json()["error"]
-    assert erro["code"] == "business_rule"
-    assert "e-Ticket" in erro["message"]
+    assert response.status_code == 422
+    error = response.json()["error"]
+    assert error["code"] == "business_rule"
+    assert "e-Ticket" in error["message"]
     # Recusado o e-Ticket, o estado que vinha no mesmo pedido também não entra.
-    assert service.cases[0].status == antes
+    assert service.cases[0].status == before
 
 
 # ─── Relatório ───────────────────────────────────────────────────────────────
 
 
-def test_texto_comecado_por_igual_fica_texto_no_excel() -> None:
+def test_text_starting_with_equals_stays_text_in_excel() -> None:
     sheet = Workbook().active
 
     _write_row(sheet, 1, ['=HYPERLINK("http://x","abrir")', "INC-4210", 12.5])
 
-    formula, referencia, numero = (sheet.cell(row=1, column=2 + i) for i in range(3))
+    formula, reference, number = (sheet.cell(row=1, column=2 + i) for i in range(3))
     assert formula.data_type == "s"
     assert formula.value == '=HYPERLINK("http://x","abrir")'
-    assert referencia.data_type == "s"
-    assert numero.data_type == "n"
+    assert reference.data_type == "s"
+    assert number.data_type == "n"

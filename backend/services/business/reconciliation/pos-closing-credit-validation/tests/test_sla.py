@@ -13,36 +13,36 @@ from app.domain.errors import InvalidSlaSettingsError
 from app.domain.sla import deadline, validate_sla
 
 
-def test_a_data_limite_e_a_do_fecho_mais_o_prazo() -> None:
+def test_deadline_is_closing_date_plus_sla() -> None:
     assert deadline(date(2026, 6, 23), 7) == date(2026, 6, 30)
 
 
-def test_o_prazo_atravessa_a_mudanca_de_mes() -> None:
+def test_deadline_crosses_month_boundary() -> None:
     assert deadline(date(2026, 6, 28), 7) == date(2026, 7, 5)
 
 
-def test_prazo_e_aviso_normais_passam() -> None:
+def test_normal_sla_and_warning_pass() -> None:
     validate_sla(7, 3)
 
 
-def test_aviso_a_zero_passa() -> None:
+def test_zero_warning_passes() -> None:
     """Zero é «não avisar antes» — legítimo, ao contrário de um negativo."""
     validate_sla(7, 0)
 
 
-@pytest.mark.parametrize("dias", [0, -1, 366])
-def test_prazo_fora_do_intervalo_e_recusado(dias: int) -> None:
+@pytest.mark.parametrize("days", [0, -1, 366])
+def test_sla_out_of_range_is_rejected(days: int) -> None:
     with pytest.raises(InvalidSlaSettingsError):
-        validate_sla(dias, 0)
+        validate_sla(days, 0)
 
 
-def test_aviso_negativo_e_recusado() -> None:
+def test_negative_warning_is_rejected() -> None:
     with pytest.raises(InvalidSlaSettingsError):
         validate_sla(7, -1)
 
 
-@pytest.mark.parametrize("aviso", [7, 8])
-def test_aviso_a_partir_do_prazo_e_recusado(aviso: int) -> None:
+@pytest.mark.parametrize("warning", [7, 8])
+def test_warning_at_or_after_sla_is_rejected(warning: int) -> None:
     """Avisar ao fim do prazo, ou depois, era avisar desde o primeiro dia."""
     with pytest.raises(InvalidSlaSettingsError):
-        validate_sla(7, aviso)
+        validate_sla(7, warning)

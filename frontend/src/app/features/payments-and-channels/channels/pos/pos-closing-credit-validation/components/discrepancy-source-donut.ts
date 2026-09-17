@@ -5,7 +5,10 @@ import { DonutChartComponent, type DonutSlice } from '../../../../../../shared/u
 import type { ClosingSummary } from '../data/models';
 
 /**
- * Fechos por tratar, em anel — o desenho está no app-donut-chart.
+ * O que está por tratar, em anel — o desenho está no app-donut-chart.
+ *
+ * Fechos, e também os créditos sem fecho que ficam depois de uma conciliação:
+ * uns e outros são trabalho em aberto.
  *
  * Os duplicados entram apesar de não serem divergência: ninguém sabe se a chave
  * confere enquanto a duplicação não se desfizer, e é trabalho igual.
@@ -15,12 +18,12 @@ import type { ClosingSummary } from '../data/models';
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [CollapsibleCardComponent, DonutChartComponent],
   template: `
-    <app-collapsible-card heading="Fechos por Tratar" storageKey="fechos-por-tratar">
+    <app-collapsible-card heading="Por Tratar" storageKey="fechos-por-tratar">
       <app-donut-chart
         [slices]="slices()"
         caption="por tratar"
         emptyMessage="Todos os fechos conferem."
-        ariaPrefix="Fechos por tratar"
+        ariaPrefix="Por tratar"
       />
     </app-collapsible-card>
   `,
@@ -50,7 +53,17 @@ export class DiscrepancySourceDonutComponent {
         short: 'em períodos duplicados',
         count: s.duplicatedPeriods,
         color: '#fe9a00',
-        description: 'Um POS tem mais de um fecho para o mesmo período — a chave é POS + período.',
+        description: 'O mesmo POS e período aparece mais de uma vez na SIMO ou no Banka.',
+      },
+      // Não é um fecho, é dinheiro: o que sobrou no Banka depois de a conciliação
+      // ligar os fechos da chave. Conta aqui porque é trabalho igual — o caso
+      // fica aberto até alguém o analisar.
+      {
+        name: 'Crédito sem fecho na SIMO',
+        short: 'créditos sem fecho na SIMO',
+        count: s.unmatchedCredits ?? 0,
+        color: '#8b5cf6',
+        description: 'Creditado no Banka, mas sem fecho correspondente na SIMO.',
       },
     ];
   });

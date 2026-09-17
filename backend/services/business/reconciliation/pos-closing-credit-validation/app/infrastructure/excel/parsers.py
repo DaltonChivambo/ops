@@ -7,15 +7,19 @@ estruturas de `domain/models.py` e nada mais.
 Cada ficheiro é validado pelos cabeçalhos esperados ANTES de ser parseado — é
 isso que também apanha um ficheiro carregado no campo errado.
 
-As posições das colunas variam entre exports, por isso a Lista de POS e o Banka
-resolvem as colunas pelo NOME do cabeçalho (não por índice fixo); a SIMO mantém
-índices fixos. Estruturas (verificadas nos ficheiros reais):
+As posições das colunas variam entre exports — **nos três ficheiros** —, por
+isso todos resolvem as colunas pelo NOME do cabeçalho. A SIMO usava índices
+fixos, contados a partir da coluna B: um export que começasse em C deslizava
+tudo uma casa e lia «Id Comerciante» como POS Id (nenhum casava com a Lista) e
+«Período POS» como data (4920 lido como serial do Excel dá 1913). Estruturas
+(verificadas nos ficheiros reais):
   Lista POS ...... folha `Export`; colunas Merchant Id · POS Id · Nome Comerciante
                    · Nº Conta · Fecho Realtime (Sim/Não), em ordem/posição variável
-  Fechos SIMO .... folha 1; B Id Comerciante · C POS Id · D Período POS
-                   · E Data Fecho (serial) · F Nº Operaç. · G Total Fecho (pt)
+  Fechos SIMO .... folha 1; Id Comerciante · POS Id · Período POS · Data Fecho
+                   · Nº Operaç. · Total Fecho (pt), a começar em B ou em C
   Créditos Banka . folha `FECHO_POS`; DATA_SISTEMA · DESCRITIVO_MOV ·
-                   VALOR_TRANSACAO. As posições das colunas VARIAM entre exports
+                   VALOR_TRANSACAO, e N_DOCUMENTO para descartar movimentos
+                   repetidos. As posições das colunas VARIAM entre exports
                    do MIS, por isso são resolvidas pelo NOME do cabeçalho e não
                    por índice fixo (ver `parse_banka_credits`). A chave «POS ID
                    vs. Período» é sempre derivada do DESCRITIVO_MOV.
@@ -34,10 +38,17 @@ from ...domain.models import BankaCredit, BankaMovement, PosInfo, SimoClosing
 from ...domain.vocabulary import SLOT_LABELS, ClosingType, UploadSlot
 from .workbook import cell_date, cell_text, find_header_row, parse_number, validate_headers
 
-# Índices 0-based das colunas dos Fechos SIMO — o único ficheiro cujas posições são
-# estáveis. A Lista de POS e o Banka resolvem as colunas pelo NOME do cabeçalho
-# (ver `parse_pos_list` e `parse_banka_credits`), porque as posições variam entre exports.
-SIMO_COLUMNS = {"pos_id": 2, "period": 3, "closing_date": 4, "operation_number": 5, "total": 6}
+# Cabeçalhos dos Fechos SIMO, por nome. O `Nº Operaç.` fica de fora da validação
+# (`SIMO_REQUIRED`) porque um fecho sem ele continua a ser um fecho — conta zero
+# operações e entra na mesma; os outros quatro, sem eles não há fecho nenhum.
+SIMO_HEADERS = {
+    "pos_id": "pos id",
+    "period": "período pos",
+    "closing_date": "data fecho",
+    "operation_number": "nº operaç",
+    "total": "total fecho",
+}
+SIMO_REQUIRED = ["id comerciante", "pos id", "período pos", "data fecho", "total fecho"]
 
 HEADER_SEARCH_ROWS = 10
 BANKA_SAMPLE_ROWS = 20  # linhas espreitadas para escolher a coluna DESCRITIVO_MOV certa
@@ -105,18 +116,6 @@ def _header_and_rows(
         yield from rows
 
     return header, _iter()
-
-
-def _data_rows(
-    sheet: Worksheet,
-    slot: UploadSlot,
-    filename: str,
-    anchor: str,
-    expected: list[str],
-) -> Iterator[tuple[Any, ...]]:
-    """Como `_header_and_rows`, mas devolve só as linhas de dados."""
-    _header, rows = _header_and_rows(sheet, slot, filename, anchor, expected)
-    return rows
 
 
 def _value(row: tuple[Any, ...], index: int | None) -> Any:
@@ -206,23 +205,24 @@ def parse_pos_list(stream: IO[bytes], filename: str) -> dict[str, PosInfo]:
 def parse_simo_closings(stream: IO[bytes], filename: str) -> list[SimoClosing]:
     """Fechos do Portal SIMO → lista de fechos válidos."""
     sheet = _open_sheet(stream, UploadSlot.SIMO_CLOSINGS, filename, None)
-    rows = _data_rows(
+    header, rows = _header_and_rows(
         sheet,
         UploadSlot.SIMO_CLOSINGS,
         filename,
         "id comerciante",
-        ["id comerciante", "pos id", "período pos", "data fecho", "total fecho"],
+        SIMO_REQUIRED,
     )
+    column = {name: _column_index(header, title) for name, title in SIMO_HEADERS.items()}
 
     closings: list[SimoClosing] = []
     for row in rows:
-        pos_id = normalize_pos_id(cell_text(_value(row, SIMO_COLUMNS["pos_id"])))
-        period = parse_number(_value(row, SIMO_COLUMNS["period"]))
-        total = parse_number(_value(row, SIMO_COLUMNS["total"]))
-        closing_date = cell_date(_value(row, SIMO_COLUMNS["closing_date"]))
+        pos_id = normalize_pos_id(cell_text(_value(row, column["pos_id"])))
+        period = parse_number(_value(row, column["period"]))
+        total = parse_number(_value(row, column["total"]))
+        closing_date = cell_date(_value(row, column["closing_date"]))
         if not pos_id or period is None or total is None or closing_date is None:
             continue
-        operation = parse_number(_value(row, SIMO_COLUMNS["operation_number"]))
+        operation = parse_number(_value(row, column["operation_number"]))
         closings.append(
             SimoClosing(
                 pos_id=pos_id,
@@ -235,13 +235,22 @@ def parse_simo_closings(stream: IO[bytes], filename: str) -> list[SimoClosing]:
     return closings
 
 
-def parse_banka_credits(stream: IO[bytes], filename: str) -> dict[str, BankaCredit]:
+def parse_banka_credits(stream: IO[bytes], filename: str) -> tuple[dict[str, BankaCredit], int]:
     """Créditos do Banka (MIS) agregados por chave «POS ID vs. Período».
 
     A chave é sempre derivada do DESCRITIVO_MOV — a coluna «POS ID vs. Período»
     não é usada (é considerada não-fiável e nem sempre existe no export). As
     posições das colunas variam entre exports, por isso são resolvidas pelo NOME
     do cabeçalho: DATA_SISTEMA, DESCRITIVO_MOV e VALOR_TRANSACAO.
+
+    **Cada movimento entra uma vez só.** Um extracto montado a partir de dois
+    que se sobrepõem traz o dia da junção duas vezes — visto num ficheiro de
+    Agosto com o 19/08 inteiro repetido: 2 423 movimentos a dobrar, somados, e
+    394 chaves a cair em «períodos duplicados» sem o serem. A identidade é o
+    N_DOCUMENTO, único por movimento num export correcto; sem ele (coluna ausente
+    ou célula vazia), a linha inteira — só colapsa o que é igual em tudo.
+
+    Devolve os créditos e quantas linhas repetidas foram descartadas.
     """
     sheet = _open_sheet(stream, UploadSlot.BANKA_CREDITS, filename, "FECHO_POS")
     header, rows = _header_and_rows(
@@ -254,6 +263,7 @@ def parse_banka_credits(stream: IO[bytes], filename: str) -> dict[str, BankaCred
 
     date_col = _column_index(header, "data_sistema")
     amount_col = _column_index(header, "valor_transacao")
+    document_col = _column_index(header, "n_documento")
     # DESCRITIVO_MOV pode aparecer duplicado; escolhe-se pela amostra a que traz a chave.
     rows = iter(rows)
     sample = list(islice(rows, BANKA_SAMPLE_ROWS))
@@ -261,12 +271,21 @@ def parse_banka_credits(stream: IO[bytes], filename: str) -> dict[str, BankaCred
     rows = chain(sample, rows)
 
     credits: dict[str, BankaCredit] = {}
+    seen: set[object] = set()
+    discarded = 0
     for row in rows:
         description = cell_text(_value(row, desc_col)) if desc_col is not None else ""
         key = key_from_description(description) if description else ""
         amount = parse_number(_value(row, amount_col)) if amount_col is not None else None
         if not key or amount is None:
             continue
+
+        document = cell_text(_value(row, document_col))
+        identity: object = ("doc", document) if document else ("row", row)
+        if identity in seen:
+            discarded += 1
+            continue
+        seen.add(identity)
 
         credit_date = cell_date(_value(row, date_col)) if date_col is not None else None
         movement = BankaMovement(date=credit_date, amount=amount, description=description or None)
@@ -286,4 +305,4 @@ def parse_banka_credits(stream: IO[bytes], filename: str) -> dict[str, BankaCred
                 description=description or None,
                 movements=[movement],
             )
-    return credits
+    return credits, discarded

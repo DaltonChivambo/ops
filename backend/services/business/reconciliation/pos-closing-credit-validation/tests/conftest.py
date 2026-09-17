@@ -23,13 +23,28 @@ from app.controllers.dependencies import (
     get_validation_service,
 )
 from app.domain.e_ticket import normalize_e_ticket
-from app.domain.errors import InvalidCaseStatusError, NotFoundError, NothingToUpdateError
+from app.domain.errors import (
+    InvalidCaseStatusError,
+    InvalidMatchError,
+    NotFoundError,
+    NothingToUpdateError,
+)
+from app.domain.matching import (
+    Match,
+    MatchEffect,
+    is_fully_matched,
+    settles_case,
+    suggest_matches,
+    validate_matches,
+)
 from app.domain.sla import DEFAULT_SLA_DAYS, DEFAULT_WARNING_DAYS, validate_sla
 from app.infrastructure.auth import auth
 from app.infrastructure.tables import ClosingDetail, CreditMovement, Execution, PendingCase
 from app.main import app
-from app.services.case_service import STATUS_FROM_JSON
+from app.services.case_service import STATUS_FROM_JSON, ReconciledCase
+from app.services.match_sides import closing_side, movement_side
 from app.services.settings_service import SlaSettings
+from app.services.validation_service import DetailsPage, ReconciliationCandidate
 from mozaops_libs.auth import Principal
 
 EXECUTION_ID = "3f2b1c00-0000-4000-8000-000000000001"
@@ -126,7 +141,7 @@ class FakeService:
     Um objecto só para os dois porque partilham estado: mudar um caso e reler a
     execução a seguir tem de ver a mesma coisa, como veria em produção.
 
-    Guarda o que lhe pediram (`chamadas`), para os testes poderem afirmar que a
+    Guarda o que lhe pediram (`calls`), para os testes poderem afirmar que a
     rota encaminhou os argumentos certos sem espreitar para dentro da camada.
     """
 
@@ -137,6 +152,7 @@ class FakeService:
         self.movements = [make_movement()]
         self.counts = {
             "all": 1,
+            "unmatched": 0,
             "match": 0,
             "mismatch": 1,
             "missing": 0,
@@ -147,7 +163,10 @@ class FakeService:
         # testes que precisam de simular uma chave `duplicated`. Vazio por
         # omissão: a fixture por omissão é `mismatch`, não pede contagem nenhuma.
         self.key_counts: dict[str, tuple[int, int]] = {}
-        self.chamadas: dict[str, Any] = {}
+        # (nº, montante) dos créditos sem fecho por chave — vazio por omissão.
+        self.unmatched_by_key: dict[str, tuple[int, Decimal]] = {}
+        self.matches: list[Match] = []
+        self.calls: dict[str, Any] = {}
 
     def _guard(self, execution_id: str) -> Execution:
         if self.execution is None or execution_id != self.execution.id:
@@ -155,7 +174,7 @@ class FakeService:
         return self.execution
 
     async def run(self, files: Any) -> str:
-        self.chamadas["run_validation"] = {slot: nome for slot, (_, nome) in files.items()}
+        self.calls["run_validation"] = {slot: name for slot, (_, name) in files.items()}
         return EXECUTION_ID
 
     async def get_execution(self, execution_id: str) -> Execution:
@@ -170,34 +189,132 @@ class FakeService:
         return self.cases, self.key_counts
 
     async def list_details(
-        self, execution_id: str, page: Any, validation: Any, search: Any
-    ) -> tuple[list[ClosingDetail], int, dict[str, int], dict[str, tuple[int, int]]]:
-        self.chamadas["list_details"] = {
+        self,
+        execution_id: str,
+        page: Any,
+        validation: Any,
+        search: Any,
+        unmatched_credits_only: bool = False,
+    ) -> DetailsPage:
+        self.calls["list_details"] = {
             "page": page.page,
             # A chave é o nome do PARÂMETRO da query, não o do campo Python:
             # é isso que o teste afirma, e é isso que o SPA envia.
             "perPage": page.per_page,
             "validation": validation,
             "search": search,
+            "unmatchedCredits": unmatched_credits_only,
         }
         self._guard(execution_id)
-        return self.details, len(self.details), self.counts, self.key_counts
+        return DetailsPage(
+            details=self.details,
+            total=len(self.details),
+            counts=self.counts,
+            key_counts=self.key_counts,
+            unmatched_by_key=self.unmatched_by_key,
+        )
 
     async def get_key_breakdown(self, execution_id: str, key: str) -> dict[str, Any]:
         self._guard(execution_id)
         if key != KEY:
             raise NotFoundError("Não há nenhum fecho com esta chave nesta execução.")
         return {
+            "period_end": make_execution().period_end,
             "key": key,
             "closings": self.details,
             "movements": self.movements,
             "case": self.cases[0],
+            "matches": self.matches,
+            "suggested_matches": suggest_matches(
+                [closing_side(row) for row in self.details],
+                [movement_side(row) for row in self.movements],
+            ),
         }
+
+    async def list_reconciliation_candidates(
+        self, execution_id: str
+    ) -> tuple[date, list[ReconciliationCandidate]]:
+        self._guard(execution_id)
+        case = self.cases[0]
+        period_end = make_execution().period_end
+        if case.type != "duplicated" or case.status == "resolved" or self.matches:
+            return period_end, []
+        # A regra é a do serviço a sério: só entra a chave em que todos os fechos
+        # têm um crédito do mesmo valor.
+        closings = [closing_side(row) for row in self.details]
+        suggested = suggest_matches(closings, [movement_side(row) for row in self.movements])
+        if not is_fully_matched(suggested, closings):
+            return period_end, []
+        return period_end, [
+            ReconciliationCandidate(
+                case=case,
+                closings=self.details,
+                movements=self.movements,
+                matches=[],
+                suggested_matches=suggested,
+            )
+        ]
+
+    async def reconcile(
+        self, case_id: str, matches: list[Match], matched_by: str | None
+    ) -> tuple[ReconciledCase, dict[str, Any]]:
+        self.calls["reconcile"] = {
+            "matches": [(match.closing_id, match.movement_id) for match in matches],
+            "matched_by": matched_by,
+        }
+        return self._apply_matches(case_id, matches), dict(SUMMARY)
+
+    async def reconcile_many(
+        self,
+        execution_id: str,
+        requests: list[tuple[str, list[Match]]],
+        matched_by: str | None,
+    ) -> tuple[list[ReconciledCase], dict[str, Any]]:
+        self.calls["reconcile_many"] = {
+            "case_ids": [case_id for case_id, _ in requests],
+            "matched_by": matched_by,
+        }
+        self._guard(execution_id)
+        if not requests:
+            raise NothingToUpdateError("O pedido não traz nenhum caso para conciliar.")
+        return [self._apply_matches(case_id, matches) for case_id, matches in requests], dict(
+            SUMMARY
+        )
+
+    def _apply_matches(self, case_id: str, matches: list[Match]) -> ReconciledCase:
+        if case_id != CASE_ID:
+            raise NotFoundError("O caso indicado não existe.")
+        case = self.cases[0]
+        if case.type != "duplicated":
+            raise InvalidMatchError(
+                "Só os casos de períodos duplicados se conciliam fecho a fecho."
+            )
+
+        # As regras são as do domínio, como no serviço a sério: é ali que nasce
+        # a mensagem em português que a rota tem de fazer chegar ao operador.
+        closings = [closing_side(row) for row in self.details]
+        movements = [movement_side(row) for row in self.movements]
+        validate_matches(matches, closings, movements)
+        self.matches = list(matches)
+        if settles_case(matches, closings, movements, make_execution().period_end):
+            case.status = "resolved"
+            case.status_since = date(2026, 9, 10)
+            case.resolved_at = date(2026, 9, 10)
+        nothing = MatchEffect(0, Decimal(0), Decimal(0))
+        return ReconciledCase(
+            case=case,
+            counts=(len(self.details), len(self.movements)),
+            # O serviço a sério devolve as linhas gravadas; o que a rota lê delas
+            # (`closing_id`, `movement_id`) é igual num `Match`.
+            matches=self.matches,
+            before=nothing,
+            after=nothing,
+        )
 
     async def update(
         self, case_id: str, patch: dict[str, Any]
     ) -> tuple[PendingCase, dict[str, Any], tuple[int, int]]:
-        self.chamadas["update_case"] = patch
+        self.calls["update_case"] = patch
         if case_id != CASE_ID:
             raise NotFoundError("O caso indicado não existe.")
         if not patch:
@@ -215,17 +332,17 @@ class FakeService:
         # a mensagem em português que chega ao operador nasce ali.
         e_ticket = normalize_e_ticket(patch["e_ticket"]) if "e_ticket" in patch else None
 
-        caso = self.cases[0]
+        case = self.cases[0]
         if "e_ticket" in patch:
-            caso.e_ticket = e_ticket
+            case.e_ticket = e_ticket
         if "status" in patch:
-            caso.status = STATUS_FROM_JSON[patch["status"]]
-            caso.status_since = date(2026, 9, 10)
-        return caso, dict(SUMMARY), self.key_counts.get(caso.key, (1, 1))
+            case.status = STATUS_FROM_JSON[patch["status"]]
+            case.status_since = date(2026, 9, 10)
+        return case, dict(SUMMARY), self.key_counts.get(case.key, (1, 1))
 
     async def build_report(self, execution_id: str) -> tuple[bytes, str]:
-        execucao = self._guard(execution_id)
-        return b"PK\x03\x04conteudo-xlsx", f"{execucao.report_name}.xlsx"
+        execution = self._guard(execution_id)
+        return b"PK\x03\x04conteudo-xlsx", f"{execution.report_name}.xlsx"
 
 
 class FakeSettingsService:
@@ -268,7 +385,7 @@ def settings_service() -> FakeSettingsService:
     return FakeSettingsService()
 
 
-DA_AREA = Principal(
+AREA_MEMBER = Principal(
     subject="6961d9f6-5529-457b-93cb-db82230a00cb",
     username="m001926",
     name="Operador de teste",
@@ -297,14 +414,14 @@ def client(service: FakeService, settings_service: FakeSettingsService) -> Any:
     app.dependency_overrides[get_validation_service] = lambda: service
     app.dependency_overrides[get_case_service] = lambda: service
     app.dependency_overrides[get_settings_service] = lambda: settings_service
-    app.dependency_overrides[auth.principal] = lambda: DA_AREA
-    with TestClient(app) as cliente:
-        yield cliente
+    app.dependency_overrides[auth.principal] = lambda: AREA_MEMBER
+    with TestClient(app) as http_client:
+        yield http_client
     app.dependency_overrides.clear()
 
 
 @pytest.fixture
-def ficheiros() -> dict[str, tuple[str, bytes, str]]:
+def files() -> dict[str, tuple[str, bytes, str]]:
     """Os três campos multipart. O conteúdo é irrelevante: ninguém o abre."""
     xlsx = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
     return {

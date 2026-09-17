@@ -13,14 +13,14 @@ from typing import Any
 from .vocabulary import CaseDateSource, CaseType, ClosingType, Validation
 
 
-def _to_camel(campo: str) -> str:
+def _to_camel(field_name: str) -> str:
     """`simo_key_total` → `simoKeyTotal`.
 
     Escrito à mão para o domínio não passar a depender do Pydantic por causa de
     quatro linhas — é o mesmo motivo por que aqui não entra FastAPI nem openpyxl.
     """
-    cabeca, *resto = campo.split("_")
-    return cabeca + "".join(parte.capitalize() for parte in resto)
+    head, *rest = field_name.split("_")
+    return head + "".join(part.capitalize() for part in rest)
 
 
 @dataclass(slots=True)
@@ -140,6 +140,9 @@ class ClosingSummary:
     duplicated_periods: int = 0
     # Linhas repetidas no export da SIMO que foram descartadas antes de somar.
     duplicates_discarded: int = 0
+    # O mesmo, do lado do Banka: movimentos com o N_DOCUMENTO já visto (um dia
+    # exportado duas vezes), descartados antes de somar a chave.
+    banka_duplicates_discarded: int = 0
     # Sinais de qualidade dos ficheiros de entrada (não bloqueiam a execução):
     #   keyCollisions — chaves que agregam >1 período bruto por colisão em % 1000.
     #   unregisteredPos — POS com fechos mas sem linha na Lista de POS (comerciante '—').
@@ -157,6 +160,12 @@ class ClosingSummary:
     # dinheiro em falta, que é o contrário do que aconteceu.
     simo_amount_duplicated: Decimal = Decimal(0)
     banka_amount_duplicated: Decimal = Decimal(0)
+    # Créditos do Banka sem fecho, por analisar, depois de a conciliação arrumar os
+    # fechos da chave — quantos e quanto. Nascem a zero: só a conciliação os cria
+    # (ver `ExecutionRepository.sum_unmatched_credits`). O montante continua
+    # também dentro de `banka_amount_duplicated`, que é de onde veio.
+    unmatched_credits: int = 0
+    banka_amount_unmatched: Decimal = Decimal(0)
 
     def to_json_dict(self) -> dict[str, Any]:
         """Os indicadores como documento JSON, que é a forma em que são guardados.
@@ -171,8 +180,8 @@ class ClosingSummary:
         camelCase e não se migram por causa disto.
         """
         return {
-            _to_camel(campo): float(valor) if isinstance(valor, Decimal) else valor
-            for campo, valor in asdict(self).items()
+            _to_camel(field_name): float(value) if isinstance(value, Decimal) else value
+            for field_name, value in asdict(self).items()
         }
 
 

@@ -228,7 +228,11 @@ def _add_summary_sheet(
         case = case_by_key.get(detail.key)
         if case is None:
             continue
-        bucket = "resolved" if case.status == "resolved" else detail.validation
+        # Um fecho conciliado num caso ainda aberto (a chave só em parte) já não
+        # está por tratar: conta como regularizado, e não como «confere», que
+        # não é linha deste bloco.
+        reconciled = detail.validation == Validation.MATCH
+        bucket = "resolved" if case.status == "resolved" or reconciled else detail.validation
         counts[bucket] += 1
         amounts[bucket] += detail.simo_closing_total
 

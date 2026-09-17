@@ -38,7 +38,7 @@ def _reconcile_fixtures():
     with SIMO_CLOSINGS.open("rb") as stream:
         closings = parsers.parse_simo_closings(stream, SIMO_CLOSINGS.name)
     with BANKA_CREDITS.open("rb") as stream:
-        credits = parsers.parse_banka_credits(stream, BANKA_CREDITS.name)
+        credits, _discarded = parsers.parse_banka_credits(stream, BANKA_CREDITS.name)
     return reconcile(pos_list, closings, credits)
 
 

@@ -25,8 +25,10 @@ import {
   CASE_STATUS_WAIT,
   OPEN_CASE_STATUSES,
 } from '../data/case-status';
+import { caseToDetail } from '../data/case-detail';
 import { DUPLICATION_SIDE_LABEL, duplicationSideOf } from '../data/duplication-side';
 import type {
+  CaseMatches,
   CasePatch,
   CaseStatus,
   CaseType,
@@ -394,6 +396,7 @@ const OPEN_SLA_STATES: readonly SlaState[] = ['overdue', 'due-soon', 'on-track']
           [detail]="detail"
           [settings]="settings()"
           (updated)="updated.emit($event)"
+          (reconciled)="reconciled.emit($event)"
           (closed)="opened.set(null)"
         />
       }
@@ -407,6 +410,7 @@ export class PendingCasesTableComponent {
   /** Onde o scroll da página assenta antes de a lista correr — a barra de separadores. */
   readonly scrollAnchor = input<HTMLElement | undefined>(undefined);
   readonly updated = output<CasePatch>();
+  readonly reconciled = output<CaseMatches>();
 
   /** O caso aberto no painel lateral — o mesmo painel do "Todos os Fechos". */
   protected readonly opened = signal<ClosingDetail | null>(null);
@@ -556,26 +560,7 @@ export class PendingCasesTableComponent {
    * o `closingType` no cabeçalho corrige-se sozinho assim que o painel carrega
    * os fechos reais da chave (ver `key-detail-panel.ts`).
    */
-  protected toDetail = (item: PendingCase): ClosingDetail => ({
-    id: item.id,
-    posId: item.posId,
-    merchant: item.merchant,
-    accountNumber: item.accountNumber,
-    period: item.period,
-    key: item.key,
-    simoClosingDate: '',
-    operationNumber: 0,
-    simoClosingTotal: item.simoAmount,
-    simoKeyTotal: item.simoAmount,
-    closingDescription: null,
-    bankaCreditDate: null,
-    bankaClosingTotal: item.bankaAmount,
-    closingType: 'n.a',
-    validation: item.type,
-    difference: item.bankaAmount - item.simoAmount,
-    simoClosingsCount: item.simoClosingsCount,
-    bankaMovementsCount: item.bankaMovementsCount,
-  });
+  protected toDetail = caseToDetail;
 
   protected slaOf = (item: PendingCase): SlaView => this.slaByCase().get(item.id)!;
 

@@ -16,7 +16,8 @@ import type { ClosingSummary } from '../data/models';
 interface Row {
   readonly key: string;
   readonly label: string;
-  readonly count: number;
+  /** `null` quando a linha não conta fechos — os créditos sem fecho são dinheiro, não fechos. */
+  readonly count: number | null;
   readonly simo: number;
   readonly banka: number;
   readonly barClass: string;
@@ -114,7 +115,7 @@ type Source = 'simo' | 'banka' | 'difference';
                   </span>
                 </td>
                 <td class="px-4 py-3 text-right whitespace-nowrap tabular-nums">
-                  {{ count(row.count) }}
+                  {{ row.count === null ? '—' : count(row.count) }}
                 </td>
                 <td class="px-4 py-3 text-right whitespace-nowrap tabular-nums">
                   {{ amount(row.simo) }}
@@ -226,15 +227,28 @@ export class AmountReconciliationComponent {
         description: 'Apurado na SIMO, mas sem crédito correspondente no Banka.',
       },
       // Banka duplica tal como a SIMO aqui; dar o lado por zero punha esse dinheiro como em falta.
+      // Os créditos sem fecho saem daqui para a linha de baixo: é o mesmo dinheiro,
+      // mas já não é ambiguidade de período, é crédito por explicar.
       {
         key: 'duplicated',
         label: 'Períodos duplicados',
         count: s.duplicatedPeriods,
         simo: s.simoAmountDuplicated,
-        banka: s.bankaAmountDuplicated,
+        banka: s.bankaAmountDuplicated - (s.bankaAmountUnmatched ?? 0),
         barClass: 'bg-amber-500',
         dotClass: 'bg-amber-500',
-        description: 'Um POS tem mais de um fecho para o mesmo período — a chave é POS + período.',
+        description: 'O mesmo POS e período aparece mais de uma vez na SIMO ou no Banka.',
+      },
+      // Dinheiro do Banka sem fecho na SIMO: não tem lado SIMO nem fechos a contar.
+      {
+        key: 'unmatched',
+        label: 'Crédito sem fecho na SIMO',
+        count: null,
+        simo: 0,
+        banka: s.bankaAmountUnmatched ?? 0,
+        barClass: 'bg-violet-500',
+        dotClass: 'bg-violet-500',
+        description: 'Creditado no Banka, mas sem fecho correspondente na SIMO.',
       },
     ];
   });

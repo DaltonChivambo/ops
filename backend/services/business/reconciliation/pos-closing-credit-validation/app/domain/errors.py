@@ -39,6 +39,10 @@ class InvalidETicketError(BusinessRuleError):
     """O e-Ticket não tem forma de referência (ver `domain/e_ticket.py`)."""
 
 
+class InvalidMatchError(BusinessRuleError):
+    """Um par fecho ↔ crédito que não se pode fazer (ver `domain/matching.py`)."""
+
+
 class InvalidSlaSettingsError(BusinessRuleError):
     """O prazo de tratamento pedido não faz sentido (ver `domain/sla.py`)."""
 

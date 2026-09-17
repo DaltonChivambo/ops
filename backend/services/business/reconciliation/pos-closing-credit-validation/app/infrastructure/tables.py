@@ -59,7 +59,7 @@ def _pg_enum(enum: type[StrEnum], name: str) -> sa.Enum:
         enum,
         name=name,
         native_enum=True,
-        values_callable=lambda membros: [membro.value for membro in membros],
+        values_callable=lambda members: [member.value for member in members],
     )
 
 
@@ -176,6 +176,37 @@ class PendingCase(Base):
     # estado, ao contrário do `resolvedAt`, que só existe no fim.
     status_since: Mapped[date] = mapped_column("statusSince", sa.Date, default=date.today)
     resolved_at: Mapped[date | None] = mapped_column("resolvedAt", sa.Date, nullable=True)
+
+
+class ClosingMatch(Base):
+    """Um fecho da SIMO conciliado com um movimento do Banka, numa chave duplicada.
+
+    Um par só por fecho e um só por movimento — as duas `unique` são a regra de
+    `domain/matching.py` guardada também na base, para que dois pedidos ao mesmo
+    tempo não consigam fazer um movimento pagar dois fechos.
+
+    Apagado em cascata com a execução, e com o fecho ou o movimento: sem um dos
+    lados, o par não diz nada.
+    """
+
+    __tablename__ = "closing_match"
+    __table_args__ = (sa.Index("ix_closing_match_execution_key", "executionId", "key"),)
+
+    id: Mapped[str] = mapped_column(sa.String(36), primary_key=True, default=_uuid)
+    execution_id: Mapped[str] = mapped_column(
+        "executionId", sa.ForeignKey("execution.id", ondelete="CASCADE")
+    )
+    key: Mapped[str] = mapped_column(sa.String)
+    closing_id: Mapped[str] = mapped_column(
+        "closingId", sa.ForeignKey("closing_detail.id", ondelete="CASCADE"), unique=True
+    )
+    movement_id: Mapped[str] = mapped_column(
+        "movementId", sa.ForeignKey("credit_movement.id", ondelete="CASCADE"), unique=True
+    )
+    # Conciliar declara «este crédito pagou este fecho», e é isso que tira o caso
+    # da fila: fica registado quem o disse e quando.
+    matched_at: Mapped[datetime] = mapped_column("matchedAt", sa.DateTime, default=_now)
+    matched_by: Mapped[str | None] = mapped_column("matchedBy", sa.String, nullable=True)
 
 
 class Setting(Base):

@@ -11,14 +11,21 @@ recebe, e é por isso que tudo o que corre num pedido partilha a transacção.
 
 import uuid
 from collections.abc import Collection, Mapping
+from decimal import Decimal
 from typing import Any
 
 import sqlalchemy as sa
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.domain.models import ReconciliationResult
-from app.domain.vocabulary import UploadSlot, Validation
-from app.infrastructure.tables import ClosingDetail, CreditMovement, Execution, PendingCase
+from app.domain.vocabulary import CaseStatus, CaseType, UploadSlot, Validation
+from app.infrastructure.tables import (
+    ClosingDetail,
+    ClosingMatch,
+    CreditMovement,
+    Execution,
+    PendingCase,
+)
 from app.pagination import Page
 
 # O Postgres aceita inserções grandes, mas lotes desta ordem mantêm a memória
@@ -157,8 +164,9 @@ class ExecutionRepository:
         page: Page,
         validation: str | None = None,
         search: str | None = None,
+        unmatched_credits_only: bool = False,
     ) -> tuple[list[ClosingDetail], int]:
-        where = _details_where(execution_id, validation, search)
+        where = _details_where(execution_id, validation, search, unmatched_credits_only)
         items_result = await self._session.execute(
             sa.select(ClosingDetail)
             .where(*where)
@@ -190,19 +198,39 @@ class ExecutionRepository:
 
     async def list_details_by_key(self, execution_id: str, key: str) -> list[ClosingDetail]:
         """Os fechos SIMO de uma chave, na ordem em que o operador os lê."""
+        return await self.list_details_by_keys(execution_id, [key])
+
+    async def list_details_by_keys(
+        self, execution_id: str, keys: Collection[str]
+    ) -> list[ClosingDetail]:
+        """Os fechos SIMO de várias chaves numa query só — juntos por chave, e por data."""
+        if not keys:
+            return []
         result = await self._session.execute(
             sa.select(ClosingDetail)
-            .where(ClosingDetail.execution_id == execution_id, ClosingDetail.key == key)
-            .order_by(ClosingDetail.simo_closing_date.asc(), ClosingDetail.operation_number.asc())
+            .where(ClosingDetail.execution_id == execution_id, ClosingDetail.key.in_(keys))
+            .order_by(
+                ClosingDetail.key.asc(),
+                ClosingDetail.simo_closing_date.asc(),
+                ClosingDetail.operation_number.asc(),
+            )
         )
         return list(result.scalars().all())
 
     async def list_movements_by_key(self, execution_id: str, key: str) -> list[CreditMovement]:
         """Os movimentos de crédito do Banka de uma chave, por data."""
+        return await self.list_movements_by_keys(execution_id, [key])
+
+    async def list_movements_by_keys(
+        self, execution_id: str, keys: Collection[str]
+    ) -> list[CreditMovement]:
+        """Os movimentos do Banka de várias chaves numa query só — juntos por chave, e por data."""
+        if not keys:
+            return []
         result = await self._session.execute(
             sa.select(CreditMovement)
-            .where(CreditMovement.execution_id == execution_id, CreditMovement.key == key)
-            .order_by(CreditMovement.movement_date.asc())
+            .where(CreditMovement.execution_id == execution_id, CreditMovement.key.in_(keys))
+            .order_by(CreditMovement.key.asc(), CreditMovement.movement_date.asc())
         )
         return list(result.scalars().all())
 
@@ -210,7 +238,7 @@ class ExecutionRepository:
         self, execution_id: str, search: str | None = None
     ) -> dict[str, int]:
         """Contagens para os chips — sobre TODAS as linhas da execução, não da página."""
-        counts: dict[str, int] = {"all": 0, **dict.fromkeys(Validation, 0)}
+        counts: dict[str, int] = {"all": 0, "unmatched": 0, **dict.fromkeys(Validation, 0)}
         where = _details_where(execution_id, None, search)
         result = await self._session.execute(
             sa.select(ClosingDetail.validation, sa.func.count())
@@ -220,6 +248,14 @@ class ExecutionRepository:
         for validation, total in result.all():
             counts[validation] = total
             counts["all"] += total
+        # Os fechos das chaves com crédito sem fecho — o número do filtro, que não é
+        # um estado: estes fechos já estão em «confere».
+        unmatched = await self._session.execute(
+            sa.select(sa.func.count())
+            .select_from(ClosingDetail)
+            .where(*_details_where(execution_id, None, search, unmatched_credits_only=True))
+        )
+        counts["unmatched"] = unmatched.scalar_one()
         return counts
 
     async def count_by_key(
@@ -254,14 +290,114 @@ class ExecutionRepository:
             banka_counts[key] = count
         return {key: (simo_counts.get(key, 0), banka_counts.get(key, 0)) for key in keys}
 
+    async def set_closings_validation(
+        self,
+        execution_id: str,
+        closing_ids: Collection[str],
+        validation: Validation,
+        difference: Decimal | None,
+    ) -> None:
+        """Muda o estado de fechos já gravados — é o que a conciliação faz a um fecho."""
+        if not closing_ids:
+            return
+        await self._session.execute(
+            sa.update(ClosingDetail)
+            .where(ClosingDetail.execution_id == execution_id, ClosingDetail.id.in_(closing_ids))
+            .values(validation=validation, difference=difference)
+        )
+
+    async def sum_unmatched_credits(self, execution_id: str) -> tuple[int, Decimal]:
+        """Créditos do Banka sem fecho, por analisar — quantos, e quanto somam.
+
+        Contam os créditos que nenhum par levou, nas chaves de períodos duplicados
+        em que todos os fechos já estão conciliados e o caso continua aberto. É
+        dinheiro que ficou por explicar depois de a conciliação arrumar os fechos
+        — ver `settles_case`. Numa chave ainda com fechos por ligar, os créditos
+        soltos continuam a contar como período duplicado; quando o caso fecha,
+        saem daqui.
+        """
+        result = await self._session.execute(
+            sa.select(
+                sa.func.count(), sa.func.coalesce(sa.func.sum(CreditMovement.amount), 0)
+            ).where(*_unmatched_credits_where(execution_id))
+        )
+        count, total = result.one()
+        return int(count), Decimal(total)
+
+    async def unmatched_credits_by_key(
+        self, execution_id: str, keys: Collection[str]
+    ) -> dict[str, tuple[int, Decimal]]:
+        """Os mesmos créditos sem fecho, por chave — só para as chaves pedidas (uma página)."""
+        if not keys:
+            return {}
+        result = await self._session.execute(
+            sa.select(CreditMovement.key, sa.func.count(), sa.func.sum(CreditMovement.amount))
+            .where(*_unmatched_credits_where(execution_id), CreditMovement.key.in_(keys))
+            .group_by(CreditMovement.key)
+        )
+        return {key: (int(count), Decimal(total)) for key, count, total in result.all()}
+
     async def save_summary(self, execution_id: str, summary: dict[str, Any]) -> None:
         await self._session.execute(
             sa.update(Execution).where(Execution.id == execution_id).values(summary=summary)
         )
 
 
-def _details_where(execution_id: str, validation: str | None, search: str | None) -> list[Any]:
+def _unmatched_credits_where(execution_id: str) -> list[Any]:
+    """O que é um crédito sem fecho por analisar — a definição única, em condições sobre
+    `CreditMovement`, usada no total do `summary`, no filtro da tabela e em cada linha.
+
+    Um crédito que nenhum par levou, numa chave de períodos duplicados em que todos
+    os fechos já estão conciliados e o caso continua aberto. Numa chave ainda com
+    fechos por ligar, os créditos soltos contam como período duplicado; quando o
+    caso fecha, saem daqui. Ver `settles_case`.
+
+    Só os do intervalo da execução: um crédito com data depois do último dia é do
+    intervalo seguinte, e não conta (ver `within_period`).
+    """
+    open_keys = sa.select(PendingCase.key).where(
+        PendingCase.execution_id == execution_id,
+        PendingCase.type == CaseType.DUPLICATED,
+        PendingCase.status != CaseStatus.RESOLVED,
+    )
+    reconciled_keys = sa.select(ClosingMatch.key).where(ClosingMatch.execution_id == execution_id)
+    keys_with_unmatched_closings = sa.select(ClosingDetail.key).where(
+        ClosingDetail.execution_id == execution_id,
+        ClosingDetail.validation == Validation.DUPLICATED,
+    )
+    used_movements = sa.select(ClosingMatch.movement_id).where(
+        ClosingMatch.execution_id == execution_id
+    )
+    period_end = (
+        sa.select(Execution.period_end).where(Execution.id == execution_id).scalar_subquery()
+    )
+    return [
+        CreditMovement.execution_id == execution_id,
+        CreditMovement.key.in_(open_keys),
+        CreditMovement.key.in_(reconciled_keys),
+        CreditMovement.key.not_in(keys_with_unmatched_closings),
+        CreditMovement.id.not_in(used_movements),
+        sa.or_(
+            CreditMovement.movement_date.is_(None),
+            CreditMovement.movement_date <= period_end,
+        ),
+    ]
+
+
+def _details_where(
+    execution_id: str,
+    validation: str | None,
+    search: str | None,
+    unmatched_credits_only: bool = False,
+) -> list[Any]:
     conditions: list[Any] = [ClosingDetail.execution_id == execution_id]
+    if unmatched_credits_only:
+        # Os fechos das chaves que têm créditos do Banka sem fecho por analisar.
+        conditions.append(
+            ClosingDetail.key.in_(
+                sa.select(CreditMovement.key).where(*_unmatched_credits_where(execution_id))
+            )
+        )
     if validation:
         # Lista de estados a mostrar, separada por vírgulas. Tokens desconhecidos
         # caem fora, por isso a selecção vazia (o cliente manda «nenhum») não

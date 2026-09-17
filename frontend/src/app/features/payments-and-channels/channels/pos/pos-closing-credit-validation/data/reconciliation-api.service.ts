@@ -5,13 +5,18 @@ import { firstValueFrom } from 'rxjs';
 import { ApiError } from '../../../../../../core/http/api-error';
 import { environment } from '../../../../../../../environments/environment';
 import type {
+  CaseMatches,
+  CaseReconciliation,
   CaseStatus,
+  ClosingMatch,
   ClosingSummary,
   DetailsPage,
   DetailsQuery,
   ExecutionOutcome,
   KeyBreakdown,
   PendingCase,
+  ReconciliationBatch,
+  ReconciliationCandidate,
   SlaSettings,
   UploadSlotId,
   Validation,
@@ -25,7 +30,7 @@ const EMPTY_PAGE: DetailsPage = {
   total: 0,
   page: 1,
   perPage: 50,
-  counts: { all: 0, match: 0, mismatch: 0, missing: 0, zero: 0, duplicated: 0 },
+  counts: { all: 0, unmatched: 0, match: 0, mismatch: 0, missing: 0, zero: 0, duplicated: 0 },
 };
 
 /**
@@ -69,6 +74,7 @@ export class ReconciliationApi {
     if (query.page !== undefined) params = params.set('page', query.page);
     if (query.perPage !== undefined) params = params.set('perPage', query.perPage);
     if (query.q) params = params.set('q', query.q);
+    if (query.unmatchedCredits) params = params.set('unmatchedCredits', true);
 
     const validation = serializeValidations(query.validation);
     if (validation !== null) params = params.set('validation', validation);
@@ -101,6 +107,34 @@ export class ReconciliationApi {
         `${this.base}/casos/${caseId}`,
         patch,
       ),
+    );
+  }
+
+  /**
+   * Guarda os pares fecho ↔ crédito de um caso de períodos duplicados. Conciliar
+   * todos os fechos regulariza o caso — é o servidor que o decide e o devolve.
+   */
+  reconcileCase(caseId: string, matches: readonly ClosingMatch[]): Promise<CaseReconciliation> {
+    return firstValueFrom(
+      this.http.put<CaseReconciliation>(`${this.base}/casos/${caseId}/conciliacao`, { matches }),
+    );
+  }
+
+  /** Os casos de períodos duplicados por tratar que têm créditos, com os pares sugeridos. */
+  listReconciliationCandidates(executionId: string): Promise<ReconciliationCandidate[]> {
+    return firstValueFrom(
+      this.http.get<ReconciliationCandidate[]>(
+        `${this.base}/execucoes/${executionId}/conciliacoes`,
+      ),
+    );
+  }
+
+  /** Concilia vários casos de uma vez — o servidor aceita todos ou nenhum. */
+  reconcileCases(executionId: string, items: readonly CaseMatches[]): Promise<ReconciliationBatch> {
+    return firstValueFrom(
+      this.http.put<ReconciliationBatch>(`${this.base}/execucoes/${executionId}/conciliacoes`, {
+        items,
+      }),
     );
   }
 

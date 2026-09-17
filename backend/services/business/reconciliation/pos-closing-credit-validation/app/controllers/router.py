@@ -7,7 +7,7 @@ produção é o Traefik que a corta (`stripprefix`), em desenvolvimento é o
 
 from fastapi import APIRouter, Depends
 
-from app.controllers import cases, executions, settings
+from app.controllers import cases, executions, reconciliations, settings
 from app.controllers.dependencies import require_area
 
 # A autenticação está aqui, no router inteiro, e não rota a rota: uma rota
@@ -19,4 +19,5 @@ router = APIRouter(
 )
 router.include_router(executions.router)
 router.include_router(cases.router)
+router.include_router(reconciliations.router)
 router.include_router(settings.router)
