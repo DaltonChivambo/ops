@@ -11,8 +11,6 @@ e devolve objectos. Quem os transforma em JSON é o controlador.
 from collections import defaultdict
 from collections.abc import Iterable, Mapping
 from dataclasses import dataclass
-from datetime import date
-from decimal import Decimal
 from typing import IO, Any, Protocol
 
 from app.domain.errors import NotFoundError
@@ -45,8 +43,6 @@ class DetailsPage:
     counts: dict[str, int]
     # (nº de fechos SIMO, nº de movimentos Banka) das chaves duplicadas da página.
     key_counts: dict[str, tuple[int, int]]
-    # (nº, montante) dos créditos sem fecho por analisar, das chaves da página que os têm.
-    unmatched_by_key: dict[str, tuple[int, Decimal]]
 
 
 @dataclass(frozen=True, slots=True)
@@ -103,11 +99,8 @@ class ValidationService:
         page: Page,
         validation: str | None,
         search: str | None,
-        unmatched_credits_only: bool = False,
     ) -> DetailsPage:
-        details, total = await self._executions.list_details(
-            execution_id, page, validation, search, unmatched_credits_only
-        )
+        details, total = await self._executions.list_details(execution_id, page, validation, search)
         counts = await self._executions.count_details_by_validation(execution_id, search)
         duplicated_keys = {
             detail.key for detail in details if detail.validation == Validation.DUPLICATED
@@ -117,9 +110,6 @@ class ValidationService:
             total=total,
             counts=counts,
             key_counts=await self._executions.count_by_key(execution_id, duplicated_keys),
-            unmatched_by_key=await self._executions.unmatched_credits_by_key(
-                execution_id, {detail.key for detail in details}
-            ),
         )
 
     async def get_key_breakdown(self, execution_id: str, key: str) -> dict[str, Any]:
@@ -129,13 +119,12 @@ class ValidationService:
         fecho isolado não tem crédito próprio de que se possa falar. Clicar num fecho
         abre a chave a que ele pertence.
         """
-        execution = await self.get_execution(execution_id)  # 404 se a execução não existir
+        await self.get_execution(execution_id)  # 404 se a execução não existir
         details = await self._executions.list_details_by_key(execution_id, key)
         if not details:
             raise NotFoundError("Não há nenhum fecho com esta chave nesta execução.")
         movements = await self._executions.list_movements_by_key(execution_id, key)
         return {
-            "period_end": execution.period_end,
             "key": key,
             "closings": details,
             "movements": movements,
@@ -152,7 +141,7 @@ class ValidationService:
 
     async def list_reconciliation_candidates(
         self, execution_id: str
-    ) -> tuple[date, list[ReconciliationCandidate]]:
+    ) -> list[ReconciliationCandidate]:
         """As chaves que se conciliam com crédito igual — cada fecho com um crédito do mesmo valor.
 
         Só essas: uma chave onde algum fecho não tem crédito igual não se concilia
@@ -162,11 +151,8 @@ class ValidationService:
 
         Três queries para todos os casos, e não três por caso: numa execução com
         centenas de chaves duplicadas o pedido não pode crescer com elas.
-
-        Vai com o último dia do intervalo, para o ecrã separar os créditos que
-        sobram dos que já são do intervalo seguinte.
         """
-        execution = await self.get_execution(execution_id)  # 404 se a execução não existir
+        await self.get_execution(execution_id)  # 404 se a execução não existir
         cases = await self._cases.list_open_duplicated(execution_id)
         keys = [case.key for case in cases]
         closings = _group_by_key(await self._executions.list_details_by_keys(execution_id, keys))
@@ -194,7 +180,7 @@ class ValidationService:
                     suggested_matches=suggested,
                 )
             )
-        return execution.period_end, candidates
+        return candidates
 
     async def build_report(self, execution_id: str) -> tuple[bytes, str]:
         """Gera o .xlsx da execução a partir do que está persistido."""

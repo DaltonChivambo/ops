@@ -160,12 +160,6 @@ class ClosingSummary:
     # dinheiro em falta, que é o contrário do que aconteceu.
     simo_amount_duplicated: Decimal = Decimal(0)
     banka_amount_duplicated: Decimal = Decimal(0)
-    # Créditos do Banka sem fecho, por analisar, depois de a conciliação arrumar os
-    # fechos da chave — quantos e quanto. Nascem a zero: só a conciliação os cria
-    # (ver `ExecutionRepository.sum_unmatched_credits`). O montante continua
-    # também dentro de `banka_amount_duplicated`, que é de onde veio.
-    unmatched_credits: int = 0
-    banka_amount_unmatched: Decimal = Decimal(0)
 
     def to_json_dict(self) -> dict[str, Any]:
         """Os indicadores como documento JSON, que é a forma em que são guardados.

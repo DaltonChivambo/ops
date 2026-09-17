@@ -12,7 +12,6 @@ frontend sempre os leu assim: `D_PLUS_1` → `D+1`, `NA` → `n.a`, `in_review` 
 """
 
 from datetime import date, datetime
-from decimal import Decimal
 from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict
@@ -94,10 +93,6 @@ class ClosingDetailOut(Schema):
     # duplicação do lado SIMO, do lado Banka, ou de ambos.
     simo_closings_count: int
     banka_movements_count: int
-    # Créditos do Banka sem fecho por analisar nesta chave — quantos e quanto.
-    # Também à parte da linha, como as contagens acima; zero em quase todas.
-    unmatched_credits: int
-    banka_amount_unmatched: float
 
     @classmethod
     def from_row(
@@ -105,8 +100,6 @@ class ClosingDetailOut(Schema):
         row: ClosingDetail,
         simo_closings_count: int = 1,
         banka_movements_count: int = 1,
-        unmatched_credits: int = 0,
-        banka_amount_unmatched: Decimal = Decimal(0),
     ) -> "ClosingDetailOut":
         return cls(
             id=row.id,
@@ -129,8 +122,6 @@ class ClosingDetailOut(Schema):
             difference=float(row.difference) if row.difference is not None else None,
             simo_closings_count=simo_closings_count,
             banka_movements_count=banka_movements_count,
-            unmatched_credits=unmatched_credits,
-            banka_amount_unmatched=float(banka_amount_unmatched),
         )
 
 
@@ -278,14 +269,10 @@ class KeyBreakdownOut(Schema):
     # `domain/matching.py`. O ecrã só os usa nas chaves de períodos duplicados.
     matches: list[ClosingMatchOut]
     suggested_matches: list[ClosingMatchOut]
-    # O último dia do intervalo da execução: um crédito de depois dele não é um
-    # crédito sem fecho desta execução — ver `within_period`.
-    period_end: date
 
     @classmethod
     def from_parts(
         cls,
-        period_end: date,
         key: str,
         closings: list[ClosingDetail],
         movements: list[CreditMovement],
@@ -304,7 +291,6 @@ class KeyBreakdownOut(Schema):
             case=PendingCaseOut.from_row(case, simo_count, banka_count) if case else None,
             matches=[ClosingMatchOut.from_match(match) for match in matches],
             suggested_matches=[ClosingMatchOut.from_match(match) for match in suggested_matches],
-            period_end=period_end,
         )
 
 
@@ -312,8 +298,6 @@ class DetailCountsOut(Schema):
     """Contagens dos chips — sobre toda a execução, não sobre a página."""
 
     all: int
-    # Fechos das chaves com crédito sem fecho — o número do filtro, não um estado.
-    unmatched: int
     match: int
     mismatch: int
     missing: int

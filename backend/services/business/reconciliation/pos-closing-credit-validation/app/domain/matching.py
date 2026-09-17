@@ -10,13 +10,10 @@ tolerância, pela mesma razão — um crédito que difere num cêntimo não é o
 daquele fecho, é outro problema. E cada lado entra num par só: um movimento não
 paga dois fechos, e um fecho não é pago duas vezes.
 
-Uma chave está conciliada quando **todos os fechos da SIMO** têm par. Os
-movimentos do Banka podem sobrar — de outro período real que cai na mesma chave
-(`período % 1000`), ou de um fecho que falta no export da SIMO. Os fechos com par
-conferem na mesma, mas um crédito que sobra é dinheiro sem fecho, e o caso só
-fica arrumado quando alguém o analisar (ver `settles_case`) — se for do
-intervalo da execução: um crédito de depois do último dia é do intervalo
-seguinte, e não conta.
+Uma chave está conciliada quando **todos os fechos da SIMO** têm par. O que
+se valida são os fechos da SIMO contra o Banka: os movimentos do Banka que sobram
+(de outro período real que cai na mesma chave, `período % 1000`) não são fechos,
+e não seguram nada.
 
 Camada de domínio: sem I/O, sem tabelas — recebe os dois lados já lidos.
 """
@@ -111,47 +108,6 @@ def is_fully_matched(matches: Sequence[Match], closings: Sequence[MatchSide]) ->
     """Todos os fechos da SIMO têm par — os créditos podem sobrar (ver o topo)."""
     matched = {match.closing_id for match in matches}
     return bool(closings) and all(closing.id in matched for closing in closings)
-
-
-def unmatched_movements(
-    matches: Sequence[Match], movements: Sequence[MatchSide], period_end: date | None = None
-) -> list[MatchSide]:
-    """Os créditos do Banka que nenhum fecho levou — dinheiro sem fecho na SIMO.
-
-    Com `period_end`, só os do intervalo da execução. Um crédito com data depois
-    do último dia pertence ao intervalo seguinte — é lá que se procura o fecho —,
-    e por isso não conta aqui. Sem data não se sabe, e conta.
-    """
-    used = {match.movement_id for match in matches}
-    return [
-        movement
-        for movement in movements
-        if movement.id not in used and within_period(movement, period_end)
-    ]
-
-
-def within_period(side: MatchSide, period_end: date | None) -> bool:
-    """A data não passa do último dia do intervalo — ou não há data, ou não há intervalo."""
-    return period_end is None or side.date is None or side.date <= period_end
-
-
-def settles_case(
-    matches: Sequence[Match],
-    closings: Sequence[MatchSide],
-    movements: Sequence[MatchSide],
-    period_end: date | None = None,
-) -> bool:
-    """A conciliação arruma o caso: todos os fechos com par, e nenhum crédito a sobrar.
-
-    Um crédito que sobra é dinheiro que o Banka creditou sem fecho correspondente
-    na SIMO — pode ser de outro período que cai na mesma chave, ou de um fecho que
-    falta no export —, e alguém tem de o ver. Os fechos conciliam-se na mesma (os
-    que têm par conferem), mas o caso fica aberto até esse crédito ser tratado.
-    Os créditos de depois do intervalo não seguram o caso (ver `unmatched_movements`).
-    """
-    return is_fully_matched(matches, closings) and not unmatched_movements(
-        matches, movements, period_end
-    )
 
 
 # ─── O que a conciliação muda no apuramento ─────────────────────────────────

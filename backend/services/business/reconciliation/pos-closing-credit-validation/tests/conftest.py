@@ -33,7 +33,6 @@ from app.domain.matching import (
     Match,
     MatchEffect,
     is_fully_matched,
-    settles_case,
     suggest_matches,
     validate_matches,
 )
@@ -152,7 +151,6 @@ class FakeService:
         self.movements = [make_movement()]
         self.counts = {
             "all": 1,
-            "unmatched": 0,
             "match": 0,
             "mismatch": 1,
             "missing": 0,
@@ -164,7 +162,6 @@ class FakeService:
         # omissão: a fixture por omissão é `mismatch`, não pede contagem nenhuma.
         self.key_counts: dict[str, tuple[int, int]] = {}
         # (nº, montante) dos créditos sem fecho por chave — vazio por omissão.
-        self.unmatched_by_key: dict[str, tuple[int, Decimal]] = {}
         self.matches: list[Match] = []
         self.calls: dict[str, Any] = {}
 
@@ -194,7 +191,6 @@ class FakeService:
         page: Any,
         validation: Any,
         search: Any,
-        unmatched_credits_only: bool = False,
     ) -> DetailsPage:
         self.calls["list_details"] = {
             "page": page.page,
@@ -203,7 +199,6 @@ class FakeService:
             "perPage": page.per_page,
             "validation": validation,
             "search": search,
-            "unmatchedCredits": unmatched_credits_only,
         }
         self._guard(execution_id)
         return DetailsPage(
@@ -211,7 +206,6 @@ class FakeService:
             total=len(self.details),
             counts=self.counts,
             key_counts=self.key_counts,
-            unmatched_by_key=self.unmatched_by_key,
         )
 
     async def get_key_breakdown(self, execution_id: str, key: str) -> dict[str, Any]:
@@ -219,7 +213,6 @@ class FakeService:
         if key != KEY:
             raise NotFoundError("Não há nenhum fecho com esta chave nesta execução.")
         return {
-            "period_end": make_execution().period_end,
             "key": key,
             "closings": self.details,
             "movements": self.movements,
@@ -233,19 +226,18 @@ class FakeService:
 
     async def list_reconciliation_candidates(
         self, execution_id: str
-    ) -> tuple[date, list[ReconciliationCandidate]]:
+    ) -> list[ReconciliationCandidate]:
         self._guard(execution_id)
         case = self.cases[0]
-        period_end = make_execution().period_end
         if case.type != "duplicated" or case.status == "resolved" or self.matches:
-            return period_end, []
+            return []
         # A regra é a do serviço a sério: só entra a chave em que todos os fechos
         # têm um crédito do mesmo valor.
         closings = [closing_side(row) for row in self.details]
         suggested = suggest_matches(closings, [movement_side(row) for row in self.movements])
         if not is_fully_matched(suggested, closings):
-            return period_end, []
-        return period_end, [
+            return []
+        return [
             ReconciliationCandidate(
                 case=case,
                 closings=self.details,
@@ -296,7 +288,7 @@ class FakeService:
         movements = [movement_side(row) for row in self.movements]
         validate_matches(matches, closings, movements)
         self.matches = list(matches)
-        if settles_case(matches, closings, movements, make_execution().period_end):
+        if is_fully_matched(matches, closings):
             case.status = "resolved"
             case.status_since = date(2026, 9, 10)
             case.resolved_at = date(2026, 9, 10)
