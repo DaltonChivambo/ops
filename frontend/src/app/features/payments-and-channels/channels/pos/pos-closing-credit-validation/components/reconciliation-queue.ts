@@ -13,6 +13,7 @@ import {
   LucideLink2,
   LucideLoaderCircle,
   LucideSearch,
+  LucideTriangleAlert,
   LucideX,
 } from '@lucide/angular';
 
@@ -41,10 +42,10 @@ interface ProposedPair {
   readonly movement: CreditMovement;
 }
 
-const COLUMNS = 8;
+const COLUMNS = 7;
 
 /**
- * O separador «Conciliações»: as chaves de períodos duplicados em que cada fecho
+ * O separador «Períodos Duplicados»: as chaves de períodos duplicados em que cada fecho
  * tem no Banka um crédito com o mesmo valor — no mesmo formato de «Todos os
  * Fechos», com pesquisa, selecção e a acção de conciliar as escolhidas de uma vez.
  *
@@ -64,6 +65,7 @@ const COLUMNS = 8;
     LucideLink2,
     LucideLoaderCircle,
     LucideSearch,
+    LucideTriangleAlert,
     LucideX,
   ],
   template: `
@@ -101,7 +103,7 @@ const COLUMNS = 8;
             @if (rows().length !== all.length) {
               <span class="tabular-nums"> de {{ n(all.length) }}</span>
             }
-            {{ all.length === 1 ? 'chave' : 'chaves' }}
+            {{ all.length === 1 ? 'período duplicado' : 'períodos duplicados' }}
           </p>
 
           <!-- A acção vive na barra, como os filtros: fica à vista com a lista a
@@ -126,7 +128,7 @@ const COLUMNS = 8;
         </div>
       </ng-container>
 
-      <table [class]="tableClass + ' min-w-2xl'">
+      <table [class]="tableClass + ' min-w-3xl'">
         <thead [class]="theadClass">
           <tr class="border-b border-gray-100 text-gray-400">
             <th scope="col" [class]="th + ' w-12 py-2.5 pr-1 pl-5 text-left'">
@@ -140,13 +142,12 @@ const COLUMNS = 8;
                 />
               </label>
             </th>
-            <th scope="col" [class]="th + ' w-[17rem] py-2.5 pr-3 text-left'">POS / Comerciante</th>
+            <th scope="col" [class]="th + ' py-2.5 pr-3 text-left'">POS / Comerciante</th>
             <th scope="col" [class]="th + ' px-3 py-2.5 text-right'">Período</th>
             <th scope="col" [class]="th + ' px-3 py-2.5 text-right'">Fechos</th>
             <th scope="col" [class]="th + ' px-3 py-2.5 text-right'">Total SIMO</th>
             <th scope="col" [class]="th + ' px-3 py-2.5 text-right'">Total Banka</th>
-            <th scope="col" [class]="th + ' px-3 py-2.5 text-right'">Crédito sem fecho</th>
-            <th scope="col" [class]="th + ' w-10'"><span class="sr-only">Pares</span></th>
+            <th scope="col" [class]="th + ' w-10'"><span class="sr-only">Ver pares</span></th>
           </tr>
         </thead>
 
@@ -155,9 +156,14 @@ const COLUMNS = 8;
             @let item = candidate.case;
             @let checked = selected().has(item.id);
             @let open = expanded().has(item.id);
+            @let leftovers = leftoversOf(candidate);
+            @let later = laterOf(candidate);
+
+            <!-- A linha abre e fecha os pares: é o que se quer ver antes de conciliar. -->
             <tr
-              (click)="opened.set(toDetail(item))"
+              (click)="toggleExpanded(item.id)"
               class="cursor-pointer border-b border-gray-100/70 text-gray-600 transition-colors hover:bg-gray-50/70"
+              [class.bg-gray-50/60]="open"
             >
               <!-- A régua verde é a do «confere»: é o estado em que estes fechos ficam. -->
               <td
@@ -174,38 +180,46 @@ const COLUMNS = 8;
               </td>
               <td class="py-3.5 pr-3">
                 <span class="block font-bold text-gray-900 tabular-nums">{{ item.posId }}</span>
-                <span class="mt-0.5 block max-w-56 truncate text-sm text-gray-400">
+                <span class="mt-0.5 block max-w-64 truncate text-sm text-gray-400">
                   {{ item.merchant }}
                 </span>
+                <!-- Só a excepção se diz: numa linha normal, conciliar resolve e não
+                     há nada a acrescentar. Quando sobra dinheiro no Banka, o caso
+                     não fecha, e isso tem de se ver antes de carregar no botão. -->
+                @if (leftovers.length > 0) {
+                  <span
+                    class="mt-1.5 flex max-w-80 items-start gap-1.5 text-xs leading-snug text-amber-700"
+                  >
+                    <svg
+                      lucideTriangleAlert
+                      [size]="13"
+                      [strokeWidth]="2.2"
+                      class="mt-px shrink-0"
+                    ></svg>
+                    <span>
+                      Sobra {{ n(leftovers.length) }}
+                      {{ leftovers.length === 1 ? 'crédito' : 'créditos' }} no Banka sem fecho na
+                      SIMO (<b class="font-semibold tabular-nums"
+                        >{{ amount(sumOf(leftovers)) }} MZN</b
+                      >) — o caso fica para análise.
+                    </span>
+                  </span>
+                }
               </td>
-              <td class="px-3 py-3.5 text-right text-gray-400 tabular-nums">{{ item.period }}</td>
-              <td class="px-3 py-3.5 text-right tabular-nums">
+              <td class="px-3 py-3.5 text-right text-gray-500 tabular-nums">{{ item.period }}</td>
+              <td class="px-3 py-3.5 text-right text-gray-900 tabular-nums">
                 {{ n(candidate.closings.length) }}
               </td>
               <td class="px-3 py-3.5 text-right"><app-money [value]="item.simoAmount" /></td>
-              <td class="px-3 py-3.5 text-right"><app-money [value]="item.bankaAmount" /></td>
-              <!-- Dinheiro do Banka que nenhum fecho leva. Os fechos conciliam-se na
-                   mesma, mas o caso fica aberto para alguém o analisar. -->
-              <td class="px-3 py-3.5 text-right whitespace-nowrap">
-                @let leftovers = leftoversOf(candidate);
-                @if (leftovers.length > 0) {
-                  <span
-                    class="inline-flex items-center gap-1.5 rounded-full bg-amber-50 px-2 py-0.5 text-xs font-bold text-amber-700 tabular-nums"
-                  >
-                    {{ amount(sumOf(leftovers)) }}
-                    <span class="font-normal text-amber-600/80">MZN</span>
-                  </span>
-                } @else {
-                  <span class="text-gray-300">—</span>
-                }
-              </td>
-              <td class="py-3.5 pr-4 text-right" (click)="$event.stopPropagation()">
-                <button
-                  type="button"
-                  (click)="toggleExpanded(item.id)"
-                  [attr.aria-expanded]="open"
+              <!-- O que o Banka creditou para estes fechos — os pares. O que sobra
+                   está no aviso, não soma aqui. -->
+              <td class="px-3 py-3.5 text-right"><app-money [value]="pairedTotal(candidate)" /></td>
+              <td class="py-3.5 pr-4 text-right">
+                <span
+                  class="inline-flex size-7 items-center justify-center rounded-md text-gray-400"
                   [attr.aria-label]="(open ? 'Esconder' : 'Ver') + ' os pares do POS ' + item.posId"
-                  class="inline-flex size-7 items-center justify-center rounded-md text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-900"
+                  [attr.aria-expanded]="open"
+                  role="button"
                 >
                   <svg
                     lucideChevronDown
@@ -214,65 +228,107 @@ const COLUMNS = 8;
                     class="transition-transform duration-200"
                     [class.rotate-180]="open"
                   ></svg>
-                </button>
+                </span>
               </td>
             </tr>
 
             @if (open) {
-              <!-- Os pares que vão ser gravados, antes de se carregar no botão. -->
-              <tr class="border-b border-gray-100/70 bg-gray-50/40">
+              <!-- Os pares que vão ser gravados, lado a lado: o fecho da SIMO à
+                   esquerda, o crédito do Banka que o paga à direita. -->
+              <tr class="border-b border-gray-100/70 bg-gray-50/60">
                 <td></td>
-                <td [attr.colspan]="columns - 1" class="py-2.5 pr-5">
-                  <ul class="space-y-1">
-                    @for (pair of pairsOf(candidate); track pair.closing.id) {
-                      <li
-                        class="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-gray-500 tabular-nums"
+                <td [attr.colspan]="columns - 1" class="pt-1 pr-5 pb-4">
+                  <div class="overflow-hidden rounded-xl bg-white ring-1 ring-gray-100">
+                    <div
+                      class="grid grid-cols-[1fr_2rem_1fr] items-center border-b border-gray-100 bg-gray-50/80 px-4 py-2 text-2xs font-bold tracking-wider text-gray-400 uppercase"
+                    >
+                      <span>Fecho na SIMO</span>
+                      <span></span>
+                      <span>Crédito no Banka</span>
+                    </div>
+
+                    <ul class="divide-y divide-gray-100">
+                      @for (pair of pairsOf(candidate); track pair.closing.id) {
+                        <li
+                          class="grid grid-cols-[1fr_2rem_1fr] items-center px-4 py-2.5 text-sm tabular-nums"
+                        >
+                          <span class="flex items-baseline justify-between gap-3">
+                            <span class="text-gray-500">
+                              {{ date(pair.closing.simoClosingDate) }}
+                              <span class="text-xs text-gray-400">
+                                · op. {{ pair.closing.operationNumber }}
+                              </span>
+                            </span>
+                            <app-money [value]="pair.closing.simoClosingTotal" />
+                          </span>
+                          <span class="flex justify-center">
+                            <svg
+                              lucideLink2
+                              [size]="14"
+                              [strokeWidth]="2.4"
+                              class="text-emerald-500"
+                            ></svg>
+                          </span>
+                          <span class="flex items-baseline justify-between gap-3">
+                            <span class="text-gray-500">
+                              {{ pair.movement.date ? date(pair.movement.date) : 'Sem data' }}
+                              @if (delayOf(pair); as delay) {
+                                <span class="text-xs text-gray-400">· {{ delay }}</span>
+                              }
+                            </span>
+                            <app-money [value]="pair.movement.amount" />
+                          </span>
+                        </li>
+                      }
+
+                      <!-- Os créditos que nenhum fecho leva ficam do lado do Banka,
+                           sem par: a âmbar os que seguram o caso, a cinzento os de
+                           depois do intervalo, que não contam. -->
+                      @for (movement of leftovers; track movement.id) {
+                        <li
+                          class="grid grid-cols-[1fr_2rem_1fr] items-center bg-amber-50/50 px-4 py-2.5 text-sm tabular-nums"
+                        >
+                          <span class="text-xs font-semibold text-amber-700">
+                            Sem fecho na SIMO — o caso fica aberto para o analisar
+                          </span>
+                          <span></span>
+                          <span class="flex items-baseline justify-between gap-3">
+                            <span class="text-gray-500">
+                              {{ movement.date ? date(movement.date) : 'Sem data' }}
+                            </span>
+                            <app-money [value]="movement.amount" />
+                          </span>
+                        </li>
+                      }
+                      @for (movement of later; track movement.id) {
+                        <li
+                          class="grid grid-cols-[1fr_2rem_1fr] items-center px-4 py-2.5 text-sm text-gray-400 tabular-nums"
+                        >
+                          <span class="text-xs">Depois do intervalo — não conta</span>
+                          <span></span>
+                          <span class="flex items-baseline justify-between gap-3">
+                            <span>{{ date(movement.date!) }}</span>
+                            <span class="font-semibold whitespace-nowrap">
+                              {{ amount(movement.amount) }}
+                              <span class="text-[0.7em] font-normal">MZN</span>
+                            </span>
+                          </span>
+                        </li>
+                      }
+                    </ul>
+
+                    <div
+                      class="flex flex-wrap items-center justify-end gap-2 border-t border-gray-100 px-4 py-2.5"
+                    >
+                      <button
+                        type="button"
+                        (click)="opened.set(toDetail(item))"
+                        class="rounded-lg px-3 py-1.5 text-sm font-semibold text-moza-700 transition-colors hover:bg-moza-50"
                       >
-                        <span>
-                          Fecho de {{ date(pair.closing.simoClosingDate) }} ·
-                          <b class="font-semibold text-gray-800">
-                            {{ amount(pair.closing.simoClosingTotal) }}
-                          </b>
-                        </span>
-                        <svg
-                          lucideLink2
-                          [size]="12"
-                          [strokeWidth]="2.4"
-                          class="text-emerald-500"
-                        ></svg>
-                        <span>
-                          Crédito de
-                          {{ pair.movement.date ? date(pair.movement.date) : 'data desconhecida' }}
-                        </span>
-                        @if (delayOf(pair); as delay) {
-                          <span class="text-gray-400">· {{ delay }}</span>
-                        }
-                      </li>
-                    }
-                    @for (movement of leftoversOf(candidate); track movement.id) {
-                      <li
-                        class="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-amber-800 tabular-nums"
-                      >
-                        <span>
-                          Crédito de
-                          {{ movement.date ? date(movement.date) : 'data desconhecida' }} ·
-                          <b class="font-semibold">{{ amount(movement.amount) }}</b>
-                        </span>
-                        <span>— sem fecho na SIMO; o caso fica aberto para o analisar.</span>
-                      </li>
-                    }
-                    @for (movement of laterOf(candidate); track movement.id) {
-                      <li
-                        class="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-gray-400 tabular-nums"
-                      >
-                        <span>
-                          Crédito de {{ date(movement.date!) }} ·
-                          <b class="font-semibold">{{ amount(movement.amount) }}</b>
-                        </span>
-                        <span>— depois do intervalo; é do seguinte, não conta.</span>
-                      </li>
-                    }
-                  </ul>
+                        Abrir o caso
+                      </button>
+                    </div>
+                  </div>
                 </td>
               </tr>
             }
@@ -280,11 +336,11 @@ const COLUMNS = 8;
             <tr>
               <td [attr.colspan]="columns" class="px-4 py-12 text-center text-gray-400">
                 @if (candidates() === null) {
-                  A procurar conciliações…
+                  A procurar períodos duplicados…
                 } @else if (all.length === 0) {
-                  Não há chaves para conciliar com crédito igual.
+                  Não há períodos duplicados para conciliar com crédito igual.
                 } @else {
-                  Nenhuma chave corresponde à pesquisa.
+                  Nenhum período duplicado corresponde à pesquisa.
                 }
               </td>
             </tr>
@@ -425,6 +481,11 @@ export class ReconciliationQueueComponent {
   private unusedOf(candidate: ReconciliationCandidate): CreditMovement[] {
     const used = new Set(candidate.suggestedMatches.map((match) => match.movementId));
     return candidate.movements.filter((movement) => !used.has(movement.id));
+  }
+
+  /** O creditado que os pares levam — igual ao total SIMO, porque cada par tem valor igual. */
+  protected pairedTotal(candidate: ReconciliationCandidate): number {
+    return this.sumOf(this.pairsOf(candidate).map((pair) => pair.movement));
   }
 
   protected sumOf = (movements: readonly CreditMovement[]): number =>
