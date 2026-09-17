@@ -108,8 +108,8 @@ def register_error_handlers(app: FastAPI) -> None:
 
     @app.exception_handler(AuthError)
     async def handle_auth_error(_request: Request, error: Exception) -> JSONResponse:
-        for tipo, status, code in _STATUS_BY_ERROR:
-            if isinstance(error, tipo):
+        for error_type, status, code in _STATUS_BY_ERROR:
+            if isinstance(error, error_type):
                 # O `WWW-Authenticate` no 401 é o que a norma manda, e o que
                 # diz a um cliente que o caminho é renovar a sessão.
                 headers = {"WWW-Authenticate": "Bearer"} if status == 401 else None
