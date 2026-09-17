@@ -40,7 +40,6 @@ import {
 import { MAX_E_TICKET_LENGTH, eTicketProblem } from '../data/e-ticket';
 import {
   creditedWhen,
-  withinPeriod,
   sameAmount,
   sameDraft,
   toDraft,
@@ -497,62 +496,6 @@ import type {
                 }
               </ul>
 
-              @if (leftoverMovements().length > 0) {
-                <!-- Os créditos que nenhum fecho levou: dinheiro que o Banka creditou
-                     sem fecho correspondente na SIMO. Não se sabe porquê — outro
-                     período que cai na mesma chave, ou um fecho que falta no export
-                     —, e por isso a âmbar: alguém tem de o analisar, e o caso fica
-                     aberto até lá. -->
-                <div class="mt-3 rounded-lg bg-amber-50/70 px-3 py-2.5 ring-1 ring-amber-200">
-                  <p class="text-2xs font-bold tracking-wider text-amber-800 uppercase">
-                    Créditos do Banka sem fecho na SIMO · {{ n(leftoverMovements().length) }}
-                  </p>
-                  <ul class="mt-1 divide-y divide-amber-100">
-                    @for (movement of leftoverMovements(); track movement.id) {
-                      <li class="flex items-baseline justify-between gap-3 py-1.5 text-xs">
-                        <span class="text-gray-600 tabular-nums">
-                          Crédito de {{ movement.date ? date(movement.date) : 'data desconhecida' }}
-                        </span>
-                        <span class="font-semibold whitespace-nowrap text-gray-900 tabular-nums">
-                          {{ amount(movement.amount) }}<span [class]="mzn">MZN</span>
-                        </span>
-                      </li>
-                    }
-                  </ul>
-                  <p class="mt-1 text-2xs text-amber-800">
-                    Nenhum fecho desta chave tem este valor. Confirme de onde vem o crédito — o caso
-                    fica aberto para o tratar pela fase e pelo e-Ticket.
-                  </p>
-                </div>
-              }
-
-              @if (laterMovements().length > 0) {
-                <!-- Sobram também, mas são de depois do último dia do intervalo: o
-                     fecho deles está no intervalo seguinte. Mostram-se para não
-                     parecer que desapareceram; não contam, nem seguram o caso. -->
-                <div class="mt-3 rounded-lg bg-gray-50 px-3 py-2.5 ring-1 ring-gray-200">
-                  <p class="text-2xs font-bold tracking-wider text-gray-500 uppercase">
-                    Créditos depois do intervalo · {{ n(laterMovements().length) }}
-                  </p>
-                  <ul class="mt-1 divide-y divide-gray-100">
-                    @for (movement of laterMovements(); track movement.id) {
-                      <li class="flex items-baseline justify-between gap-3 py-1.5 text-xs">
-                        <span class="text-gray-500 tabular-nums">
-                          Crédito de {{ date(movement.date!) }}
-                        </span>
-                        <span class="font-semibold whitespace-nowrap text-gray-600 tabular-nums">
-                          {{ amount(movement.amount) }}<span [class]="mzn">MZN</span>
-                        </span>
-                      </li>
-                    }
-                  </ul>
-                  <p class="mt-1 text-2xs text-gray-500">
-                    São de depois de {{ date(data()!.periodEnd) }}, o último dia desta execução — o
-                    fecho está no intervalo seguinte. Não contam como crédito sem fecho.
-                  </p>
-                </div>
-              }
-
               @if (matchesDirty() || allSaved() || canReset()) {
                 <!-- O rodapé diz o que o botão vai fazer antes de se carregar nele. -->
                 <div
@@ -560,12 +503,7 @@ import type {
                 >
                   <p class="mr-auto text-xs font-medium">
                     @if (matchesDirty()) {
-                      @if (allDrafted() && leftoverMovements().length > 0) {
-                        <span class="text-amber-700">
-                          Ao confirmar, os fechos conferem — o caso fica aberto pelo crédito sem
-                          fecho.
-                        </span>
-                      } @else if (allDrafted()) {
+                      @if (allDrafted()) {
                         <span class="text-emerald-700"
                           >Ao confirmar, o caso fica regularizado.</span
                         >
@@ -579,10 +517,6 @@ import type {
                           }}.
                         </span>
                       }
-                    } @else if (allSaved() && leftoverMovements().length > 0) {
-                      <span class="text-amber-700">
-                        Fechos conciliados — falta analisar o crédito sem fecho.
-                      </span>
                     } @else if (allSaved()) {
                       <span class="inline-flex items-center gap-1 text-emerald-700">
                         <svg lucideCheck [size]="14" [strokeWidth]="2.6"></svg>
@@ -991,28 +925,6 @@ export class KeyDetailPanelComponent {
     () => new Map(this.movements().map((movement) => [movement.id, movement])),
   );
 
-  /** Os créditos que nenhum fecho levou — aparecem uma vez, no fim do quadro. */
-  private readonly unusedMovements = computed(() => {
-    const used = new Set(Object.values(this.draftMatches()));
-    return this.movements().filter((movement) => !used.has(movement.id));
-  });
-
-  /** Os que contam: do intervalo da execução — seguram o caso aberto. */
-  protected readonly leftoverMovements = computed(() => {
-    const periodEnd = this.data()?.periodEnd;
-    return periodEnd
-      ? this.unusedMovements().filter((movement) => withinPeriod(movement, periodEnd))
-      : this.unusedMovements();
-  });
-
-  /** Os de depois do último dia — do intervalo seguinte; mostram-se, mas não contam. */
-  protected readonly laterMovements = computed(() => {
-    const periodEnd = this.data()?.periodEnd;
-    return periodEnd
-      ? this.unusedMovements().filter((movement) => !withinPeriod(movement, periodEnd))
-      : [];
-  });
-
   protected pairOf(closingId: string): CreditMovement | undefined {
     const movementId = this.draftMatches()[closingId];
     return movementId ? this.movementById().get(movementId) : undefined;
@@ -1077,15 +989,9 @@ export class KeyDetailPanelComponent {
 
     const current = this.data();
     if (!current?.case) return;
-    // A regra do servidor (`settles_case`): todos os fechos com par, e nenhum
-    // crédito do intervalo a sobrar — um crédito sem fecho deixa o caso aberto.
-    const used = new Set(Object.values(draft));
+    // A regra do servidor (`is_fully_matched`): todos os fechos da SIMO com par.
     const complete =
-      current.closings.length > 0 &&
-      current.closings.every((closing) => closing.id in draft) &&
-      current.movements.every(
-        (movement) => used.has(movement.id) || !withinPeriod(movement, current.periodEnd),
-      );
+      current.closings.length > 0 && current.closings.every((closing) => closing.id in draft);
     const resolves = complete && current.case.status !== 'resolved';
     const today = toIsoDate(this.today);
     this.data.set({

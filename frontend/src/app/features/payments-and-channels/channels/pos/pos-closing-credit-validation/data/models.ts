@@ -60,9 +60,6 @@ export interface ClosingDetail {
   simoClosingsCount: number;
   /** Movimentos Banka nesta chave. >1 é duplicação do lado Banka; 1 fora de `duplicated`. */
   bankaMovementsCount: number;
-  /** Créditos do Banka sem fecho por analisar nesta chave — quantos e quanto. Zero em quase todas. */
-  unmatchedCredits: number;
-  bankaAmountUnmatched: number;
 }
 
 /** Um movimento de crédito do Banka atribuído a uma chave — a parcela do total. */
@@ -92,8 +89,6 @@ export interface KeyBreakdown {
   matches: ClosingMatch[];
   /** Os pares que se podem fazer só pelo valor — o servidor é que sabe a regra. */
   suggestedMatches: ClosingMatch[];
-  /** Último dia do intervalo da execução — um crédito de depois dele é do intervalo seguinte. */
-  periodEnd: string; // ISO
 }
 
 /** O caso depois de conciliado, com o `summary` recalculado e os pares que ficaram. */
@@ -195,11 +190,6 @@ export interface ClosingSummary {
    *  Banka duplica nestas chaves tal como a SIMO, por isso há crédito feito. */
   simoAmountDuplicated: number;
   bankaAmountDuplicated: number;
-  /** Créditos do Banka sem fecho na SIMO, por analisar, em chaves já conciliadas com o
-   *  caso aberto — quantos e quanto. O montante está também dentro de
-   *  `bankaAmountDuplicated`. Ausentes nas execuções anteriores a contarem-se. */
-  unmatchedCredits?: number;
-  bankaAmountUnmatched?: number;
 }
 
 /** Uma execução persistida. Os detalhes vêm à parte, paginados. */
@@ -216,8 +206,6 @@ export interface ValidationResult {
 
 export interface DetailCounts {
   all: number;
-  /** Fechos das chaves com crédito sem fecho — o número do filtro, não um estado. */
-  unmatched: number;
   match: number;
   mismatch: number;
   missing: number;
@@ -240,8 +228,6 @@ export interface DetailsQuery {
   /** Classes a mostrar. `null`/ausente = todas; lista vazia = nenhuma. */
   validation?: Validation[] | null;
   q?: string;
-  /** Só as chaves com créditos do Banka sem fecho por analisar. */
-  unmatchedCredits?: boolean;
 }
 
 /** Fases grosseiras: o upload e a execução são um único round-trip HTTP. */

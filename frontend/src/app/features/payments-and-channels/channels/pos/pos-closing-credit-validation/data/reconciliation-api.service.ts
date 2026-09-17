@@ -30,7 +30,7 @@ const EMPTY_PAGE: DetailsPage = {
   total: 0,
   page: 1,
   perPage: 50,
-  counts: { all: 0, unmatched: 0, match: 0, mismatch: 0, missing: 0, zero: 0, duplicated: 0 },
+  counts: { all: 0, match: 0, mismatch: 0, missing: 0, zero: 0, duplicated: 0 },
 };
 
 /**
@@ -74,7 +74,6 @@ export class ReconciliationApi {
     if (query.page !== undefined) params = params.set('page', query.page);
     if (query.perPage !== undefined) params = params.set('perPage', query.perPage);
     if (query.q) params = params.set('q', query.q);
-    if (query.unmatchedCredits) params = params.set('unmatchedCredits', true);
 
     const validation = serializeValidations(query.validation);
     if (validation !== null) params = params.set('validation', validation);

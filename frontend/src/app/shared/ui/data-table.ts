@@ -11,15 +11,10 @@ import { LucideArrowUp, LucideLoaderCircle } from '@lucide/angular';
 
 import { PageFirstScrollDirective } from '../page-first-scroll';
 
-/** A largura mínima fica a cargo de quem usa: depende das colunas que tem. */
-export const TABLE_CLASS = 'w-full border-collapse text-sm';
-
-/** Colado ao topo da caixa. O fundo vai nas células, nunca aqui — ver o data-table. */
-export const THEAD_CLASS = 'sticky top-0 z-10';
-
 /**
  * Invólucro de uma lista longa: cartão, barra de filtros colada, caixa com
- * scroll próprio, scroll infinito e rodapé.
+ * scroll próprio, scroll infinito e rodapé. O desenho da tabela lá dentro —
+ * cabeçalho, linhas, células — é o de `shared/ui/table`.
  *
  * As colunas e as linhas projectam-se, de propósito: quem usa mantém controlo
  * das células, e cabem tabelas de qualquer formato — incluindo linhas que

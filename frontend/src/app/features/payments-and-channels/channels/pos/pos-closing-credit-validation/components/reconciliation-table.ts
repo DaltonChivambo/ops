@@ -13,13 +13,7 @@ import {
   type ElementRef,
 } from '@angular/core';
 import { NgTemplateOutlet } from '@angular/common';
-import {
-  LucideBanknote,
-  LucideChevronRight,
-  LucideCornerDownRight,
-  LucideSearch,
-  LucideX,
-} from '@lucide/angular';
+import { LucideChevronRight, LucideCornerDownRight, LucideSearch, LucideX } from '@lucide/angular';
 
 import {
   formatAmount,
@@ -27,12 +21,15 @@ import {
   formatSignedAmount,
   numberFormatter,
 } from '../../../../../../shared/format';
+import { DataTableComponent } from '../../../../../../shared/ui/data-table';
 import {
-  DataTableComponent,
-  TABLE_CLASS,
-  THEAD_CLASS,
-} from '../../../../../../shared/ui/data-table';
-import { ToggleFilterComponent } from '../../../../../../shared/ui/toggle-filter';
+  CellIdentityComponent,
+  EmptyValueComponent,
+  MoneyComponent,
+  PillComponent,
+  StatusChipComponent,
+  TABLE,
+} from '../../../../../../shared/ui/table';
 import { ReconciliationApi } from '../data/reconciliation-api.service';
 import type {
   CaseMatches,
@@ -52,7 +49,6 @@ import {
   type StateId,
 } from '../data/state-options';
 import { KeyDetailPanelComponent } from './key-detail-panel';
-import { MoneyComponent } from './money';
 import { StateFilterComponent } from './state-filter';
 
 const PER_PAGE = 50;
@@ -61,7 +57,6 @@ const UNREGISTERED = '—';
 
 const EMPTY_COUNTS: DetailCounts = {
   all: 0,
-  unmatched: 0,
   match: 0,
   mismatch: 0,
   missing: 0,
@@ -85,10 +80,6 @@ function groupByKey(items: readonly ClosingDetail[]): KeyGroup[] {
   return groups;
 }
 
-/** Gradiente de 1px no fundo (não `line-through`): risca a linha inteira, colunas vazias incluídas. */
-const STRUCK_ROW =
-  'bg-[linear-gradient(currentColor,currentColor)] bg-[length:100%_1px] bg-center bg-no-repeat';
-
 /**
  * Tabela paginada/filtrada/pesquisada no servidor. A unidade é a CHAVE, não o
  * fecho: chaves com >1 fecho colapsam numa linha-resumo que expande para os
@@ -99,12 +90,14 @@ const STRUCK_ROW =
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     NgTemplateOutlet,
+    CellIdentityComponent,
     DataTableComponent,
+    EmptyValueComponent,
     KeyDetailPanelComponent,
     MoneyComponent,
+    PillComponent,
+    StatusChipComponent,
     StateFilterComponent,
-    ToggleFilterComponent,
-    LucideBanknote,
     LucideChevronRight,
     LucideCornerDownRight,
     LucideSearch,
@@ -126,19 +119,6 @@ const STRUCK_ROW =
           [selected]="selected()"
           (changed)="selected.set($event)"
         />
-
-        <!-- À parte da validação: estes fechos já «conferem», o que falta analisar
-             é o crédito do Banka que nenhum deles leva. Só aparece quando há. -->
-        @if (counts().unmatched > 0 || unmatchedOnly()) {
-          <app-toggle-filter
-            label="Crédito sem fecho"
-            [active]="unmatchedOnly()"
-            [count]="counts().unmatched"
-            (toggled)="unmatchedOnly.set(!unmatchedOnly())"
-          >
-            <svg lucideBanknote filterIcon [size]="15" [strokeWidth]="2" class="shrink-0"></svg>
-          </app-toggle-filter>
-        }
 
         @if (filtered()) {
           <button
@@ -177,24 +157,16 @@ const STRUCK_ROW =
         </p>
       </ng-container>
 
-      <table [class]="tableClass + ' min-w-2xl'">
-        <!-- O fundo vai nas células e opaco: num grupo de linhas, com bordas
-             colapsadas, não se pode contar com ele. -->
-        <thead [class]="theadClass">
-          <!-- Só border-b: com border-y ficava encostada à risca da barra de
-               filtros, e duas de 1px juntas lêem-se como um sulco. -->
-          <tr class="border-b border-gray-100 text-gray-400">
-            <th scope="col" [class]="th + ' w-[17rem] py-2.5 pr-3 pl-5 text-left'">
-              POS / Comerciante
-            </th>
-            <th scope="col" [class]="th + ' px-3 py-2.5 text-right'">Período</th>
-            <th scope="col" [class]="th + ' hidden px-3 py-2.5 text-left @5xl:table-cell'">
-              Data Fecho
-            </th>
-            <th scope="col" [class]="th + ' px-3 py-2.5 text-right'">Total SIMO</th>
-            <th scope="col" [class]="th + ' px-3 py-2.5 text-right'">Total Banka</th>
-            <th scope="col" [class]="th + ' px-3 py-2.5 text-right'">Diferença</th>
-            <th scope="col" [class]="th + ' px-3 py-2.5 text-left'">Validação</th>
+      <table [class]="t.table + ' min-w-2xl'">
+        <thead [class]="t.thead">
+          <tr [class]="t.headRow">
+            <th scope="col" [class]="t.thFirst + ' w-[17rem]'">POS / Comerciante</th>
+            <th scope="col" [class]="t.thRight">Período</th>
+            <th scope="col" [class]="t.thLeft + ' hidden @5xl:table-cell'">Data Fecho</th>
+            <th scope="col" [class]="t.thRight">Total SIMO</th>
+            <th scope="col" [class]="t.thRight">Total Banka</th>
+            <th scope="col" [class]="t.thRight">Diferença</th>
+            <th scope="col" [class]="t.thLast">Validação</th>
           </tr>
         </thead>
 
@@ -213,52 +185,43 @@ const STRUCK_ROW =
             @if (!expandable) {
               <tr
                 (click)="opened.set(detail)"
-                class="cursor-pointer border-b border-gray-50 transition-colors last:border-b-0 hover:bg-gray-50/70"
                 [class]="
-                  detail.validation === 'zero' ? 'text-gray-400 ' + struckRow : 'text-gray-600'
+                  t.row +
+                  ' ' +
+                  (detail.validation === 'zero' ? t.tone.muted + ' ' + t.struck : t.tone.neutral)
                 "
               >
-                <td class="py-3.5 pr-3 pl-5" [class]="stripe(detail)">
+                <td [class]="t.tdFirst + ' ' + stripe(detail)">
                   <ng-container
                     [ngTemplateOutlet]="identity"
                     [ngTemplateOutletContext]="{ $implicit: detail }"
                   />
                 </td>
-                <td class="px-3 py-3.5 text-right tabular-nums text-gray-400">
-                  {{ detail.period }}
-                </td>
-                <td class="hidden px-3 py-3.5 tabular-nums text-gray-400 @5xl:table-cell">
+                <td [class]="t.tdMuted">{{ detail.period }}</td>
+                <td [class]="t.tdMuted + ' hidden text-left @5xl:table-cell'">
                   {{ date(detail.simoClosingDate) }}
                 </td>
-                <td class="px-3 py-3.5 text-right">
-                  <app-money [value]="detail.simoClosingTotal" />
-                </td>
-                <td class="px-3 py-3.5 text-right">
-                  <app-money [value]="detail.bankaClosingTotal" />
-                </td>
-                <td class="px-3 py-3.5 text-right tabular-nums">
+                <td [class]="t.tdRight"><app-money [value]="detail.simoClosingTotal" /></td>
+                <td [class]="t.tdRight"><app-money [value]="detail.bankaClosingTotal" /></td>
+                <td [class]="t.tdRight">
                   @if (detail.difference !== null && detail.difference !== 0) {
-                    <span class="font-bold text-alert-600">
-                      {{ signed(detail.difference) }}
-                    </span>
+                    <span class="font-bold text-alert-600">{{ signed(detail.difference) }}</span>
                   } @else {
-                    <span class="text-gray-300">—</span>
+                    <app-empty-value />
                   }
                 </td>
-                <td class="px-3 py-3.5">
-                  <ng-container
-                    [ngTemplateOutlet]="stateChip"
-                    [ngTemplateOutletContext]="{ $implicit: detail }"
+                <td [class]="t.tdLast">
+                  <app-status-chip
+                    [label]="stateLabel(detail)"
+                    [chip]="chip(detail)"
+                    [dot]="dot(detail)"
                   />
                 </td>
               </tr>
             } @else {
               <!-- Chave duplicada (SIMO ou Banka): linha-resumo, detalhe por baixo. -->
-              <tr
-                (click)="opened.set(detail)"
-                class="cursor-pointer border-b border-gray-50 bg-amber-50/40 text-gray-600 transition-colors last:border-b-0 hover:bg-amber-50/70"
-              >
-                <td class="py-3.5 pr-3 pl-5" [class]="stripe(detail)">
+              <tr (click)="opened.set(detail)" [class]="t.row + ' ' + t.tone.attention">
+                <td [class]="t.tdFirst + ' ' + stripe(detail)">
                   <div class="flex items-start gap-2">
                     <button
                       type="button"
@@ -294,47 +257,37 @@ const STRUCK_ROW =
                     </div>
                   </div>
                 </td>
-                <td class="px-3 py-3.5 text-right tabular-nums text-gray-400">
+                <td [class]="t.tdMuted">
                   <span class="inline-flex items-center gap-1.5">
                     {{ detail.period }}
-                    <span
-                      class="rounded-full bg-amber-500 px-1.5 py-0.5 text-2xs font-bold whitespace-nowrap text-white"
-                    >
+                    <app-pill tone="attention">
                       {{ n(detail.simoClosingsCount) }} SIMO · {{ n(detail.bankaMovementsCount) }}
                       Banka
-                    </span>
+                    </app-pill>
                   </span>
                 </td>
-                <td class="hidden px-3 py-3.5 tabular-nums text-gray-400 @5xl:table-cell">
+                <td [class]="t.tdMuted + ' hidden text-left @5xl:table-cell'">
                   <!-- Ambígua só se houver mais de um fecho: com um só, a data é certa. -->
                   {{ simoDuplicated ? '—' : date(detail.simoClosingDate) }}
                 </td>
-                <td class="px-3 py-3.5 text-right">
-                  <app-money [value]="detail.simoKeyTotal" />
-                </td>
+                <td [class]="t.tdRight"><app-money [value]="detail.simoKeyTotal" /></td>
                 <!-- Banka é da CHAVE, não do fecho. -->
-                <td class="px-3 py-3.5 text-right">
-                  <app-money [value]="detail.bankaClosingTotal" />
-                </td>
+                <td [class]="t.tdRight"><app-money [value]="detail.bankaClosingTotal" /></td>
                 <!-- Vazio: os dois lados vêm duplicados, a soma não confere nada. -->
-                <td class="px-3 py-3.5 text-right">
-                  <span class="text-gray-300">—</span>
-                </td>
-                <td class="px-3 py-3.5">
-                  <ng-container
-                    [ngTemplateOutlet]="stateChip"
-                    [ngTemplateOutletContext]="{ $implicit: detail }"
+                <td [class]="t.tdRight"><app-empty-value /></td>
+                <td [class]="t.tdLast">
+                  <app-status-chip
+                    [label]="stateLabel(detail)"
+                    [chip]="chip(detail)"
+                    [dot]="dot(detail)"
                   />
                 </td>
               </tr>
 
               @if (open) {
                 @for (item of group.items; track item.id; let position = $index) {
-                  <tr
-                    (click)="opened.set(item)"
-                    class="cursor-pointer border-b border-gray-50 bg-amber-50/20 text-gray-500 transition-colors last:border-b-0 hover:bg-amber-50/50"
-                  >
-                    <td class="py-2.5 pr-3 pl-6 shadow-[inset_3px_0_0_var(--color-amber-200)]">
+                  <tr (click)="opened.set(item)" [class]="t.subRow">
+                    <td [class]="t.subTdFirst + ' shadow-[inset_3px_0_0_var(--color-amber-200)]'">
                       <button
                         type="button"
                         (click)="$event.stopPropagation(); opened.set(item)"
@@ -349,23 +302,19 @@ const STRUCK_ROW =
                         SIMO {{ n(position + 1) }}
                       </button>
                     </td>
-                    <td class="px-3 py-2.5 text-right text-xs tabular-nums text-gray-300">
+                    <td [class]="t.subTd + ' text-right text-xs tabular-nums text-gray-300'">
                       {{ item.period }}
                     </td>
-                    <td class="hidden px-3 py-2.5 tabular-nums text-gray-400 @5xl:table-cell">
+                    <td [class]="t.subTd + ' hidden tabular-nums text-gray-400 @5xl:table-cell'">
                       {{ date(item.simoClosingDate) }}
                     </td>
-                    <td class="px-3 py-2.5 text-right">
+                    <td [class]="t.subTd + ' text-right'">
                       <app-money [value]="item.simoClosingTotal" />
                     </td>
                     <!-- Sem Banka por fecho: já está na linha da chave, acima. -->
-                    <td class="px-3 py-2.5 text-right">
-                      <span class="text-gray-300">—</span>
-                    </td>
-                    <td class="px-3 py-2.5 text-right">
-                      <span class="text-gray-300">—</span>
-                    </td>
-                    <td class="px-3 py-2.5 text-xs text-gray-400">
+                    <td [class]="t.subTd + ' text-right'"><app-empty-value /></td>
+                    <td [class]="t.subTd + ' text-right'"><app-empty-value /></td>
+                    <td [class]="t.subTd + ' text-xs text-gray-400'">
                       Op. <span class="tabular-nums">{{ item.operationNumber }}</span>
                     </td>
                   </tr>
@@ -375,25 +324,24 @@ const STRUCK_ROW =
               @if (open) {
                 @let state = breakdowns().get(group.key);
                 @if (state === 'loading' || state === undefined) {
-                  <tr class="border-b border-gray-50 bg-amber-50/20 last:border-b-0">
+                  <tr [class]="t.messageRow + ' bg-amber-50/20'">
                     <td colspan="7" class="px-6 py-2.5 text-xs text-gray-400">
                       A carregar os créditos do Banka…
                     </td>
                   </tr>
                 } @else if (state === 'error') {
-                  <tr class="border-b border-gray-50 bg-amber-50/20 last:border-b-0">
+                  <tr [class]="t.messageRow + ' bg-amber-50/20'">
                     <td colspan="7" class="px-6 py-2.5 text-xs text-alert-600">
                       Não foi possível carregar os créditos do Banka.
                     </td>
                   </tr>
                 } @else {
                   @for (movement of state.movements; track movement.id; let position = $index) {
-                    <tr
-                      (click)="opened.set(detail)"
-                      class="cursor-pointer border-b border-gray-50 bg-amber-50/20 text-gray-500 transition-colors last:border-b-0 hover:bg-amber-50/50"
-                    >
-                      <td class="py-2.5 pr-3 pl-6 shadow-[inset_3px_0_0_var(--color-amber-200)]">
-                        <span class="inline-flex items-center gap-1.5 text-xs font-semibold text-amber-700/80">
+                    <tr (click)="opened.set(detail)" [class]="t.subRow">
+                      <td [class]="t.subTdFirst + ' shadow-[inset_3px_0_0_var(--color-amber-200)]'">
+                        <span
+                          class="inline-flex items-center gap-1.5 text-xs font-semibold text-amber-700/80"
+                        >
                           <svg
                             lucideCornerDownRight
                             [size]="13"
@@ -403,21 +351,17 @@ const STRUCK_ROW =
                           Banka {{ n(position + 1) }}
                         </span>
                       </td>
-                      <td class="px-3 py-2.5 text-right text-xs text-gray-300">—</td>
-                      <td class="hidden px-3 py-2.5 tabular-nums text-gray-400 @5xl:table-cell">
+                      <td [class]="t.subTd + ' text-right text-xs text-gray-300'">—</td>
+                      <td [class]="t.subTd + ' hidden tabular-nums text-gray-400 @5xl:table-cell'">
                         {{ movement.date ? date(movement.date) : '—' }}
                       </td>
                       <!-- Sem SIMO por crédito: o fecho é o único, já está acima. -->
-                      <td class="px-3 py-2.5 text-right">
-                        <span class="text-gray-300">—</span>
-                      </td>
-                      <td class="px-3 py-2.5 text-right">
+                      <td [class]="t.subTd + ' text-right'"><app-empty-value /></td>
+                      <td [class]="t.subTd + ' text-right'">
                         <app-money [value]="movement.amount" />
                       </td>
-                      <td class="px-3 py-2.5 text-right">
-                        <span class="text-gray-300">—</span>
-                      </td>
-                      <td class="px-3 py-2.5 text-xs text-gray-400 truncate">
+                      <td [class]="t.subTd + ' text-right'"><app-empty-value /></td>
+                      <td [class]="t.subTd + ' truncate text-xs text-gray-400'">
                         {{ movement.description }}
                       </td>
                     </tr>
@@ -429,7 +373,7 @@ const STRUCK_ROW =
 
           @if (items().length === 0 && !loading()) {
             <tr>
-              <td colspan="7" class="px-4 py-12 text-center text-gray-400">
+              <td colspan="7" [class]="t.emptyCell">
                 {{
                   selected().length === 0
                     ? 'Nenhuma validação seleccionada — marque pelo menos uma acima.'
@@ -461,43 +405,15 @@ const STRUCK_ROW =
       />
     }
 
-    <!-- O POS ID é um botão focável; um tr não é. -->
     <ng-template #identity let-detail>
-      <button
-        type="button"
-        (click)="$event.stopPropagation(); opened.set(detail)"
-        class="font-bold text-gray-900 tabular-nums underline-offset-2 transition-colors hover:text-moza-600 hover:underline focus-visible:text-moza-600 focus-visible:underline"
+      <app-cell-identity
+        [primary]="detail.posId"
+        [secondary]="detail.merchant === unregistered ? '— sem cadastro' : detail.merchant"
+        [secondaryTone]="detail.merchant === unregistered ? 'alert' : 'muted'"
+        srLabel="ver os dados da SIMO e do Banka"
+        (activated)="opened.set(detail)"
       >
-        {{ detail.posId }}
-        <span class="sr-only"> — ver os dados da SIMO e do Banka</span>
-      </button>
-      <div class="mt-0.5 max-w-56 truncate text-sm text-gray-400">
-        @if (detail.merchant === unregistered) {
-          <span class="text-alert-600">— sem cadastro</span>
-        } @else {
-          {{ detail.merchant }}
-        }
-      </div>
-      <!-- A chave tem dinheiro do Banka que nenhum fecho leva: vê-se na linha, com
-           ou sem o filtro ligado. A cor é a da fatia do gráfico «Por Tratar». -->
-      @if (detail.unmatchedCredits > 0) {
-        <span
-          class="mt-1 inline-flex items-center gap-1 rounded-full bg-violet-50 px-2 py-0.5 text-2xs font-bold whitespace-nowrap text-violet-700 tabular-nums"
-        >
-          <svg lucideBanknote [size]="12" [strokeWidth]="2.2"></svg>
-          Crédito sem fecho · {{ amount(detail.bankaAmountUnmatched) }}
-        </span>
-      }
-    </ng-template>
-
-    <ng-template #stateChip let-detail>
-      <span
-        class="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-bold whitespace-nowrap"
-        [class]="chip(detail)"
-      >
-        <span class="size-1.5 rounded-full" [class]="dot(detail)"></span>
-        {{ stateLabel(detail) }}
-      </span>
+      </app-cell-identity>
     </ng-template>
   `,
 })
@@ -518,24 +434,19 @@ export class ReconciliationTableComponent {
   private readonly table = viewChild.required(DataTableComponent);
 
   protected readonly perPage = PER_PAGE;
-  protected readonly tableClass = TABLE_CLASS;
-  protected readonly theadClass = THEAD_CLASS;
+  /** O modelo partilhado das tabelas — ver `shared/ui/table`. */
+  protected readonly t = TABLE;
   protected readonly unregistered = UNREGISTERED;
-  protected readonly struckRow = STRUCK_ROW;
-  /** `bg-gray-50` aqui e não no `<thead>`: é a célula que pinta o fundo de forma fiável. */
-  protected readonly th = 'bg-gray-50 text-2xs font-bold tracking-wider uppercase';
 
   protected readonly query = signal('');
   private readonly search = signal('');
   /** Estados visíveis — todos por omissão. */
   protected readonly selected = signal<StateId[]>([...ALL_STATES]);
-  /** Só as chaves com créditos do Banka sem fecho por analisar. */
-  protected readonly unmatchedOnly = signal(false);
 
   /** A identidade da consulta — tudo o que dela deriva reinicia via `linkedSignal` quando ela muda. */
   private readonly queryKey = computed(() => {
     const validations = toValidations(this.selected());
-    return `${this.executionId()}|${validations?.join(',') ?? 'todos'}|${this.search()}|${this.unmatchedOnly()}`;
+    return `${this.executionId()}|${validations?.join(',') ?? 'todos'}|${this.search()}`;
   });
 
   /**
@@ -586,8 +497,7 @@ export class ReconciliationTableComponent {
   );
   /** `query` e não `search`: o botão reage à tecla, não espera pelo debounce. */
   protected readonly filtered = computed(
-    () =>
-      this.query() !== '' || this.selected().length !== ALL_STATES.length || this.unmatchedOnly(),
+    () => this.query() !== '' || this.selected().length !== ALL_STATES.length,
   );
 
   constructor() {
@@ -616,7 +526,6 @@ export class ReconciliationTableComponent {
       const page = this.page();
       const validations = toValidations(this.selected());
       const search = this.search();
-      const unmatchedCredits = this.unmatchedOnly();
 
       let cancelled = false;
       onCleanup(() => {
@@ -633,7 +542,6 @@ export class ReconciliationTableComponent {
           perPage: PER_PAGE,
           validation: validations,
           q: search,
-          unmatchedCredits,
         })
         .then((result) => {
           if (cancelled) return;
@@ -677,7 +585,6 @@ export class ReconciliationTableComponent {
 
   protected clearFilters(): void {
     this.selected.set([...ALL_STATES]);
-    this.unmatchedOnly.set(false);
     this.query.set('');
     this.search.set('');
   }
