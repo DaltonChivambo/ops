@@ -16,9 +16,7 @@ from app.domain.matching import (
     is_fully_matched,
     match_effect,
     reconciled_summary,
-    settles_case,
     suggest_matches,
-    unmatched_movements,
     validate_matches,
 )
 
@@ -113,39 +111,6 @@ def test_fully_matched_when_every_closing_has_a_pair_even_with_leftover_credits(
 
 def test_without_closings_is_not_matched() -> None:
     assert not is_fully_matched([], [])
-
-
-def test_leftover_credit_keeps_the_case_open() -> None:
-    """Os fechos conciliam-se, mas um crédito sem fecho tem de ser analisado."""
-    pairs = [Match("f1", "m1"), Match("f2", "m2")]
-
-    assert is_fully_matched(pairs, CLOSINGS)
-    assert [movement.id for movement in unmatched_movements(pairs, CREDITS)] == ["m3"]
-    assert not settles_case(pairs, CLOSINGS, CREDITS)
-
-
-def test_credit_after_the_period_does_not_keep_the_case_open() -> None:
-    """Um crédito de depois do último dia é do intervalo seguinte, e não conta."""
-    pairs = [Match("f1", "m1"), Match("f2", "m2")]
-    period_end = date(2026, 8, 21)
-
-    assert unmatched_movements(pairs, CREDITS, period_end) == []
-    assert settles_case(pairs, CLOSINGS, CREDITS, period_end)
-
-
-def test_credit_on_the_last_day_or_without_date_still_counts() -> None:
-    pairs = [Match("f1", "m1"), Match("f2", "m2")]
-    credits = [*CREDITS[:2], side("m3", 22, "100.00"), side("m4", None, "50.00")]
-
-    leftovers = unmatched_movements(pairs, credits, date(2026, 8, 22))
-
-    assert [movement.id for movement in leftovers] == ["m3", "m4"]
-
-
-def test_no_leftover_credit_settles_the_case() -> None:
-    pairs = [Match("f1", "m1"), Match("f2", "m2")]
-
-    assert settles_case(pairs, CLOSINGS, CREDITS[:2])
 
 
 # ─── O que a conciliação muda no apuramento ─────────────────────────────────

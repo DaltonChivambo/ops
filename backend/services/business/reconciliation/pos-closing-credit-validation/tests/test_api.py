@@ -88,7 +88,6 @@ def test_details_return_page_with_counts(client):
     assert body["perPage"] == 50
     assert body["counts"] == {
         "all": 1,
-        "unmatched": 0,
         "match": 0,
         "mismatch": 1,
         "missing": 0,
@@ -145,24 +144,7 @@ def test_details_forward_page_filter_and_search(client, service: FakeService):
         "perPage": 25,
         "validation": "missing,mismatch",
         "search": "259342",
-        "unmatchedCredits": False,
     }
-
-
-def test_details_forward_the_unmatched_credits_filter(client, service: FakeService):
-    client.get(f"{BASE}/execucoes/{EXECUTION_ID}/detalhes", params={"unmatchedCredits": "true"})
-
-    assert service.calls["list_details"]["unmatchedCredits"] is True
-
-
-def test_detail_row_carries_its_unmatched_credits(client, service: FakeService):
-    """A linha diz quantos créditos do Banka sem fecho a chave tem, e quanto somam."""
-    service.unmatched_by_key = {KEY: (1, Decimal("780.00"))}
-
-    row = client.get(f"{BASE}/execucoes/{EXECUTION_ID}/detalhes").json()["items"][0]
-
-    assert row["unmatchedCredits"] == 1
-    assert row["bankaAmountUnmatched"] == 780.0
 
 
 def test_details_cap_per_page_at_maximum(client, service: FakeService):
@@ -191,7 +173,6 @@ def test_key_returns_closings_movements_and_case(client):
     assert len(body["movements"]) == 1
     assert body["movements"][0]["amount"] == 7641.0
     assert body["case"]["id"] == CASE_ID
-    assert body["periodEnd"] == "2026-06-28"
 
 
 def test_key_returns_saved_and_suggested_matches(client, service: FakeService):
@@ -311,29 +292,13 @@ def test_reconcile_all_closings_resolves_the_case(client, service: FakeService):
     assert service.calls["reconcile"]["matched_by"] == "m001926"
 
 
-def test_reconcile_with_leftover_credit_keeps_the_case_open(client, service: FakeService):
-    """Um crédito do Banka sem fecho na SIMO fica para o operador analisar."""
+def test_reconcile_with_leftover_credit_still_settles_the_case(client, service: FakeService):
+    """Valida-se a SIMO contra o Banka: um crédito a sobrar não segura o caso."""
     _duplicated_key(service)
     leftover = make_movement()
     leftover.id = "m3"
     leftover.amount = Decimal("780.00")
     service.movements.append(leftover)
-    pairs = [{"closingId": "d1", "movementId": "m1"}, {"closingId": "d2", "movementId": "m2"}]
-
-    response = client.put(f"{BASE}/casos/{CASE_ID}/conciliacao", json={"matches": pairs})
-
-    assert response.status_code == 200
-    assert response.json()["case"]["status"] == "pending"
-
-
-def test_reconcile_with_credit_after_the_period_settles_the_case(client, service: FakeService):
-    """O crédito que sobra é de depois do intervalo — é do intervalo seguinte."""
-    _duplicated_key(service)
-    later = make_movement()
-    later.id = "m3"
-    later.amount = Decimal("780.00")
-    later.movement_date = date(2026, 6, 29)
-    service.movements.append(later)
     pairs = [{"closingId": "d1", "movementId": "m1"}, {"closingId": "d2", "movementId": "m2"}]
 
     response = client.put(f"{BASE}/casos/{CASE_ID}/conciliacao", json={"matches": pairs})

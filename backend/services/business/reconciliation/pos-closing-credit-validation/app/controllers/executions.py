@@ -8,7 +8,6 @@ Sem base de dados e sem openpyxl aqui: valida o pedido, chama o serviço,
 devolve o que ele deu.
 """
 
-from decimal import Decimal
 from typing import Any
 
 from fastapi import APIRouter, File, Query, Response, UploadFile
@@ -112,20 +111,13 @@ async def list_details(
     per_page: int | None = Query(default=None, alias="perPage"),
     validation: str | None = Query(default=None),
     q: str | None = Query(default=None),
-    # Só as chaves com créditos do Banka sem fecho por analisar — um filtro à
-    # parte do `validation`, porque estes fechos já estão em «confere».
-    unmatched_credits: bool = Query(default=False, alias="unmatchedCredits"),
 ) -> DetailsPageOut:
     await service.get_execution(execution_id)  # 404 se não existir
     parsed_page = parse_page(page, per_page)
-    result = await service.list_details(execution_id, parsed_page, validation, q, unmatched_credits)
+    result = await service.list_details(execution_id, parsed_page, validation, q)
     return DetailsPageOut(
         items=[
-            ClosingDetailOut.from_row(
-                detail,
-                *result.key_counts.get(detail.key, (1, 1)),
-                *result.unmatched_by_key.get(detail.key, (0, Decimal(0))),
-            )
+            ClosingDetailOut.from_row(detail, *result.key_counts.get(detail.key, (1, 1)))
             for detail in result.details
         ],
         total=result.total,
@@ -142,7 +134,6 @@ async def get_key_breakdown(
     """Os dois lados de uma chave — o que a tabela abre ao clicar num fecho."""
     breakdown = await service.get_key_breakdown(execution_id, key)
     return KeyBreakdownOut.from_parts(
-        breakdown["period_end"],
         breakdown["key"],
         breakdown["closings"],
         breakdown["movements"],

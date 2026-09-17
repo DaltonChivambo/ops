@@ -21,9 +21,9 @@ from app.domain.errors import (
 from app.domain.matching import (
     Match,
     MatchEffect,
+    is_fully_matched,
     match_effect,
     reconciled_summary,
-    settles_case,
     validate_matches,
 )
 from app.domain.vocabulary import CaseStatus, CaseType, Validation
@@ -109,10 +109,9 @@ class CaseService:
         """Guarda os pares fecho ↔ crédito de um caso de períodos duplicados.
 
         O conjunto enviado substitui o que havia. Quando cobre todos os fechos
-        da chave e não sobra nenhum crédito, o caso fica regularizado — foi para
-        isso que se conciliou. Senão o estado não se mexe: conciliar metade não
-        diz nada sobre a outra metade, um crédito sem fecho tem de ser analisado
-        (ver `settles_case`), e quem decide a fase continua a ser o operador.
+        da chave, o caso fica regularizado — foi para isso que se conciliou. Senão
+        o estado não se mexe: conciliar metade não diz nada sobre a outra metade,
+        e quem decide a fase continua a ser o operador.
         """
         case = await self._duplicated_case(case_id)
         outcome = await self._apply_matches(case, matches, matched_by)
@@ -207,12 +206,7 @@ class CaseService:
             execution_id, currently_matched - now_matched, Validation.DUPLICATED, None
         )
 
-        execution = await self._executions.find(execution_id)
-        period_end = execution.period_end if execution else None
-        if (
-            settles_case(matches, closing_sides, movement_sides, period_end)
-            and case.status != CaseStatus.RESOLVED
-        ):
+        if is_fully_matched(matches, closing_sides) and case.status != CaseStatus.RESOLVED:
             today = date.today()
             await self._cases.update(
                 case.id,
@@ -252,11 +246,6 @@ class CaseService:
         # que o frontend lê tal como está — não são atributos de Python.
         summary["resolvedCases"] = resolved
         summary["openCases"] = sum(counts.values()) - resolved
-        # Os créditos sem fecho mudam com as conciliações e com as fases dos casos,
-        # por isso contam-se de novo aqui, e não se acertam por diferenças.
-        unmatched, unmatched_amount = await self._executions.sum_unmatched_credits(execution_id)
-        summary["unmatchedCredits"] = unmatched
-        summary["bankaAmountUnmatched"] = float(unmatched_amount)
         await self._executions.save_summary(execution_id, summary)
         return summary
 

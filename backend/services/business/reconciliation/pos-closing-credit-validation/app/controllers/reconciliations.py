@@ -26,10 +26,9 @@ async def list_reconciliation_candidates(
     execution_id: str, service: ValidationServiceDep
 ) -> list[KeyBreakdownOut]:
     """Os casos de períodos duplicados por tratar que têm créditos, com os pares sugeridos."""
-    period_end, candidates = await service.list_reconciliation_candidates(execution_id)
+    candidates = await service.list_reconciliation_candidates(execution_id)
     return [
         KeyBreakdownOut.from_parts(
-            period_end,
             candidate.case.key,
             candidate.closings,
             candidate.movements,

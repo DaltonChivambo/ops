@@ -52,8 +52,6 @@ CONTRACT: dict[str, tuple[type[Any], set[str]]] = {
             "difference",
             "simoClosingsCount",
             "bankaMovementsCount",
-            "unmatchedCredits",
-            "bankaAmountUnmatched",
         },
     ),
     "CreditMovement": (
@@ -84,7 +82,7 @@ CONTRACT: dict[str, tuple[type[Any], set[str]]] = {
     ),
     "KeyBreakdown": (
         KeyBreakdownOut,
-        {"key", "closings", "movements", "case", "matches", "suggestedMatches", "periodEnd"},
+        {"key", "closings", "movements", "case", "matches", "suggestedMatches"},
     ),
     "ClosingMatch": (
         ClosingMatchOut,
@@ -113,7 +111,7 @@ CONTRACT: dict[str, tuple[type[Any], set[str]]] = {
     ),
     "DetailCounts": (
         DetailCountsOut,
-        {"all", "unmatched", "match", "mismatch", "missing", "zero", "duplicated"},
+        {"all", "match", "mismatch", "missing", "zero", "duplicated"},
     ),
     "DetailsPage": (
         DetailsPageOut,
@@ -176,6 +174,4 @@ def test_summary_indicators_are_the_dashboard_ones() -> None:
         "simoAmountMissing",
         "simoAmountDuplicated",
         "bankaAmountDuplicated",
-        "unmatchedCredits",
-        "bankaAmountUnmatched",
     }
