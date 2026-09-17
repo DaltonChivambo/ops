@@ -166,7 +166,10 @@ class ExecutionRepository:
         search: str | None = None,
         unmatched_credits_only: bool = False,
     ) -> tuple[list[ClosingDetail], int]:
-        where = _details_where(execution_id, validation, search, unmatched_credits_only)
+        unmatched_keys = (
+            await self.unmatched_credit_keys(execution_id) if unmatched_credits_only else None
+        )
+        where = _details_where(execution_id, validation, search, unmatched_keys)
         items_result = await self._session.execute(
             sa.select(ClosingDetail)
             .where(*where)
@@ -250,12 +253,14 @@ class ExecutionRepository:
             counts["all"] += total
         # Os fechos das chaves com crédito sem fecho — o número do filtro, que não é
         # um estado: estes fechos já estão em «confere».
-        unmatched = await self._session.execute(
-            sa.select(sa.func.count())
-            .select_from(ClosingDetail)
-            .where(*_details_where(execution_id, None, search, unmatched_credits_only=True))
-        )
-        counts["unmatched"] = unmatched.scalar_one()
+        unmatched_keys = await self.unmatched_credit_keys(execution_id)
+        if unmatched_keys:
+            unmatched = await self._session.execute(
+                sa.select(sa.func.count())
+                .select_from(ClosingDetail)
+                .where(*_details_where(execution_id, None, search, unmatched_keys))
+            )
+            counts["unmatched"] = unmatched.scalar_one()
         return counts
 
     async def count_by_key(
@@ -316,10 +321,13 @@ class ExecutionRepository:
         soltos continuam a contar como período duplicado; quando o caso fecha,
         saem daqui.
         """
+        scope = await self._unmatched_credit_scope(execution_id)
+        if not scope:
+            return 0, Decimal(0)
         result = await self._session.execute(
             sa.select(
                 sa.func.count(), sa.func.coalesce(sa.func.sum(CreditMovement.amount), 0)
-            ).where(*_unmatched_credits_where(execution_id))
+            ).where(*_unmatched_credits_where(execution_id, scope))
         )
         count, total = result.one()
         return int(count), Decimal(total)
@@ -328,14 +336,71 @@ class ExecutionRepository:
         self, execution_id: str, keys: Collection[str]
     ) -> dict[str, tuple[int, Decimal]]:
         """Os mesmos créditos sem fecho, por chave — só para as chaves pedidas (uma página)."""
-        if not keys:
+        scope = set(await self._unmatched_credit_scope(execution_id)) & set(keys)
+        if not scope:
             return {}
         result = await self._session.execute(
             sa.select(CreditMovement.key, sa.func.count(), sa.func.sum(CreditMovement.amount))
-            .where(*_unmatched_credits_where(execution_id), CreditMovement.key.in_(keys))
+            .where(*_unmatched_credits_where(execution_id, scope))
             .group_by(CreditMovement.key)
         )
         return {key: (int(count), Decimal(total)) for key, count, total in result.all()}
+
+    async def unmatched_credit_keys(self, execution_id: str) -> list[str]:
+        """As chaves que têm pelo menos um crédito sem fecho — as do filtro da tabela."""
+        scope = await self._unmatched_credit_scope(execution_id)
+        if not scope:
+            return []
+        result = await self._session.execute(
+            sa.select(CreditMovement.key)
+            .where(*_unmatched_credits_where(execution_id, scope))
+            .distinct()
+        )
+        return list(result.scalars().all())
+
+    async def _unmatched_credit_scope(self, execution_id: str) -> list[str]:
+        """As chaves onde pode haver créditos sem fecho: poucas, e por isso calculadas antes.
+
+        Casos de períodos duplicados em aberto, com pares guardados e sem nenhum
+        fecho ainda por conciliar. Parte-se das tabelas pequenas (casos e pares) e
+        só depois se vai aos créditos e aos fechos, com a lista de chaves na mão e
+        pelos índices `(executionId, key)`.
+
+        É feito em dois passos de propósito. Numa única query, com subconsultas
+        (IN, NOT IN ou EXISTS) sobre os ~30 mil fechos e ~45 mil créditos de uma
+        execução acabada de gravar — ainda sem estatísticas —, o Postgres
+        escolhia percorrer uma tabela por cada linha da outra, e a contagem do
+        filtro ficava minutos presa: a tabela de fechos não chegava a carregar.
+        """
+        reconciled = await self._session.execute(
+            sa.select(ClosingMatch.key)
+            .where(
+                ClosingMatch.execution_id == execution_id,
+                ClosingMatch.key.in_(
+                    sa.select(PendingCase.key).where(
+                        PendingCase.execution_id == execution_id,
+                        PendingCase.type == CaseType.DUPLICATED,
+                        PendingCase.status != CaseStatus.RESOLVED,
+                    )
+                ),
+            )
+            .distinct()
+        )
+        keys = set(reconciled.scalars().all())
+        if not keys:
+            return []
+        # Numa chave com fechos ainda por ligar, os créditos soltos contam como
+        # período duplicado, não como crédito sem fecho.
+        still_duplicated = await self._session.execute(
+            sa.select(ClosingDetail.key)
+            .where(
+                ClosingDetail.execution_id == execution_id,
+                ClosingDetail.key.in_(keys),
+                ClosingDetail.validation == Validation.DUPLICATED,
+            )
+            .distinct()
+        )
+        return sorted(keys - set(still_duplicated.scalars().all()))
 
     async def save_summary(self, execution_id: str, summary: dict[str, Any]) -> None:
         await self._session.execute(
@@ -343,39 +408,28 @@ class ExecutionRepository:
         )
 
 
-def _unmatched_credits_where(execution_id: str) -> list[Any]:
+def _unmatched_credits_where(execution_id: str, scope: Collection[str]) -> list[Any]:
     """O que é um crédito sem fecho por analisar — a definição única, em condições sobre
     `CreditMovement`, usada no total do `summary`, no filtro da tabela e em cada linha.
 
     Um crédito que nenhum par levou, numa chave de períodos duplicados em que todos
-    os fechos já estão conciliados e o caso continua aberto. Numa chave ainda com
-    fechos por ligar, os créditos soltos contam como período duplicado; quando o
-    caso fecha, saem daqui. Ver `settles_case`.
+    os fechos já estão conciliados e o caso continua aberto — as chaves de `scope`,
+    calculadas por `ExecutionRepository._unmatched_credit_scope`. Numa chave ainda
+    com fechos por ligar, os créditos soltos contam como período duplicado; quando
+    o caso fecha, saem daqui. Ver `settles_case`.
 
     Só os do intervalo da execução: um crédito com data depois do último dia é do
     intervalo seguinte, e não conta (ver `within_period`).
     """
-    open_keys = sa.select(PendingCase.key).where(
-        PendingCase.execution_id == execution_id,
-        PendingCase.type == CaseType.DUPLICATED,
-        PendingCase.status != CaseStatus.RESOLVED,
-    )
-    reconciled_keys = sa.select(ClosingMatch.key).where(ClosingMatch.execution_id == execution_id)
-    keys_with_unmatched_closings = sa.select(ClosingDetail.key).where(
-        ClosingDetail.execution_id == execution_id,
-        ClosingDetail.validation == Validation.DUPLICATED,
-    )
     used_movements = sa.select(ClosingMatch.movement_id).where(
-        ClosingMatch.execution_id == execution_id
+        ClosingMatch.execution_id == execution_id, ClosingMatch.key.in_(scope)
     )
     period_end = (
         sa.select(Execution.period_end).where(Execution.id == execution_id).scalar_subquery()
     )
     return [
         CreditMovement.execution_id == execution_id,
-        CreditMovement.key.in_(open_keys),
-        CreditMovement.key.in_(reconciled_keys),
-        CreditMovement.key.not_in(keys_with_unmatched_closings),
+        CreditMovement.key.in_(scope),
         CreditMovement.id.not_in(used_movements),
         sa.or_(
             CreditMovement.movement_date.is_(None),
@@ -388,16 +442,13 @@ def _details_where(
     execution_id: str,
     validation: str | None,
     search: str | None,
-    unmatched_credits_only: bool = False,
+    unmatched_keys: Collection[str] | None = None,
 ) -> list[Any]:
     conditions: list[Any] = [ClosingDetail.execution_id == execution_id]
-    if unmatched_credits_only:
-        # Os fechos das chaves que têm créditos do Banka sem fecho por analisar.
-        conditions.append(
-            ClosingDetail.key.in_(
-                sa.select(CreditMovement.key).where(*_unmatched_credits_where(execution_id))
-            )
-        )
+    if unmatched_keys is not None:
+        # Os fechos das chaves que têm créditos do Banka sem fecho por analisar —
+        # ver `unmatched_credit_keys`.
+        conditions.append(ClosingDetail.key.in_(unmatched_keys))
     if validation:
         # Lista de estados a mostrar, separada por vírgulas. Tokens desconhecidos
         # caem fora, por isso a selecção vazia (o cliente manda «nenhum») não
