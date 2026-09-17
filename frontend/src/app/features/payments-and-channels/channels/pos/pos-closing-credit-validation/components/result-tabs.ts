@@ -213,7 +213,7 @@ export class ResultTabsComponent {
       { id: 'cases' as const, label: 'Casos para Análise', badge: this.n(summary.openCases) },
       {
         id: 'reconciliations' as const,
-        label: 'Conciliações',
+        label: 'Períodos Duplicados',
         badge: this.n(this.reconciliationCandidates()?.length ?? 0),
       },
     ];

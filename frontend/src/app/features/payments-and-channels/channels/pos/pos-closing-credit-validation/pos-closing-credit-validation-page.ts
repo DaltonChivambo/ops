@@ -210,8 +210,8 @@ export class PosClosingCreditValidationPageComponent {
           if (cancelled) return;
           this.reconciliationCandidates.set([]);
           this.error.set({
-            title: 'Conciliações indisponíveis',
-            detail: 'Não foi possível carregar as conciliações. Tente recarregar a página.',
+            title: 'Períodos duplicados indisponíveis',
+            detail: 'Não foi possível carregá-los. Tente recarregar a página.',
           });
         });
     });
@@ -382,7 +382,7 @@ export class PosClosingCreditValidationPageComponent {
       // quantos, para ninguém os dar por tratados.
       const open = cases.filter((item) => item.status !== 'resolved').length;
       this.success.set({
-        title: 'Conciliação concluída',
+        title: 'Períodos duplicados conciliados',
         facts: [
           { label: 'Chaves conciliadas', value: count(items.length) },
           { label: 'Fechos em «Crédito confere»', value: count(closings) },
