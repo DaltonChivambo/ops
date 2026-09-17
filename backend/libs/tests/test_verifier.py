@@ -21,69 +21,69 @@ def build(issuer: FakeIssuer, **kwargs) -> TokenVerifier:
     )
 
 
-class TestAceita:
-    async def test_token_valido(self, issuer):
+class TestAccepts:
+    async def test_valid_token(self, issuer):
         claims = await build(issuer).verify(issuer.token())
         assert claims["preferred_username"] == "m001926"
         assert claims["departmentCode"] == "2350"
 
-    async def test_a_chave_fica_em_cache(self, issuer):
+    async def test_key_is_cached(self, issuer):
         verifier = build(issuer)
         await verifier.verify(issuer.token())
         await verifier.verify(issuer.token())
         assert issuer.fetches == 1
 
 
-class TestRecusa:
-    async def test_assinado_com_outra_chave(self, issuer):
+class TestRejects:
+    async def test_signed_with_another_key(self, issuer):
         """O caso que interessa: alguém a forjar um token com as claims certas."""
-        intruso = FakeIssuer(kid=issuer.kid)
-        forjado = jwt.encode(
+        intruder = FakeIssuer(kid=issuer.kid)
+        forged = jwt.encode(
             {"sub": "x", "iss": ISSUER, "azp": AZP, "iat": 0, "exp": 9999999999},
-            intruso.private_key,
+            intruder.private_key,
             algorithm="RS256",
             headers={"kid": issuer.kid},
         )
         with pytest.raises(UnauthenticatedError):
-            await build(issuer).verify(forjado)
+            await build(issuer).verify(forged)
 
-    async def test_expirado(self, issuer):
-        agora = int(time.time())
+    async def test_expired(self, issuer):
+        now = int(time.time())
         with pytest.raises(UnauthenticatedError):
-            await build(issuer).verify(issuer.token(iat=agora - 7200, exp=agora - 3600))
+            await build(issuer).verify(issuer.token(iat=now - 7200, exp=now - 3600))
 
-    async def test_emissor_errado(self, issuer):
+    async def test_wrong_issuer(self, issuer):
         with pytest.raises(UnauthenticatedError):
             await build(issuer).verify(issuer.token(iss="http://outro/auth/realms/QAS"))
 
-    async def test_cliente_fora_da_lista(self, issuer):
+    async def test_client_not_in_allowed_list(self, issuer):
         """Um token legítimo do GEEA, mas emitido para outra aplicação do banco."""
         with pytest.raises(UnauthenticatedError):
             await build(issuer).verify(issuer.token(azp="qa-workflow-ui"))
 
-    async def test_sem_assinatura(self, issuer):
+    async def test_unsigned(self, issuer):
         """`alg: none` — o ataque clássico contra quem confia no cabeçalho."""
-        sem_assinatura = jwt.encode(
+        unsigned = jwt.encode(
             {"sub": "x", "iss": ISSUER, "azp": AZP, "iat": 0, "exp": 9999999999},
             key="",
             algorithm="none",
             headers={"kid": issuer.kid},
         )
         with pytest.raises(UnauthenticatedError):
-            await build(issuer).verify(sem_assinatura)
+            await build(issuer).verify(unsigned)
 
-    async def test_sem_kid(self, issuer):
+    async def test_missing_kid(self, issuer):
         with pytest.raises(UnauthenticatedError):
             await build(issuer).verify(issuer.token(_headers={}))
 
-    async def test_malformado(self, issuer):
+    async def test_malformed(self, issuer):
         with pytest.raises(UnauthenticatedError):
             await build(issuer).verify("isto-não-é-um-jwt")
 
-    @pytest.mark.parametrize("em_falta", ["exp", "iat", "sub"])
-    async def test_claim_obrigatoria_em_falta(self, issuer, em_falta):
+    @pytest.mark.parametrize("missing", ["exp", "iat", "sub"])
+    async def test_missing_required_claim(self, issuer, missing):
         claims = {"sub": "x", "iss": ISSUER, "azp": AZP, "iat": 0, "exp": 9999999999}
-        del claims[em_falta]
+        del claims[missing]
         token = jwt.encode(
             claims, issuer.private_key, algorithm="RS256", headers={"kid": issuer.kid}
         )
@@ -92,20 +92,20 @@ class TestRecusa:
 
 
 class TestJwks:
-    async def test_kid_novo_faz_ir_buscar_as_chaves_outra_vez(self, issuer):
+    async def test_new_kid_refetches_keys(self, issuer):
         """A rotação de chaves do emissor não pode exigir reiniciar o serviço."""
         verifier = build(issuer, min_refresh_seconds=0)
         await verifier.verify(issuer.token())
 
-        rodado = FakeIssuer(kid="chave-2")
-        issuer.kid = rodado.kid
-        issuer.private_key = rodado.private_key
+        rotated = FakeIssuer(kid="chave-2")
+        issuer.kid = rotated.kid
+        issuer.private_key = rotated.private_key
 
         claims = await verifier.verify(issuer.token())
         assert claims["preferred_username"] == "m001926"
         assert issuer.fetches == 2
 
-    async def test_kid_inventado_nao_faz_um_pedido_por_token(self, issuer):
+    async def test_unknown_kid_does_not_fetch_per_token(self, issuer):
         """Sem limite, um `kid` ao acaso por pedido era um amplificador de saída."""
         verifier = build(issuer, min_refresh_seconds=300)
         await verifier.verify(issuer.token())
@@ -116,24 +116,24 @@ class TestJwks:
 
         assert issuer.fetches == 1
 
-    async def test_emissor_em_baixo_nao_diz_sessao_invalida(self, issuer):
+    async def test_issuer_down_is_not_reported_as_invalid_session(self, issuer):
         """O token pode estar bom e o problema ser nosso — 503, não 401."""
 
-        async def rebenta():
+        async def failing_fetch():
             raise ValueError("sem rede")
 
         verifier = TokenVerifier(
             jwks_url="http://geea-keycloak:8000/irrelevante",
             issuer=ISSUER,
             allowed_azp=frozenset({AZP}),
-            fetcher=rebenta,
+            fetcher=failing_fetch,
         )
         with pytest.raises(IdentityUnavailableError):
             await verifier.verify(issuer.token())
 
 
 class TestPrincipal:
-    async def test_claims_do_geea_viram_principal(self, issuer):
+    async def test_geea_claims_become_principal(self, issuer):
         from mozaops_libs.auth.areas import AreaMapping
         from mozaops_libs.auth.fastapi import principal_from_claims
 
@@ -149,6 +149,6 @@ class TestPrincipal:
         assert principal.areas == {"payments-and-channels"}
 
 
-def test_par_de_chaves_do_teste_e_gerado_e_nao_lido_do_disco():
+def test_test_key_pair_is_generated_not_read_from_disk():
     """Nenhuma chave privada entra no repositório, nem para testes."""
     assert isinstance(FakeIssuer().private_key, rsa.RSAPrivateKey)

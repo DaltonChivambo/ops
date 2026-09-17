@@ -7,7 +7,7 @@ from app.settings import Settings, settings
 
 
 class TestLogin:
-    def test_credenciais_certas_abrem_sessao(self, client):
+    def test_valid_credentials_open_session(self, client):
         response = client.post(
             "/identity/sessions", json={"username": "m001926", "password": "senha-certa"}
         )
@@ -19,14 +19,14 @@ class TestLogin:
         assert body["principal"]["username"] == "m001926"
         assert body["principal"]["department"] == "Canais e Serviços de Integração"
 
-    def test_papeis_vem_do_nosso_mapa_e_nao_do_token(self, client):
+    def test_roles_come_from_our_map_not_the_token(self, client):
         """O token só traz `work_queue`; quem decide `supervisor` somos nós."""
         response = client.post(
             "/identity/sessions", json={"username": "m001926", "password": "senha-certa"}
         )
         assert response.json()["principal"]["areas"] == ["channels"]
 
-    def test_token_de_renovacao_vai_em_cookie_inacessivel_ao_javascript(self, client):
+    def test_refresh_token_goes_in_httponly_cookie(self, client):
         response = client.post(
             "/identity/sessions", json={"username": "m001926", "password": "senha-certa"}
         )
@@ -37,7 +37,7 @@ class TestLogin:
         assert "SameSite=lax" in cookie.replace("samesite", "SameSite")
         assert f"Path={settings.session_cookie_path}" in cookie
 
-    def test_o_cookie_fica_limitado_a_fronteira_da_api_deste_servico(self):
+    def test_cookie_is_scoped_to_this_service_api_boundary(self):
         """O valor por omissão, que é o que vale em produção.
 
         Os testes correm com `Path=/` porque falam com o serviço sem o proxy à
@@ -49,10 +49,10 @@ class TestLogin:
         """
         assert Settings.model_fields["session_cookie_path"].default == "/api/identity"
 
-    def test_o_cookie_exige_https_por_omissao(self):
+    def test_cookie_requires_https_by_default(self):
         assert Settings.model_fields["session_cookie_secure"].default is True
 
-    def test_o_token_de_renovacao_nao_vai_no_corpo(self, client):
+    def test_refresh_token_is_not_in_body(self, client):
         """Se fosse no corpo, ficava ao alcance de qualquer script na página."""
         body = client.post(
             "/identity/sessions", json={"username": "m001926", "password": "senha-certa"}
@@ -60,9 +60,9 @@ class TestLogin:
         assert "refreshToken" not in body
         assert "refresh-valido" not in str(body)
 
-    def test_credenciais_erradas_dao_401_no_envelope(self, client):
+    def test_wrong_credentials_return_401_in_envelope(self, client):
         response = client.post(
-            "/identity/sessions", json={"username": "m001926", "password": "errada"}
+            "/identity/sessions", json={"username": "m001926", "password": "wrong"}
         )
 
         assert response.status_code == 401
@@ -73,20 +73,20 @@ class TestLogin:
             }
         }
 
-    def test_utilizador_inexistente_responde_o_mesmo_que_password_errada(self, client):
+    def test_unknown_user_responds_same_as_wrong_password(self, client):
         """Distinguir os dois casos confirmaria contas a quem as adivinha."""
-        inexistente = client.post(
+        unknown = client.post(
             "/identity/sessions", json={"username": "nao-existe", "password": "x"}
         )
-        errada = client.post("/identity/sessions", json={"username": "m001926", "password": "x"})
-        assert inexistente.json() == errada.json()
-        assert inexistente.status_code == errada.status_code
+        wrong = client.post("/identity/sessions", json={"username": "m001926", "password": "x"})
+        assert unknown.json() == wrong.json()
+        assert unknown.status_code == wrong.status_code
 
 
-class TestSemArea:
+class TestWithoutArea:
     """Autenticar não é ser autorizado: sem área nenhuma, nem sessão há."""
 
-    def test_login_de_quem_nao_tem_area_da_credenciais_invalidas(self, client, geea):
+    def test_login_without_area_returns_invalid_credentials(self, client, geea):
         geea.valid["m009999"] = "senha-certa"
         geea.claims_by_user["m009999"] = {
             "departmentCode": "1600",
@@ -109,7 +109,7 @@ class TestSemArea:
             }
         }
 
-    def test_login_de_quem_nao_tem_area_nao_deixa_cookie(self, client, geea):
+    def test_login_without_area_leaves_no_cookie(self, client, geea):
         geea.valid["m009999"] = "senha-certa"
         geea.claims_by_user["m009999"] = {"departmentCode": "1600"}
 
@@ -119,7 +119,7 @@ class TestSemArea:
 
         assert "set-cookie" not in response.headers
 
-    def test_renovar_para_quem_perdeu_a_area_tambem_falha(self, client, geea):
+    def test_refresh_for_user_who_lost_area_also_fails(self, client, geea):
         """A unidade pode deixar de mapear a área entre o login e a renovação —
         o cookie continua válido, e o `/refresh` é onde isso se apanha."""
         client.post("/identity/sessions", json={"username": "m001926", "password": "senha-certa"})
@@ -131,15 +131,15 @@ class TestSemArea:
         assert response.json()["error"]["code"] == "invalid_credentials"
 
 
-class TestPasswordNaoEscapa:
-    def test_nao_aparece_na_resposta_de_erro_de_validacao(self, client):
+class TestPasswordDoesNotLeak:
+    def test_not_in_validation_error_response(self, client):
         """O 422 do FastAPI devolveria o corpo do pedido — com a password."""
         response = client.post("/identity/sessions", json={"username": "m001926"})
 
         assert response.status_code == 422
         assert "password" not in response.text.lower()
 
-    def test_nao_aparece_nos_logs(self, client, caplog):
+    def test_not_in_logs(self, client, caplog):
         with caplog.at_level(logging.DEBUG):
             client.post(
                 "/identity/sessions",
@@ -149,10 +149,10 @@ class TestPasswordNaoEscapa:
         assert "s3nh4-mesmo-secreta" not in caplog.text
 
 
-class TestLimiteDeTentativas:
-    def test_ao_fim_de_n_tentativas_responde_429(self, client):
+class TestAttemptLimit:
+    def test_after_n_attempts_responds_429(self, client):
         for _ in range(10):
-            client.post("/identity/sessions", json={"username": "m001926", "password": "errada"})
+            client.post("/identity/sessions", json={"username": "m001926", "password": "wrong"})
 
         response = client.post(
             "/identity/sessions", json={"username": "m001926", "password": "senha-certa"}
@@ -160,30 +160,30 @@ class TestLimiteDeTentativas:
         assert response.status_code == 429
         assert response.json()["error"]["code"] == "too_many_attempts"
 
-    def test_o_limite_e_por_utilizador(self, client):
+    def test_limit_is_per_user(self, client):
         for _ in range(10):
             client.post("/identity/sessions", json={"username": "m001926", "password": "e"})
 
-        outra = client.post("/identity/sessions", json={"username": "m004410", "password": "e"})
-        assert outra.status_code == 401
+        other = client.post("/identity/sessions", json={"username": "m004410", "password": "e"})
+        assert other.status_code == 401
 
 
-class TestRenovacao:
-    def test_renova_a_partir_do_cookie(self, client):
+class TestRefresh:
+    def test_refreshes_from_cookie(self, client):
         client.post("/identity/sessions", json={"username": "m001926", "password": "senha-certa"})
 
         response = client.post("/identity/sessions/refresh")
         assert response.status_code == 200
         assert response.json()["accessToken"]
 
-    def test_sem_cookie_nao_ha_o_que_renovar(self, client):
+    def test_without_cookie_nothing_to_refresh(self, client):
         response = client.post("/identity/sessions/refresh")
         assert response.status_code == 401
         assert response.json()["error"]["code"] == "unauthenticated"
 
 
 class TestLogout:
-    def test_apaga_o_cookie(self, client):
+    def test_clears_the_cookie(self, client):
         client.post("/identity/sessions", json={"username": "m001926", "password": "senha-certa"})
 
         response = client.delete("/identity/sessions")
@@ -191,8 +191,8 @@ class TestLogout:
         assert client.post("/identity/sessions/refresh").status_code == 401
 
 
-class TestGeeaEmBaixo:
-    def test_responde_503_e_nao_credenciais_invalidas(self, client, geea):
+class TestGeeaDown:
+    def test_responds_503_not_invalid_credentials(self, client, geea):
         """O problema é nosso; mandar a pessoa reescrever a password não ajuda."""
         from app.domain.errors import GeeaUnavailableError
 

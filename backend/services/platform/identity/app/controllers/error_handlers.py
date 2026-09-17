@@ -41,8 +41,8 @@ def register(app: FastAPI) -> None:
 
     @app.exception_handler(DomainError)
     async def handle_domain_error(_request: Request, error: Exception) -> JSONResponse:
-        for tipo, status, code in STATUS_BY_ERROR:
-            if isinstance(error, tipo):
+        for error_type, status, code in STATUS_BY_ERROR:
+            if isinstance(error, error_type):
                 return _envelope(status, code, str(error))
         return _envelope(400, "bad_request", str(error))
 
