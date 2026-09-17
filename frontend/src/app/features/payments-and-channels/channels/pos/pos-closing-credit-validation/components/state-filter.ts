@@ -1,173 +1,41 @@
+import { ChangeDetectionStrategy, Component, computed, input, output } from '@angular/core';
+import { LucideListFilter } from '@lucide/angular';
+
 import {
-  ChangeDetectionStrategy,
-  Component,
-  computed,
-  ElementRef,
-  inject,
-  input,
-  output,
-  signal,
-} from '@angular/core';
-import { LucideCheck, LucideChevronDown, LucideListFilter, LucideMinus } from '@lucide/angular';
-
-import { numberFormatter } from '../../../../../../shared/format';
+  MultiSelectFilterComponent,
+  type FilterOption,
+} from '../../../../../../shared/ui/multi-select-filter';
 import type { DetailCounts } from '../data/models';
-import { ALL_STATES, STATE_OPTIONS, type StateId } from '../data/state-options';
+import { STATE_OPTIONS, type StateId } from '../data/state-options';
 
-/**
- * Filtro da coluna «Estado» — um botão que abre a lista de caixas, em vez de chips sempre à vista.
- * Devolve sempre a selecção pela ordem de `STATE_OPTIONS`, para o filtro ao servidor ser estável.
- */
+/** Filtro da «Validação» em Todos os Fechos — as opções de `STATE_OPTIONS` no filtro partilhado. */
 @Component({
   selector: 'app-state-filter',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [LucideCheck, LucideChevronDown, LucideListFilter, LucideMinus],
-  host: {
-    class: 'relative shrink-0',
-    '(document:mousedown)': 'onDocumentMouseDown($event)',
-    '(document:keydown.escape)': 'open.set(false)',
-  },
+  imports: [MultiSelectFilterComponent, LucideListFilter],
   template: `
-    <button
-      type="button"
-      (click)="open.set(!open())"
-      aria-haspopup="true"
-      [attr.aria-expanded]="open()"
-      class="inline-flex items-center gap-2 rounded-xl border px-3.5 py-2.5 text-sm font-semibold transition-colors"
-      [class]="
-        allSelected()
-          ? 'border-gray-100 bg-gray-50 text-gray-600 hover:text-gray-900'
-          : 'border-moza-200 bg-moza-50 text-moza-700'
-      "
+    <app-multi-select-filter
+      label="Validação"
+      allLabel="Todas as validações"
+      [options]="options()"
+      [selected]="selected()"
+      (changed)="changed.emit($any($event))"
     >
-      <svg lucideListFilter [size]="15" [strokeWidth]="2" class="shrink-0"></svg>
-      <span class="font-medium opacity-60">Validação:</span>
-      {{ label() }}
-
-      <svg
-        lucideChevronDown
-        [size]="14"
-        [strokeWidth]="2.4"
-        class="shrink-0 text-gray-400 transition-transform"
-        [class.rotate-180]="open()"
-      ></svg>
-    </button>
-
-    @if (open()) {
-      <div
-        class="absolute left-0 z-20 mt-1.5 w-64 overflow-hidden rounded-xl border border-gray-100 bg-white py-1 shadow-lg"
-      >
-        <!-- Caixa-mestra: traço quando só parte está marcada. -->
-        <label
-          class="flex cursor-pointer items-center gap-2.5 px-3 py-2 text-sm font-semibold text-gray-900 transition-colors hover:bg-gray-50"
-        >
-          <span
-            class="inline-flex size-4 shrink-0 items-center justify-center rounded border transition-colors"
-            [class]="
-              masterState() === 'off'
-                ? 'border-gray-300 bg-white'
-                : 'border-moza-700 bg-moza-700 text-white'
-            "
-          >
-            @if (masterState() === 'on') {
-              <svg lucideCheck [size]="11" [strokeWidth]="3.5"></svg>
-            } @else if (masterState() === 'partial') {
-              <svg lucideMinus [size]="11" [strokeWidth]="3.5"></svg>
-            }
-          </span>
-
-          <input
-            type="checkbox"
-            [checked]="allSelected()"
-            [indeterminate]="masterState() === 'partial'"
-            (change)="changed.emit(allSelected() ? [] : allStates)"
-            class="sr-only"
-          />
-          <span class="flex-1">Todas as validações</span>
-          <span class="text-xs font-medium text-gray-400 tabular-nums">
-            {{ n(counts().all) }}
-          </span>
-        </label>
-
-        <div class="my-1 h-px bg-gray-100"></div>
-
-        @for (option of options; track option.id) {
-          @let checked = selected().includes(option.id);
-
-          <label
-            class="flex cursor-pointer items-center gap-2.5 px-3 py-2 text-sm text-gray-600 transition-colors hover:bg-gray-50"
-          >
-            <span
-              class="inline-flex size-4 shrink-0 items-center justify-center rounded border transition-colors"
-              [class]="
-                checked ? 'border-moza-700 bg-moza-700 text-white' : 'border-gray-300 bg-white'
-              "
-            >
-              @if (checked) {
-                <svg lucideCheck [size]="11" [strokeWidth]="3.5"></svg>
-              }
-            </span>
-
-            <input
-              type="checkbox"
-              [checked]="checked"
-              (change)="toggle(option.id)"
-              class="sr-only"
-            />
-            <span class="size-2 shrink-0 rounded-[3px]" [class]="option.dot"></span>
-            <span class="flex-1 font-medium">{{ option.label }}</span>
-            <span class="text-xs text-gray-400 tabular-nums">
-              {{ n(option.count(counts())) }}
-            </span>
-          </label>
-        }
-      </div>
-    }
+      <svg lucideListFilter filterIcon [size]="15" [strokeWidth]="2" class="shrink-0"></svg>
+    </app-multi-select-filter>
   `,
 })
 export class StateFilterComponent {
-  private readonly host = inject<ElementRef<HTMLElement>>(ElementRef);
-
   readonly counts = input.required<DetailCounts>();
   readonly selected = input.required<StateId[]>();
   readonly changed = output<StateId[]>();
 
-  protected readonly open = signal(false);
-  protected readonly options = STATE_OPTIONS;
-  protected readonly allStates = ALL_STATES;
-
-  protected readonly allSelected = computed(() => this.selected().length === STATE_OPTIONS.length);
-
-  protected readonly masterState = computed<'on' | 'off' | 'partial'>(() => {
-    if (this.allSelected()) return 'on';
-    return this.selected().length === 0 ? 'off' : 'partial';
-  });
-
-  protected readonly label = computed(() => {
-    const selected = this.selected();
-    if (this.allSelected()) return 'Todas';
-    if (selected.length === 0) return 'Nenhuma';
-    if (selected.length === 1) {
-      return STATE_OPTIONS.find((item) => item.id === selected[0])?.label ?? '';
-    }
-    return `${this.n(selected.length)} de ${this.n(STATE_OPTIONS.length)}`;
-  });
-
-  protected toggle(id: StateId): void {
-    const selected = this.selected();
-    this.changed.emit(
-      selected.includes(id)
-        ? selected.filter((item) => item !== id)
-        : // Reconstruir a partir de ALL_STATES mantém a ordem de STATE_OPTIONS,
-          // para o filtro que vai ao servidor ser estável entre cliques.
-          ALL_STATES.filter((item) => item === id || selected.includes(item)),
-    );
-  }
-
-  protected onDocumentMouseDown(event: MouseEvent): void {
-    if (!this.open()) return;
-    if (!this.host.nativeElement.contains(event.target as Node)) this.open.set(false);
-  }
-
-  protected n = (value: number) => numberFormatter.format(value);
+  protected readonly options = computed<FilterOption[]>(() =>
+    STATE_OPTIONS.map((option) => ({
+      id: option.id,
+      label: option.label,
+      dot: option.dot,
+      count: option.count(this.counts()),
+    })),
+  );
 }

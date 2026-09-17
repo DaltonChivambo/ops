@@ -16,6 +16,16 @@ from typing import Any
 EXCEL_EPOCH_OFFSET = 25569
 SECONDS_PER_DAY = 86400
 
+EXCEL_EPOCH = date(1899, 12, 30)
+# Um número só é um serial de data se cair num intervalo em que um fecho de POS
+# pode ter acontecido. Fora dele o número é outra coisa — um período, um número
+# de operação, um código —, e convertê-lo dava 1899 ou 1900: foi assim que um
+# relatório de Agosto de 2026 apareceu como «31 de Dezembro a 10 de Março».
+# Serve também de guarda ao `datetime.fromtimestamp`, que com um timestamp
+# negativo levanta OSError no Windows em vez de devolver a data.
+MIN_DATE_SERIAL = (date(2000, 1, 1) - EXCEL_EPOCH).days
+MAX_DATE_SERIAL = (date(2100, 1, 1) - EXCEL_EPOCH).days
+
 _DDMMYYYY = re.compile(r"^(\d{2})/(\d{2})/(\d{4})$")
 _PT_NUMBER = re.compile(r"^-?[\d.]+,\d+$")
 
@@ -77,7 +87,11 @@ def cell_text(value: Any) -> str:
 
 
 def cell_date(value: Any) -> date | None:
-    """Data de célula: aceita `datetime`/`date`, serial Excel ou `dd/mm/yyyy`."""
+    """Data de célula: aceita `datetime`/`date`, serial Excel ou `dd/mm/yyyy`.
+
+    Um número fora do intervalo de datas plausíveis não é data — devolve None,
+    e a linha é descartada por quem chama, em vez de entrar com 1899.
+    """
     if isinstance(value, datetime):
         return value.date()
     if isinstance(value, date):
@@ -85,6 +99,8 @@ def cell_date(value: Any) -> date | None:
     if isinstance(value, bool):
         return None
     if isinstance(value, (int, float)):
+        if not MIN_DATE_SERIAL <= value <= MAX_DATE_SERIAL:
+            return None
         return _excel_serial_to_date(float(value))
     if isinstance(value, str):
         return _ddmmyyyy_to_date(value)

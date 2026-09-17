@@ -1,22 +1,32 @@
-import { ChangeDetectionStrategy, Component, computed, inject, input, signal } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  computed,
+  effect,
+  inject,
+  input,
+  signal,
+} from '@angular/core';
 import { LucideFileSearch, LucideLoaderCircle } from '@lucide/angular';
 
 import { numberFormatter } from '../../../../../shared/format';
 import { ApiError } from '../../../../../core/http/api-error';
 import { findModule } from '../../../../../core/navigation';
 import { CardComponent } from '../../../../../shared/ui/card';
-import { ToastComponent } from '../../../../../shared/ui/toast';
+import { ToastComponent, type Toast } from '../../../../../shared/ui/toast';
 import { AmountReconciliationComponent } from './components/amount-reconciliation';
 import { DiscrepancySourceDonutComponent } from './components/discrepancy-source-donut';
 import { PageHeaderComponent } from './components/page-header';
-
 import { ResultStatsComponent } from './components/result-stats';
 import { ResultTabsComponent } from './components/result-tabs';
 import { UploadZoneComponent } from './components/upload-zone';
 import { ReconciliationApi } from './data/reconciliation-api.service';
 import type {
+  CaseMatches,
   CasePatch,
+  PendingCase,
   ProgressPhase,
+  ReconciliationCandidate,
   SlaSettings,
   UploadSlotId,
   ValidationResult,
@@ -70,7 +80,7 @@ import { DEFAULT_SLA } from './data/sla';
         <app-upload-zone
           [processing]="processing()"
           [phase]="phase()"
-          [error]="error()"
+          [error]="error()?.detail ?? null"
           [cancellable]="result() !== null"
           (cancelled)="uploading.set(false)"
           (executed)="execute($event)"
@@ -112,7 +122,12 @@ import { DEFAULT_SLA } from './data/sla';
         <app-result-tabs
           [result]="current"
           [settings]="settings()"
+          [revision]="detailsRevision()"
+          [reconciling]="reconciling()"
+          [reconciliationCandidates]="reconciliationCandidates()"
           (updateCase)="updateCase($event)"
+          (reconcileCase)="reconcileCase($event)"
+          (reconcileCases)="reconcileCases($event)"
         />
       }
 
@@ -150,9 +165,20 @@ export class PosClosingCreditValidationPageComponent {
   protected readonly loading = signal(true);
   protected readonly processing = signal(false);
   protected readonly phase = signal<ProgressPhase | null>(null);
-  protected readonly error = signal<string | null>(null);
-  protected readonly success = signal<string | null>(null);
+  protected readonly error = signal<Toast | null>(null);
+  protected readonly success = signal<Toast | null>(null);
   protected readonly downloading = signal(false);
+  /**
+   * Versão dos fechos no servidor. Uma conciliação muda o estado de fechos que a
+   * tabela já carregou — sobe-se isto, e ela recarrega.
+   */
+  protected readonly detailsRevision = signal(0);
+  /** Uma conciliação em lote a gravar — o botão do cartão espera por ela. */
+  protected readonly reconciling = signal(false);
+  /** As chaves que se conciliam com crédito igual — `null` enquanto se pedem. */
+  protected readonly reconciliationCandidates = signal<readonly ReconciliationCandidate[] | null>(
+    null,
+  );
   /** O formulário de upload só ocupa o ecrã quando é isso que se está a fazer. */
   protected readonly uploading = signal(false);
   /** O prazo de tratamento em vigor. Falhar a leitura não tranca o ecrã: o
@@ -160,14 +186,45 @@ export class PosClosingCreditValidationPageComponent {
   protected readonly settings = signal<SlaSettings>(DEFAULT_SLA);
 
   constructor() {
+    // A lista de conciliações volta a pedir-se sempre que o resultado muda: uma
+    // conciliação, uma mudança de fase ou uma execução nova mudam quais chaves
+    // entram. A lista anterior fica à vista até a nova chegar.
+    effect((onCleanup) => {
+      const current = this.result();
+      if (!current) {
+        this.reconciliationCandidates.set(null);
+        return;
+      }
+
+      let cancelled = false;
+      onCleanup(() => {
+        cancelled = true;
+      });
+
+      void this.api
+        .listReconciliationCandidates(current.executionId)
+        .then((candidates) => {
+          if (!cancelled) this.reconciliationCandidates.set(candidates);
+        })
+        .catch(() => {
+          if (cancelled) return;
+          this.reconciliationCandidates.set([]);
+          this.error.set({
+            title: 'Conciliações indisponíveis',
+            detail: 'Não foi possível carregar as conciliações. Tente recarregar a página.',
+          });
+        });
+    });
+
     // A última execução está persistida no servidor: sobrevive ao refresh.
     void this.api
       .getLatestResult()
       .then((latest) => this.result.set(latest))
       .catch(() =>
-        this.error.set(
-          'Não foi possível carregar a última execução. Confirme que o servidor está a correr.',
-        ),
+        this.error.set({
+          title: 'Última execução indisponível',
+          detail: 'Não foi possível carregá-la. Confirme que o servidor está a correr.',
+        }),
       )
       .finally(() => this.loading.set(false));
 
@@ -183,13 +240,18 @@ export class PosClosingCreditValidationPageComponent {
   }): Promise<void> {
     try {
       this.settings.set(await this.api.saveSettings(patch));
-      this.success.set(`Prazo de tratamento actualizado para ${patch.caseSlaDays} dias.`);
+      this.success.set({
+        title: 'Prazo actualizado',
+        detail: `Os casos passam a ter ${patch.caseSlaDays} dias para ser tratados.`,
+      });
     } catch (problem) {
-      this.error.set(
-        problem instanceof ApiError
-          ? problem.message
-          : 'Não foi possível guardar o prazo. Tente novamente.',
-      );
+      this.error.set({
+        title: 'Prazo não guardado',
+        detail:
+          problem instanceof ApiError
+            ? problem.message
+            : 'Não foi possível guardar. Tente novamente.',
+      });
     }
   }
 
@@ -206,11 +268,9 @@ export class PosClosingCreditValidationPageComponent {
     if (outcome.ok) {
       this.result.set(outcome.result);
       this.uploading.set(false);
-      this.success.set(
-        `Validação concluída — ${numberFormatter.format(outcome.result.summary.processed)} fechos processados.`,
-      );
+      this.success.set(executionToast(outcome.result));
     } else {
-      this.error.set(outcome.message);
+      this.error.set({ title: 'Validação não executada', detail: outcome.message });
     }
 
     this.processing.set(false);
@@ -233,22 +293,123 @@ export class PosClosingCreditValidationPageComponent {
 
       // Regularizar tira o caso da fila, e reabrir devolve-o: sem aviso, a linha
       // simplesmente desaparecia de uma lista e aparecia na outra.
-      const pos = `POS ${updated.posId}, período ${updated.period}`;
+      const pos = posLabel(updated);
       if (updated.status === 'resolved' && before?.status !== 'resolved') {
-        this.success.set(`Caso do ${pos} regularizado — passou para «Regularizados».`);
+        this.success.set({
+          title: 'Caso regularizado',
+          detail: `${pos} passou para «Regularizados».`,
+        });
       } else if (before?.status === 'resolved' && updated.status !== 'resolved') {
-        this.success.set(`Caso do ${pos} reaberto — voltou aos casos em aberto.`);
+        this.success.set({ title: 'Caso reaberto', detail: `${pos} voltou aos casos em aberto.` });
       } else {
-        this.success.set(`Caso do ${pos} actualizado.`);
+        this.success.set({ title: 'Caso actualizado', detail: pos });
       }
     } catch (problem) {
       // Uma recusa do servidor (e-Ticket sem forma de referência, estado que não
       // existe) traz a razão em português; só o resto fica com a mensagem genérica.
-      this.error.set(
-        problem instanceof ApiError && problem.status === 422
-          ? problem.message
-          : 'Não foi possível actualizar o caso. Tente novamente.',
-      );
+      this.error.set({
+        title: 'Caso não actualizado',
+        detail:
+          problem instanceof ApiError && problem.status === 422
+            ? problem.message
+            : 'Não foi possível guardar a alteração. Tente novamente.',
+      });
+    }
+  }
+
+  protected async reconcileCase({ caseId, matches }: CaseMatches): Promise<void> {
+    const current = this.result();
+    if (!current) return;
+
+    const before = current.cases.find((item) => item.id === caseId);
+
+    try {
+      const { case: updated, summary } = await this.api.reconcileCase(caseId, matches);
+      // O `summary` já vem com os fechos conciliados em «confere»: os gráficos e
+      // os indicadores lêem-no daqui e acompanham sozinhos. A tabela de fechos
+      // não — vai buscá-los ao servidor —, por isso recarrega.
+      this.result.set({
+        ...current,
+        summary,
+        cases: current.cases.map((item) => (item.id === updated.id ? updated : item)),
+      });
+      this.detailsRevision.update((revision) => revision + 1);
+
+      // Conciliar todos os fechos regulariza o caso, e ele sai da fila — dito,
+      // como no `updateCase`, para a linha não desaparecer sem explicação.
+      const pos = posLabel(updated);
+      if (updated.status === 'resolved' && before?.status !== 'resolved') {
+        this.success.set({
+          title: 'Fechos conciliados',
+          detail: `${pos} — o caso passou para «Regularizados».`,
+        });
+      } else {
+        this.success.set({ title: 'Conciliação guardada', detail: pos });
+      }
+    } catch (problem) {
+      // Um par que o servidor recusa (valor diferente, crédito já usado) traz a
+      // razão em português; só o resto fica com a mensagem genérica.
+      this.error.set({
+        title: 'Conciliação não guardada',
+        detail:
+          problem instanceof ApiError && problem.status === 422
+            ? problem.message
+            : 'Não foi possível guardar. Tente novamente.',
+      });
+    }
+  }
+
+  protected async reconcileCases(items: readonly CaseMatches[]): Promise<void> {
+    const current = this.result();
+    if (!current || this.reconciling()) return;
+
+    this.reconciling.set(true);
+    try {
+      const { cases, summary } = await this.api.reconcileCases(current.executionId, items);
+      const updated = new Map(cases.map((item) => [item.id, item]));
+      // Como numa conciliação de um caso: o `summary` actualiza gráficos e
+      // indicadores, os casos novos tiram as chaves da fila, e a tabela de
+      // fechos recarrega com os estados novos.
+      this.result.set({
+        ...current,
+        summary,
+        cases: current.cases.map((item) => updated.get(item.id) ?? item),
+      });
+      this.detailsRevision.update((revision) => revision + 1);
+
+      const closings = items.reduce((total, item) => total + item.matches.length, 0);
+      // Uma chave com crédito sem fecho concilia-se, mas o caso fica aberto: diz-se
+      // quantos, para ninguém os dar por tratados.
+      const open = cases.filter((item) => item.status !== 'resolved').length;
+      this.success.set({
+        title: 'Conciliação concluída',
+        facts: [
+          { label: 'Chaves conciliadas', value: count(items.length) },
+          { label: 'Fechos em «Crédito confere»', value: count(closings) },
+          { label: 'Casos regularizados', value: count(cases.length - open) },
+          ...(open > 0
+            ? [
+                {
+                  label: 'Abertos por crédito sem fecho',
+                  value: count(open),
+                  tone: 'warning' as const,
+                },
+              ]
+            : []),
+        ],
+      });
+    } catch (problem) {
+      // O servidor concilia todos ou nenhum: numa recusa nada ficou gravado, e a
+      // mensagem diz qual POS a provocou.
+      this.error.set({
+        title: 'Nada foi conciliado',
+        detail:
+          problem instanceof ApiError && problem.status === 422
+            ? problem.message
+            : 'Não foi possível conciliar as chaves. Tente novamente.',
+      });
+    } finally {
+      this.reconciling.set(false);
     }
   }
 
@@ -260,7 +421,10 @@ export class PosClosingCreditValidationPageComponent {
     try {
       await this.api.downloadReport(current.executionId, current.reportName);
     } catch {
-      this.error.set('Não foi possível gerar o relatório. Tente novamente.');
+      this.error.set({
+        title: 'Relatório não gerado',
+        detail: 'Não foi possível gerar o relatório. Tente novamente.',
+      });
     } finally {
       this.downloading.set(false);
     }
@@ -271,4 +435,42 @@ export class PosClosingCreditValidationPageComponent {
     this.error.set(null);
     this.uploading.set(true);
   }
+}
+
+const count = (value: number): string => numberFormatter.format(value);
+
+const posLabel = (item: PendingCase): string => `POS ${item.posId} · período ${item.period}`;
+
+/**
+ * O resumo de uma execução acabada: os números que dizem como correu, cada um na
+ * sua linha. Um extracto do Banka com movimentos repetidos não pára a execução —
+ * descartam-se —, mas o operador tem de saber que o ficheiro vinha assim.
+ */
+function executionToast({ reportName, summary }: ValidationResult): Toast {
+  const repeated = summary.bankaDuplicatesDiscarded ?? 0;
+  return {
+    title: 'Validação concluída',
+    detail: reportName,
+    facts: [
+      { label: 'Fechos processados', value: count(summary.processed) },
+      {
+        label: 'Taxa de validação',
+        value: `${summary.validationRate.toLocaleString('pt-PT', { minimumFractionDigits: 1, maximumFractionDigits: 1 })}%`,
+      },
+      {
+        label: 'Casos para análise',
+        value: count(summary.openCases),
+        tone: summary.openCases > 0 ? 'warning' : 'neutral',
+      },
+      ...(repeated > 0
+        ? [
+            {
+              label: 'Movimentos repetidos ignorados (Banka)',
+              value: count(repeated),
+              tone: 'warning' as const,
+            },
+          ]
+        : []),
+    ],
+  };
 }

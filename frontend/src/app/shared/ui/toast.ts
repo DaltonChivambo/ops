@@ -11,6 +11,24 @@ import { LucideCircleCheck, LucideTriangleAlert, LucideX } from '@lucide/angular
 
 export type ToastVariant = 'success' | 'error';
 
+/** Um número do aviso — «Fechos processados · 29 317». `warning` chama a atenção para ele. */
+export interface ToastFact {
+  readonly label: string;
+  readonly value: string;
+  readonly tone?: 'neutral' | 'warning';
+}
+
+/**
+ * O que um aviso diz: o título é o que aconteceu, em poucas palavras; o texto,
+ * se houver, uma frase com o que o operador precisa de saber; os números, o
+ * resultado em si — cada um na sua linha, em vez de enfiados numa frase.
+ */
+export interface Toast {
+  readonly title: string;
+  readonly detail?: string | null;
+  readonly facts?: readonly ToastFact[];
+}
+
 const AUTO_DISMISS_MS: Record<ToastVariant, number> = { success: 10_000, error: 16_000 };
 
 const VARIANTS: Record<ToastVariant, { ring: string; chip: string; accent: string }> = {
@@ -37,25 +55,53 @@ const VARIANTS: Record<ToastVariant, { ring: string; chip: string; accent: strin
   template: `
     <div class="pointer-events-none fixed inset-x-0 top-4 z-50 flex justify-center px-4 sm:top-6">
       <div
-        role="status"
+        [attr.role]="variant() === 'error' ? 'alert' : 'status'"
         aria-live="polite"
         (mouseenter)="paused.set(true)"
         (mouseleave)="paused.set(false)"
-        class="pointer-events-auto relative flex w-full max-w-md items-start gap-3 overflow-hidden rounded-2xl bg-white py-3.5 pr-3 pl-4 text-sm text-gray-700 shadow-xl ring-1 motion-safe:animate-[toast-in_220ms_cubic-bezier(0.16,1,0.3,1)]"
+        class="pointer-events-auto relative flex w-full max-w-md items-start gap-3 overflow-hidden rounded-2xl bg-white py-4 pr-3 pl-4 text-sm shadow-xl ring-1 motion-safe:animate-[toast-in_220ms_cubic-bezier(0.16,1,0.3,1)]"
         [class]="style().ring"
       >
         <span
-          class="flex size-8 shrink-0 items-center justify-center rounded-full"
+          class="flex size-9 shrink-0 items-center justify-center rounded-full"
           [class]="style().chip"
         >
           @if (variant() === 'success') {
-            <svg lucideCircleCheck [size]="18" [strokeWidth]="1.9"></svg>
+            <svg lucideCircleCheck [size]="19" [strokeWidth]="1.9"></svg>
           } @else {
-            <svg lucideTriangleAlert [size]="18" [strokeWidth]="1.9"></svg>
+            <svg lucideTriangleAlert [size]="19" [strokeWidth]="1.9"></svg>
           }
         </span>
 
-        <p class="min-w-0 flex-1 pt-1 leading-snug">{{ message() }}</p>
+        <div class="min-w-0 flex-1 pt-0.5">
+          <p class="leading-snug font-semibold text-gray-900">{{ toast().title }}</p>
+          @if (toast().detail; as detail) {
+            <p class="mt-0.5 leading-snug text-gray-500">{{ detail }}</p>
+          }
+
+          @if (toast().facts?.length) {
+            <dl
+              class="mt-2.5 divide-y divide-gray-100 rounded-xl bg-gray-50/80 px-3 ring-1 ring-gray-100"
+            >
+              @for (fact of toast().facts; track fact.label) {
+                <div class="flex items-baseline justify-between gap-4 py-1.5 text-xs">
+                  <dt class="flex min-w-0 items-center gap-1.5 text-gray-500">
+                    @if (fact.tone === 'warning') {
+                      <span class="size-1.5 shrink-0 rounded-full bg-amber-500"></span>
+                    }
+                    {{ fact.label }}
+                  </dt>
+                  <dd
+                    class="font-semibold whitespace-nowrap tabular-nums"
+                    [class]="fact.tone === 'warning' ? 'text-amber-700' : 'text-gray-900'"
+                  >
+                    {{ fact.value }}
+                  </dd>
+                </div>
+              }
+            </dl>
+          }
+        </div>
 
         <button
           type="button"
@@ -81,13 +127,18 @@ const VARIANTS: Record<ToastVariant, { ring: string; chip: string; accent: strin
   `,
 })
 export class ToastComponent {
-  readonly message = input.required<string>();
+  /** Um texto só também serve — fica como título. */
+  readonly message = input.required<Toast | string>();
   readonly variant = input<ToastVariant>('success');
   readonly dismiss = output<void>();
 
   protected readonly paused = signal(false);
   protected readonly duration = computed(() => AUTO_DISMISS_MS[this.variant()]);
   protected readonly style = computed(() => VARIANTS[this.variant()]);
+  protected readonly toast = computed<Toast>(() => {
+    const message = this.message();
+    return typeof message === 'string' ? { title: message } : message;
+  });
 
   constructor() {
     effect((onCleanup) => {

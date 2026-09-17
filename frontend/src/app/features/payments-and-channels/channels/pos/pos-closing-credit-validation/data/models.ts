@@ -60,6 +60,9 @@ export interface ClosingDetail {
   simoClosingsCount: number;
   /** Movimentos Banka nesta chave. >1 é duplicação do lado Banka; 1 fora de `duplicated`. */
   bankaMovementsCount: number;
+  /** Créditos do Banka sem fecho por analisar nesta chave — quantos e quanto. Zero em quase todas. */
+  unmatchedCredits: number;
+  bankaAmountUnmatched: number;
 }
 
 /** Um movimento de crédito do Banka atribuído a uma chave — a parcela do total. */
@@ -71,6 +74,12 @@ export interface CreditMovement {
   description: string | null;
 }
 
+/** Um fecho da SIMO emparelhado com um movimento do Banka — valor exactamente igual. */
+export interface ClosingMatch {
+  closingId: string;
+  movementId: string;
+}
+
 /** Os dois lados de uma chave — o que o painel de detalhe de um fecho mostra. */
 export interface KeyBreakdown {
   key: string;
@@ -79,6 +88,28 @@ export interface KeyBreakdown {
   /** Vazio nas execuções anteriores à migração que passou a guardá-los. */
   movements: CreditMovement[];
   case: PendingCase | null;
+  /** Os pares fecho ↔ crédito já guardados. */
+  matches: ClosingMatch[];
+  /** Os pares que se podem fazer só pelo valor — o servidor é que sabe a regra. */
+  suggestedMatches: ClosingMatch[];
+  /** Último dia do intervalo da execução — um crédito de depois dele é do intervalo seguinte. */
+  periodEnd: string; // ISO
+}
+
+/** O caso depois de conciliado, com o `summary` recalculado e os pares que ficaram. */
+export interface CaseReconciliation {
+  case: PendingCase;
+  summary: ClosingSummary;
+  matches: ClosingMatch[];
+}
+
+/** Um caso de períodos duplicados por tratar, com tudo para o conciliar — a chave, com caso. */
+export type ReconciliationCandidate = KeyBreakdown & { case: PendingCase };
+
+/** Os casos conciliados de uma vez, e o `summary` já com todos eles. */
+export interface ReconciliationBatch {
+  cases: PendingCase[];
+  summary: ClosingSummary;
 }
 
 /** Caso de divergência para análise/regularização pelo operador. */
@@ -125,6 +156,12 @@ export interface CasePatch {
   readonly patch: { status?: CaseStatus; eTicket?: string | null };
 }
 
+/** Os pares de um caso de períodos duplicados, inteiros — substituem os que havia. */
+export interface CaseMatches {
+  readonly caseId: string;
+  readonly matches: readonly ClosingMatch[];
+}
+
 /** Indicadores do dashboard operacional (PDD §4.2.1). */
 export interface ClosingSummary {
   processed: number;
@@ -142,6 +179,9 @@ export interface ClosingSummary {
   duplicatedPeriods: number;
   /** Linhas repetidas no export da SIMO, descartadas antes de somar. */
   duplicatesDiscarded: number;
+  /** Movimentos repetidos no extracto do Banka (o mesmo N_DOCUMENTO), descartados
+   *  antes de somar. Ausente nas execuções gravadas antes de se contar. */
+  bankaDuplicatesDiscarded?: number;
   /** Chaves que agregam >1 período por colisão em `período % 1000` (falsa divergência). */
   keyCollisions: number;
   /** POS com fechos mas sem cadastro na Lista de POS (comerciante "—"). */
@@ -155,6 +195,11 @@ export interface ClosingSummary {
    *  Banka duplica nestas chaves tal como a SIMO, por isso há crédito feito. */
   simoAmountDuplicated: number;
   bankaAmountDuplicated: number;
+  /** Créditos do Banka sem fecho na SIMO, por analisar, em chaves já conciliadas com o
+   *  caso aberto — quantos e quanto. O montante está também dentro de
+   *  `bankaAmountDuplicated`. Ausentes nas execuções anteriores a contarem-se. */
+  unmatchedCredits?: number;
+  bankaAmountUnmatched?: number;
 }
 
 /** Uma execução persistida. Os detalhes vêm à parte, paginados. */
@@ -171,6 +216,8 @@ export interface ValidationResult {
 
 export interface DetailCounts {
   all: number;
+  /** Fechos das chaves com crédito sem fecho — o número do filtro, não um estado. */
+  unmatched: number;
   match: number;
   mismatch: number;
   missing: number;
@@ -193,6 +240,8 @@ export interface DetailsQuery {
   /** Classes a mostrar. `null`/ausente = todas; lista vazia = nenhuma. */
   validation?: Validation[] | null;
   q?: string;
+  /** Só as chaves com créditos do Banka sem fecho por analisar. */
+  unmatchedCredits?: boolean;
 }
 
 /** Fases grosseiras: o upload e a execução são um único round-trip HTTP. */

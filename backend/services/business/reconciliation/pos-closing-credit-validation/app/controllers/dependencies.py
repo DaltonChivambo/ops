@@ -16,6 +16,7 @@ from app.infrastructure.auth import auth
 from app.infrastructure.database import get_session
 from app.repositories.case_repository import CaseRepository
 from app.repositories.execution_repository import ExecutionRepository
+from app.repositories.match_repository import MatchRepository
 from app.repositories.settings_repository import SettingsRepository
 from app.services.case_service import CaseService
 from app.services.settings_service import SettingsService
@@ -38,19 +39,26 @@ def get_settings_repository(session: SessionDep) -> SettingsRepository:
     return SettingsRepository(session)
 
 
+def get_match_repository(session: SessionDep) -> MatchRepository:
+    return MatchRepository(session)
+
+
 ExecutionRepositoryDep = Annotated[ExecutionRepository, Depends(get_execution_repository)]
 CaseRepositoryDep = Annotated[CaseRepository, Depends(get_case_repository)]
 SettingsRepositoryDep = Annotated[SettingsRepository, Depends(get_settings_repository)]
+MatchRepositoryDep = Annotated[MatchRepository, Depends(get_match_repository)]
 
 
 def get_validation_service(
-    executions: ExecutionRepositoryDep, cases: CaseRepositoryDep
+    executions: ExecutionRepositoryDep, cases: CaseRepositoryDep, matches: MatchRepositoryDep
 ) -> ValidationService:
-    return ValidationService(executions, cases)
+    return ValidationService(executions, cases, matches)
 
 
-def get_case_service(cases: CaseRepositoryDep, executions: ExecutionRepositoryDep) -> CaseService:
-    return CaseService(cases, executions)
+def get_case_service(
+    cases: CaseRepositoryDep, executions: ExecutionRepositoryDep, matches: MatchRepositoryDep
+) -> CaseService:
+    return CaseService(cases, executions, matches)
 
 
 def get_settings_service(settings_repository: SettingsRepositoryDep) -> SettingsService:

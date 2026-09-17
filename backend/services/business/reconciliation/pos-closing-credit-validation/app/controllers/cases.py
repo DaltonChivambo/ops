@@ -1,4 +1,7 @@
-"""HTTP dos casos de divergência: o que o operador muda enquanto os trata."""
+"""HTTP dos casos de divergência: o que o operador muda enquanto os trata.
+
+A conciliação fecho a fecho, que também trata casos, vive em `reconciliations.py`.
+"""
 
 from fastapi import APIRouter
 
@@ -20,6 +23,6 @@ async def update_case(
 ) -> CaseUpdateOut:
     # Corpo ausente trata-se como «nada a mudar»: é o serviço que decide o que
     # responder a isso, e responde o mesmo que a um `{}`.
-    campos = patch.model_dump(exclude_unset=True) if patch else {}
-    case, summary, counts = await service.update(case_id, campos)
+    fields = patch.model_dump(exclude_unset=True) if patch else {}
+    case, summary, counts = await service.update(case_id, fields)
     return CaseUpdateOut(case=PendingCaseOut.from_row(case, *counts), summary=summary)

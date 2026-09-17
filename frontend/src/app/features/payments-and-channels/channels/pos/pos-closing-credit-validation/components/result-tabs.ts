@@ -13,11 +13,18 @@ import {
 import { LucideArrowUp, LucideTriangleAlert } from '@lucide/angular';
 
 import { numberFormatter } from '../../../../../../shared/format';
-import type { CasePatch, SlaSettings, ValidationResult } from '../data/models';
+import type {
+  CaseMatches,
+  CasePatch,
+  ReconciliationCandidate,
+  SlaSettings,
+  ValidationResult,
+} from '../data/models';
 import { PendingCasesTableComponent } from './pending-cases-table';
+import { ReconciliationQueueComponent } from './reconciliation-queue';
 import { ReconciliationTableComponent } from './reconciliation-table';
 
-type TabId = 'cases' | 'closings';
+type TabId = 'cases' | 'closings' | 'reconciliations';
 
 /** Separadores dos resultados — só um montado de cada vez; por omissão mostra todos os fechos. */
 @Component({
@@ -25,6 +32,7 @@ type TabId = 'cases' | 'closings';
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     PendingCasesTableComponent,
+    ReconciliationQueueComponent,
     ReconciliationTableComponent,
     LucideArrowUp,
     LucideTriangleAlert,
@@ -112,13 +120,26 @@ type TabId = 'cases' | 'closings';
           [settings]="settings()"
           [scrollAnchor]="anchor()"
           (updated)="updateCase.emit($event)"
+          (reconciled)="reconcileCase.emit($event)"
+        />
+      } @else if (tab() === 'reconciliations') {
+        <app-reconciliation-queue
+          [executionId]="r.executionId"
+          [candidates]="reconciliationCandidates()"
+          [settings]="settings()"
+          [busy]="reconciling()"
+          (reconciledMany)="reconcileCases.emit($event)"
+          (updated)="updateCase.emit($event)"
+          (reconciled)="reconcileCase.emit($event)"
         />
       } @else {
         <app-reconciliation-table
           [executionId]="r.executionId"
           [settings]="settings()"
+          [revision]="revision()"
           [scrollAnchor]="anchor()"
           (updated)="updateCase.emit($event)"
+          (reconciled)="reconcileCase.emit($event)"
         />
       }
     </div>
@@ -127,7 +148,19 @@ type TabId = 'cases' | 'closings';
 export class ResultTabsComponent {
   readonly result = input.required<ValidationResult>();
   readonly settings = input.required<SlaSettings>();
+  /** Sobe a cada conciliação guardada: a tabela de fechos recarrega com os estados novos. */
+  readonly revision = input(0);
+  /** A página está a gravar uma conciliação em lote. */
+  readonly reconciling = input(false);
+  /**
+   * As chaves a conciliar com crédito igual; `null` enquanto se pedem. Vêm da
+   * página, e não do separador, para o número no separador e a tabela serem
+   * sempre a mesma lista — e o número aparecer sem abrir o separador.
+   */
+  readonly reconciliationCandidates = input<readonly ReconciliationCandidate[] | null>(null);
   readonly updateCase = output<CasePatch>();
+  readonly reconcileCase = output<CaseMatches>();
+  readonly reconcileCases = output<readonly CaseMatches[]>();
 
   /** Âncora do `appPageFirstScroll`: os separadores, não a tabela, para ficarem à vista. */
   private readonly tabList = viewChild<ElementRef<HTMLElement>>('tabList');
@@ -142,18 +175,18 @@ export class ResultTabsComponent {
   protected readonly stuck = signal(false);
 
   constructor() {
-    const rever = () => {
+    const measure = () => {
       const el = this.tabList()?.nativeElement;
       if (!el) return;
-      const assentaEm = parseFloat(getComputedStyle(el).top) || 0;
-      this.stuck.set(el.getBoundingClientRect().top <= assentaEm + 1);
+      const restsAt = parseFloat(getComputedStyle(el).top) || 0;
+      this.stuck.set(el.getBoundingClientRect().top <= restsAt + 1);
     };
 
-    window.addEventListener('scroll', rever, { passive: true });
-    window.addEventListener('resize', rever, { passive: true });
+    window.addEventListener('scroll', measure, { passive: true });
+    window.addEventListener('resize', measure, { passive: true });
     inject(DestroyRef).onDestroy(() => {
-      window.removeEventListener('scroll', rever);
-      window.removeEventListener('resize', rever);
+      window.removeEventListener('scroll', measure);
+      window.removeEventListener('resize', measure);
     });
   }
 
@@ -178,6 +211,11 @@ export class ResultTabsComponent {
     return [
       { id: 'closings' as const, label: 'Todos os Fechos', badge: this.n(summary.processed) },
       { id: 'cases' as const, label: 'Casos para Análise', badge: this.n(summary.openCases) },
+      {
+        id: 'reconciliations' as const,
+        label: 'Conciliações',
+        badge: this.n(this.reconciliationCandidates()?.length ?? 0),
+      },
     ];
   });
 

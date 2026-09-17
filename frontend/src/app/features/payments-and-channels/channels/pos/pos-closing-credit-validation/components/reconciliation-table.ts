@@ -13,16 +13,35 @@ import {
   type ElementRef,
 } from '@angular/core';
 import { NgTemplateOutlet } from '@angular/common';
-import { LucideChevronRight, LucideCornerDownRight, LucideSearch, LucideX } from '@lucide/angular';
+import {
+  LucideBanknote,
+  LucideChevronRight,
+  LucideCornerDownRight,
+  LucideSearch,
+  LucideX,
+} from '@lucide/angular';
 
-import { formatDate, formatSignedAmount, numberFormatter } from '../../../../../../shared/format';
+import {
+  formatAmount,
+  formatDate,
+  formatSignedAmount,
+  numberFormatter,
+} from '../../../../../../shared/format';
 import {
   DataTableComponent,
   TABLE_CLASS,
   THEAD_CLASS,
 } from '../../../../../../shared/ui/data-table';
+import { ToggleFilterComponent } from '../../../../../../shared/ui/toggle-filter';
 import { ReconciliationApi } from '../data/reconciliation-api.service';
-import type { CasePatch, ClosingDetail, DetailCounts, KeyBreakdown, SlaSettings } from '../data/models';
+import type {
+  CaseMatches,
+  CasePatch,
+  ClosingDetail,
+  DetailCounts,
+  KeyBreakdown,
+  SlaSettings,
+} from '../data/models';
 import {
   ALL_STATES,
   STATE_CHIP,
@@ -42,6 +61,7 @@ const UNREGISTERED = '—';
 
 const EMPTY_COUNTS: DetailCounts = {
   all: 0,
+  unmatched: 0,
   match: 0,
   mismatch: 0,
   missing: 0,
@@ -83,6 +103,8 @@ const STRUCK_ROW =
     KeyDetailPanelComponent,
     MoneyComponent,
     StateFilterComponent,
+    ToggleFilterComponent,
+    LucideBanknote,
     LucideChevronRight,
     LucideCornerDownRight,
     LucideSearch,
@@ -96,7 +118,7 @@ const STRUCK_ROW =
       [hasMore]="hasMore()"
       [hasRows]="items().length > 0"
       [backToTop]="items().length > perPage"
-      (loadMore)="page.update((atual) => atual + 1)"
+      (loadMore)="page.update((current) => current + 1)"
     >
       <ng-container toolbar>
         <app-state-filter
@@ -104,6 +126,19 @@ const STRUCK_ROW =
           [selected]="selected()"
           (changed)="selected.set($event)"
         />
+
+        <!-- À parte da validação: estes fechos já «conferem», o que falta analisar
+             é o crédito do Banka que nenhum deles leva. Só aparece quando há. -->
+        @if (counts().unmatched > 0 || unmatchedOnly()) {
+          <app-toggle-filter
+            label="Crédito sem fecho"
+            [active]="unmatchedOnly()"
+            [count]="counts().unmatched"
+            (toggled)="unmatchedOnly.set(!unmatchedOnly())"
+          >
+            <svg lucideBanknote filterIcon [size]="15" [strokeWidth]="2" class="shrink-0"></svg>
+          </app-toggle-filter>
+        }
 
         @if (filtered()) {
           <button
@@ -421,6 +456,7 @@ const STRUCK_ROW =
         [detail]="detail"
         [settings]="settings()"
         (updated)="updated.emit($event)"
+        (reconciled)="reconciled.emit($event)"
         (closed)="opened.set(null)"
       />
     }
@@ -442,6 +478,16 @@ const STRUCK_ROW =
           {{ detail.merchant }}
         }
       </div>
+      <!-- A chave tem dinheiro do Banka que nenhum fecho leva: vê-se na linha, com
+           ou sem o filtro ligado. A cor é a da fatia do gráfico «Por Tratar». -->
+      @if (detail.unmatchedCredits > 0) {
+        <span
+          class="mt-1 inline-flex items-center gap-1 rounded-full bg-violet-50 px-2 py-0.5 text-2xs font-bold whitespace-nowrap text-violet-700 tabular-nums"
+        >
+          <svg lucideBanknote [size]="12" [strokeWidth]="2.2"></svg>
+          Crédito sem fecho · {{ amount(detail.bankaAmountUnmatched) }}
+        </span>
+      }
     </ng-template>
 
     <ng-template #stateChip let-detail>
@@ -463,8 +509,11 @@ export class ReconciliationTableComponent {
   readonly settings = input.required<SlaSettings>();
   /** Onde o scroll da página assenta antes de a lista correr — a barra de separadores. */
   readonly scrollAnchor = input<HTMLElement | undefined>(undefined);
+  /** Muda sempre que o estado de fechos muda no servidor (uma conciliação) — é o sinal para recarregar. */
+  readonly revision = input(0);
   /** Só de passagem: quem muda o caso é o painel, quem o grava é a página. */
   readonly updated = output<CasePatch>();
+  readonly reconciled = output<CaseMatches>();
 
   private readonly table = viewChild.required(DataTableComponent);
 
@@ -480,14 +529,23 @@ export class ReconciliationTableComponent {
   private readonly search = signal('');
   /** Estados visíveis — todos por omissão. */
   protected readonly selected = signal<StateId[]>([...ALL_STATES]);
+  /** Só as chaves com créditos do Banka sem fecho por analisar. */
+  protected readonly unmatchedOnly = signal(false);
 
   /** A identidade da consulta — tudo o que dela deriva reinicia via `linkedSignal` quando ela muda. */
   private readonly queryKey = computed(() => {
     const validations = toValidations(this.selected());
-    return `${this.executionId()}|${validations?.join(',') ?? 'todos'}|${this.search()}`;
+    return `${this.executionId()}|${validations?.join(',') ?? 'todos'}|${this.search()}|${this.unmatchedOnly()}`;
   });
 
-  protected readonly page = linkedSignal({ source: this.queryKey, computation: () => 1 });
+  /**
+   * A consulta mais a versão dos dados. Uma conciliação muda o estado de fechos
+   * já carregados sem mudar a consulta: recarrega-se tudo desde a primeira
+   * página, mas sem voltar ao topo — quem conciliou continua onde estava.
+   */
+  private readonly dataKey = computed(() => `${this.queryKey()}|${this.revision()}`);
+
+  protected readonly page = linkedSignal({ source: this.dataKey, computation: () => 1 });
 
   /**
    * NÃO se esvazia ao mudar de consulta, ao contrário do resto que dela deriva:
@@ -496,7 +554,7 @@ export class ReconciliationTableComponent {
    */
   protected readonly items = signal<readonly ClosingDetail[]>([]);
   protected readonly expanded = linkedSignal<string, ReadonlySet<string>>({
-    source: this.queryKey,
+    source: this.dataKey,
     computation: () => new Set<string>(),
   });
   /**
@@ -509,11 +567,11 @@ export class ReconciliationTableComponent {
     string,
     ReadonlyMap<string, KeyBreakdown | 'loading' | 'error'>
   >({
-    source: this.queryKey,
+    source: this.dataKey,
     computation: () => new Map(),
   });
   /** Trava de segurança: uma página vazia encerra a lista, mesmo com `total` inconsistente. */
-  private readonly exhausted = linkedSignal({ source: this.queryKey, computation: () => false });
+  private readonly exhausted = linkedSignal({ source: this.dataKey, computation: () => false });
 
   protected readonly total = signal(0);
   protected readonly counts = signal<DetailCounts>(EMPTY_COUNTS);
@@ -528,7 +586,8 @@ export class ReconciliationTableComponent {
   );
   /** `query` e não `search`: o botão reage à tecla, não espera pelo debounce. */
   protected readonly filtered = computed(
-    () => this.query() !== '' || this.selected().length !== ALL_STATES.length,
+    () =>
+      this.query() !== '' || this.selected().length !== ALL_STATES.length || this.unmatchedOnly(),
   );
 
   constructor() {
@@ -551,9 +610,13 @@ export class ReconciliationTableComponent {
     // escrever nos sinais de saída volte a disparar o efeito.
     effect((onCleanup) => {
       const executionId = this.executionId();
+      // Lido à parte: com a página já na 1, o `page` não muda ao recarregar, e
+      // sem isto o efeito não voltava a correr.
+      this.revision();
       const page = this.page();
       const validations = toValidations(this.selected());
       const search = this.search();
+      const unmatchedCredits = this.unmatchedOnly();
 
       let cancelled = false;
       onCleanup(() => {
@@ -565,7 +628,13 @@ export class ReconciliationTableComponent {
       else this.loadingMore.set(true);
 
       void this.api
-        .listDetails(executionId, { page, perPage: PER_PAGE, validation: validations, q: search })
+        .listDetails(executionId, {
+          page,
+          perPage: PER_PAGE,
+          validation: validations,
+          q: search,
+          unmatchedCredits,
+        })
         .then((result) => {
           if (cancelled) return;
           this.items.update((current) => (first ? result.items : [...current, ...result.items]));
@@ -608,6 +677,7 @@ export class ReconciliationTableComponent {
 
   protected clearFilters(): void {
     this.selected.set([...ALL_STATES]);
+    this.unmatchedOnly.set(false);
     this.query.set('');
     this.search.set('');
   }
@@ -617,6 +687,7 @@ export class ReconciliationTableComponent {
   protected dot = (detail: ClosingDetail) => STATE_DOT[detail.validation];
   protected stateLabel = (detail: ClosingDetail) => STATE_LABEL[detail.validation];
   protected date = formatDate;
+  protected amount = formatAmount;
   protected signed = formatSignedAmount;
   protected n = (value: number) => numberFormatter.format(value);
 }

@@ -12,11 +12,13 @@ frontend sempre os leu assim: `D_PLUS_1` → `D+1`, `NA` → `n.a`, `in_review` 
 """
 
 from datetime import date, datetime
+from decimal import Decimal
 from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict
 from pydantic.alias_generators import to_camel
 
+from app.domain.matching import Match
 from app.domain.vocabulary import (
     CaseDateSource,
     CaseStatus,
@@ -24,7 +26,13 @@ from app.domain.vocabulary import (
     ClosingType,
     Validation,
 )
-from app.infrastructure.tables import ClosingDetail, CreditMovement, Execution, PendingCase
+from app.infrastructure.tables import (
+    ClosingDetail,
+    ClosingMatch,
+    CreditMovement,
+    Execution,
+    PendingCase,
+)
 from app.services.settings_service import SlaSettings
 
 ClosingTypeLabel = Literal["D", "D+1", "n.a"]
@@ -86,6 +94,10 @@ class ClosingDetailOut(Schema):
     # duplicação do lado SIMO, do lado Banka, ou de ambos.
     simo_closings_count: int
     banka_movements_count: int
+    # Créditos do Banka sem fecho por analisar nesta chave — quantos e quanto.
+    # Também à parte da linha, como as contagens acima; zero em quase todas.
+    unmatched_credits: int
+    banka_amount_unmatched: float
 
     @classmethod
     def from_row(
@@ -93,6 +105,8 @@ class ClosingDetailOut(Schema):
         row: ClosingDetail,
         simo_closings_count: int = 1,
         banka_movements_count: int = 1,
+        unmatched_credits: int = 0,
+        banka_amount_unmatched: Decimal = Decimal(0),
     ) -> "ClosingDetailOut":
         return cls(
             id=row.id,
@@ -115,6 +129,8 @@ class ClosingDetailOut(Schema):
             difference=float(row.difference) if row.difference is not None else None,
             simo_closings_count=simo_closings_count,
             banka_movements_count=banka_movements_count,
+            unmatched_credits=unmatched_credits,
+            banka_amount_unmatched=float(banka_amount_unmatched),
         )
 
 
@@ -211,7 +227,7 @@ class ValidationResultOut(Schema):
     files: ExecutionFilesOut
     # Não é tipado campo a campo de propósito: é o documento JSONB tal como foi
     # gravado, e o `ClosingSummary` do domínio é que manda na sua forma. Tipá-lo
-    # aqui obrigava a manter duas listas de 21 campos em dia uma com a outra.
+    # aqui obrigava a manter duas listas de 24 campos em dia uma com a outra.
     summary: dict[str, Any]
     cases: list[PendingCaseOut]
 
@@ -240,6 +256,17 @@ class ValidationResultOut(Schema):
         )
 
 
+class ClosingMatchOut(Schema):
+    """Um fecho da SIMO emparelhado com um movimento do Banka."""
+
+    closing_id: str
+    movement_id: str
+
+    @classmethod
+    def from_match(cls, match: ClosingMatch | Match) -> "ClosingMatchOut":
+        return cls(closing_id=match.closing_id, movement_id=match.movement_id)
+
+
 class KeyBreakdownOut(Schema):
     """Os dois lados de uma chave — o que o painel de detalhe de um fecho mostra."""
 
@@ -247,14 +274,24 @@ class KeyBreakdownOut(Schema):
     closings: list[ClosingDetailOut]
     movements: list[CreditMovementOut]
     case: PendingCaseOut | None
+    # Os pares já guardados, e os que se podem fazer só pelo valor — ver
+    # `domain/matching.py`. O ecrã só os usa nas chaves de períodos duplicados.
+    matches: list[ClosingMatchOut]
+    suggested_matches: list[ClosingMatchOut]
+    # O último dia do intervalo da execução: um crédito de depois dele não é um
+    # crédito sem fecho desta execução — ver `within_period`.
+    period_end: date
 
     @classmethod
     def from_parts(
         cls,
+        period_end: date,
         key: str,
         closings: list[ClosingDetail],
         movements: list[CreditMovement],
         case: PendingCase | None,
+        matches: list[ClosingMatch],
+        suggested_matches: list[Match],
     ) -> "KeyBreakdownOut":
         # As duas listas já vêm completas (ver `list_details_by_key`/
         # `list_movements_by_key`), por isso a contagem é grátis aqui — sem
@@ -265,6 +302,9 @@ class KeyBreakdownOut(Schema):
             closings=[ClosingDetailOut.from_row(row, simo_count, banka_count) for row in closings],
             movements=[CreditMovementOut.from_row(row) for row in movements],
             case=PendingCaseOut.from_row(case, simo_count, banka_count) if case else None,
+            matches=[ClosingMatchOut.from_match(match) for match in matches],
+            suggested_matches=[ClosingMatchOut.from_match(match) for match in suggested_matches],
+            period_end=period_end,
         )
 
 
@@ -272,6 +312,8 @@ class DetailCountsOut(Schema):
     """Contagens dos chips — sobre toda a execução, não sobre a página."""
 
     all: int
+    # Fechos das chaves com crédito sem fecho — o número do filtro, não um estado.
+    unmatched: int
     match: int
     mismatch: int
     missing: int
@@ -293,6 +335,21 @@ class CaseUpdateOut(Schema):
     """O caso como ficou, e o `summary` da execução já recalculado."""
 
     case: PendingCaseOut
+    summary: dict[str, Any]
+
+
+class CaseReconciliationOut(Schema):
+    """O caso depois de conciliado, o `summary` recalculado e os pares que ficaram."""
+
+    case: PendingCaseOut
+    summary: dict[str, Any]
+    matches: list[ClosingMatchOut]
+
+
+class ReconciliationBatchOut(Schema):
+    """Os casos conciliados de uma vez, e o `summary` já com todos eles."""
+
+    cases: list[PendingCaseOut]
     summary: dict[str, Any]
 
 
@@ -330,6 +387,43 @@ class CasePatchIn(BaseModel):
 
     status: str | None = None
     e_ticket: str | None = None
+
+
+class ClosingMatchIn(BaseModel):
+    model_config = ConfigDict(alias_generator=to_camel, populate_by_name=True, extra="ignore")
+
+    closing_id: str
+    movement_id: str
+
+
+class CaseReconciliationIn(BaseModel):
+    """Os pares de um caso, inteiros — substituem os que havia.
+
+    Uma lista vazia é um pedido válido: desfaz a conciliação da chave. As
+    regras do par (valor igual, cada lado uma vez) são do domínio, que devolve
+    a mensagem em português — não se validam aqui.
+    """
+
+    model_config = ConfigDict(alias_generator=to_camel, populate_by_name=True, extra="ignore")
+
+    matches: list[ClosingMatchIn]
+
+    def to_matches(self) -> list[Match]:
+        return [Match(item.closing_id, item.movement_id) for item in self.matches]
+
+
+class ReconciliationItemIn(CaseReconciliationIn):
+    """Os pares de um caso, dentro de uma conciliação em lote."""
+
+    case_id: str
+
+
+class ReconciliationBatchIn(BaseModel):
+    """Vários casos, cada um com os seus pares inteiros. Entram todos ou nenhum."""
+
+    model_config = ConfigDict(alias_generator=to_camel, populate_by_name=True, extra="ignore")
+
+    items: list[ReconciliationItemIn]
 
 
 class SlaSettingsIn(BaseModel):

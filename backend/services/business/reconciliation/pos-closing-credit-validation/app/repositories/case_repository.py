@@ -12,7 +12,7 @@ from typing import Any
 import sqlalchemy as sa
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.domain.vocabulary import CaseType
+from app.domain.vocabulary import CaseStatus, CaseType
 from app.infrastructure.tables import PendingCase
 
 # Ordem de leitura do operador: dinheiro errado primeiro (é o que mais salta à
@@ -39,6 +39,22 @@ class CaseRepository:
             .order_by(_TYPE_ORDER, PendingCase.simo_amount.desc())
         )
         return list(result.scalars().all())
+
+    async def list_open_duplicated(self, execution_id: str) -> list[PendingCase]:
+        """Os casos de períodos duplicados por tratar — os que se conciliam. Maiores primeiro."""
+        result = await self._session.execute(
+            sa.select(PendingCase)
+            .where(
+                PendingCase.execution_id == execution_id,
+                PendingCase.type == CaseType.DUPLICATED,
+                PendingCase.status != CaseStatus.RESOLVED,
+            )
+            .order_by(PendingCase.simo_amount.desc())
+        )
+        return list(result.scalars().all())
+
+    async def find(self, case_id: str) -> PendingCase | None:
+        return await self._session.get(PendingCase, case_id)
 
     async def find_by_key(self, execution_id: str, key: str) -> PendingCase | None:
         result = await self._session.execute(

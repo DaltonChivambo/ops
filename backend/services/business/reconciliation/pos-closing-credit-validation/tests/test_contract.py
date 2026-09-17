@@ -15,19 +15,22 @@ from typing import Any
 import pytest
 
 from app.controllers.schemas import (
+    CaseReconciliationOut,
     CaseUpdateOut,
     ClosingDetailOut,
+    ClosingMatchOut,
     CreditMovementOut,
     DetailCountsOut,
     DetailsPageOut,
     KeyBreakdownOut,
     PendingCaseOut,
+    ReconciliationBatchOut,
     SlaSettingsOut,
     ValidationResultOut,
 )
 
 # nome do schema → (interface do models.ts, campos)
-CONTRATO: dict[str, tuple[type[Any], set[str]]] = {
+CONTRACT: dict[str, tuple[type[Any], set[str]]] = {
     "ClosingDetail": (
         ClosingDetailOut,
         {
@@ -49,6 +52,8 @@ CONTRATO: dict[str, tuple[type[Any], set[str]]] = {
             "difference",
             "simoClosingsCount",
             "bankaMovementsCount",
+            "unmatchedCredits",
+            "bankaAmountUnmatched",
         },
     ),
     "CreditMovement": (
@@ -79,7 +84,19 @@ CONTRATO: dict[str, tuple[type[Any], set[str]]] = {
     ),
     "KeyBreakdown": (
         KeyBreakdownOut,
-        {"key", "closings", "movements", "case"},
+        {"key", "closings", "movements", "case", "matches", "suggestedMatches", "periodEnd"},
+    ),
+    "ClosingMatch": (
+        ClosingMatchOut,
+        {"closingId", "movementId"},
+    ),
+    "CaseReconciliation": (
+        CaseReconciliationOut,
+        {"case", "summary", "matches"},
+    ),
+    "ReconciliationBatch": (
+        ReconciliationBatchOut,
+        {"cases", "summary"},
     ),
     "ValidationResult": (
         ValidationResultOut,
@@ -96,7 +113,7 @@ CONTRATO: dict[str, tuple[type[Any], set[str]]] = {
     ),
     "DetailCounts": (
         DetailCountsOut,
-        {"all", "match", "mismatch", "missing", "zero", "duplicated"},
+        {"all", "unmatched", "match", "mismatch", "missing", "zero", "duplicated"},
     ),
     "DetailsPage": (
         DetailsPageOut,
@@ -110,25 +127,25 @@ CONTRATO: dict[str, tuple[type[Any], set[str]]] = {
 
 
 @pytest.mark.parametrize(
-    ("interface", "schema", "campos"), [(nome, par[0], par[1]) for nome, par in CONTRATO.items()]
+    ("interface", "schema", "fields"), [(name, pair[0], pair[1]) for name, pair in CONTRACT.items()]
 )
-def test_schema_tem_exactamente_os_campos_do_models_ts(
-    interface: str, schema: type[Any], campos: set[str]
+def test_schema_has_exactly_models_ts_fields(
+    interface: str, schema: type[Any], fields: set[str]
 ) -> None:
-    saida = set(schema.model_json_schema()["properties"])
-    assert saida == campos, (
+    output = set(schema.model_json_schema()["properties"])
+    assert output == fields, (
         f"{interface}: o schema e o models.ts divergiram. "
-        f"A mais: {sorted(saida - campos)}. A menos: {sorted(campos - saida)}."
+        f"A mais: {sorted(output - fields)}. A menos: {sorted(fields - output)}."
     )
 
 
-def test_resposta_do_patch_tem_os_dois_lados() -> None:
+def test_patch_response_has_both_parts() -> None:
     """O `updateCase()` do SPA espera `{case, summary}` e nada mais."""
     assert set(CaseUpdateOut.model_json_schema()["properties"]) == {"case", "summary"}
 
 
-def test_os_indicadores_do_summary_sao_os_do_dashboard() -> None:
-    """Os 21 campos do `ClosingSummary` (PDD §4.2.1), como o domínio os produz.
+def test_summary_indicators_are_the_dashboard_ones() -> None:
+    """Os 24 campos do `ClosingSummary` (PDD §4.2.1), como o domínio os produz.
 
     O `summary` é o único que não é tipado no schema — é o documento JSONB tal
     como foi gravado. Confere-se aqui, na fonte, para não ficar sem verificação
@@ -149,6 +166,7 @@ def test_os_indicadores_do_summary_sao_os_do_dashboard() -> None:
         "zeroClosings",
         "duplicatedPeriods",
         "duplicatesDiscarded",
+        "bankaDuplicatesDiscarded",
         "keyCollisions",
         "unregisteredPos",
         "simoAmountMatched",
@@ -158,4 +176,6 @@ def test_os_indicadores_do_summary_sao_os_do_dashboard() -> None:
         "simoAmountMissing",
         "simoAmountDuplicated",
         "bankaAmountDuplicated",
+        "unmatchedCredits",
+        "bankaAmountUnmatched",
     }

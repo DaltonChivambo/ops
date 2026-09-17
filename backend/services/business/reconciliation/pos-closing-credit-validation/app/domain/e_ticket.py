@@ -38,9 +38,7 @@ def normalize_e_ticket(raw: object) -> str | None:
     if not value:
         return None
     if len(value) > MAX_E_TICKET_LENGTH:
-        raise InvalidETicketError(
-            f"O e-Ticket tem no máximo {MAX_E_TICKET_LENGTH} caracteres."
-        )
+        raise InvalidETicketError(f"O e-Ticket tem no máximo {MAX_E_TICKET_LENGTH} caracteres.")
     if not _E_TICKET.fullmatch(value):
         raise InvalidETicketError(
             "O e-Ticket só pode ter letras, algarismos e os separadores - _ / . "
