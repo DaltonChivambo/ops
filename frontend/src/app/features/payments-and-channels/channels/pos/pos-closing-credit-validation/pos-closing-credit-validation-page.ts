@@ -378,24 +378,15 @@ export class PosClosingCreditValidationPageComponent {
       this.detailsRevision.update((revision) => revision + 1);
 
       const closings = items.reduce((total, item) => total + item.matches.length, 0);
-      // Uma chave com crédito sem fecho concilia-se, mas o caso fica aberto: diz-se
-      // quantos, para ninguém os dar por tratados.
-      const open = cases.filter((item) => item.status !== 'resolved').length;
       this.success.set({
         title: 'Períodos duplicados conciliados',
         facts: [
           { label: 'Chaves conciliadas', value: count(items.length) },
           { label: 'Fechos em «Crédito confere»', value: count(closings) },
-          { label: 'Casos regularizados', value: count(cases.length - open) },
-          ...(open > 0
-            ? [
-                {
-                  label: 'Abertos por crédito sem fecho',
-                  value: count(open),
-                  tone: 'warning' as const,
-                },
-              ]
-            : []),
+          {
+            label: 'Casos regularizados',
+            value: count(cases.filter((item) => item.status === 'resolved').length),
+          },
         ],
       });
     } catch (problem) {

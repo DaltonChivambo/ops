@@ -1,5 +1,5 @@
 import { ChangeDetectionStrategy, Component, computed, input, output, signal } from '@angular/core';
-import { LucideChevronRight, LucideCircleCheck, LucideSearch, LucideX } from '@lucide/angular';
+import { LucideCircleCheck, LucideLink2, LucideSearch, LucideX } from '@lucide/angular';
 
 import {
   daysBetween,
@@ -11,11 +11,15 @@ import {
   numberFormatter,
   parseIsoDate,
 } from '../../../../../../shared/format';
+import { DataTableComponent } from '../../../../../../shared/ui/data-table';
 import {
-  DataTableComponent,
-  TABLE_CLASS,
-  THEAD_CLASS,
-} from '../../../../../../shared/ui/data-table';
+  CellIdentityComponent,
+  EmptyValueComponent,
+  MoneyComponent,
+  PillComponent,
+  StatusChipComponent,
+  TABLE,
+} from '../../../../../../shared/ui/table';
 import { TooltipDirective } from '../../../../../../shared/ui/tooltip';
 import {
   CASE_STATUSES,
@@ -52,7 +56,6 @@ import { CaseStatusFilterComponent } from './case-status-filter';
 import { CaseTypeFilterComponent } from './case-type-filter';
 import { CaseViewSelectComponent, type CaseView } from './case-view-select';
 import { KeyDetailPanelComponent } from './key-detail-panel';
-import { MoneyComponent } from './money';
 import { SlaFilterComponent } from './sla-filter';
 
 const TYPE_CHIP: Record<CaseType, string> = {
@@ -91,13 +94,17 @@ const OPEN_SLA_STATES: readonly SlaState[] = ['overdue', 'due-soon', 'on-track']
     CaseStatusFilterComponent,
     CaseTypeFilterComponent,
     CaseViewSelectComponent,
+    CellIdentityComponent,
     DataTableComponent,
+    EmptyValueComponent,
     KeyDetailPanelComponent,
     MoneyComponent,
+    PillComponent,
     SlaFilterComponent,
+    StatusChipComponent,
     TooltipDirective,
-    LucideChevronRight,
     LucideCircleCheck,
+    LucideLink2,
     LucideSearch,
     LucideX,
   ],
@@ -176,99 +183,69 @@ const OPEN_SLA_STATES: readonly SlaState[] = ['overdue', 'due-soon', 'on-track']
           </label>
         </ng-container>
 
-        <!-- Oito colunas, e cada célula com uma leitura principal e, no máximo,
-             uma nota por baixo. O período vive junto ao POS: numa coluna à
-             parte, encostado ao Valor SIMO, lia-se como parte do montante. A
-             data de regularização vai para a nota do estado — só existe quando
-             o caso está regularizado, e uma coluna de travessões não diz nada. -->
-        <table [class]="tableClass + ' min-w-4xl'">
-          <thead [class]="theadClass">
-            <tr class="border-b border-gray-100 text-gray-400">
-              <th scope="col" [class]="th + ' w-[18rem] py-2.5 pr-3 pl-5 text-left'">
-                POS / Comerciante
-              </th>
-              <th scope="col" [class]="th + ' px-3 py-2.5 text-left'">Divergência</th>
-              <th scope="col" [class]="th + ' px-3 py-2.5 text-right'">Valor SIMO</th>
-              <th scope="col" [class]="th + ' px-3 py-2.5 text-right'">Valor Banka</th>
-              <th scope="col" [class]="th + ' px-3 py-2.5 text-right'">Diferença</th>
-              <th scope="col" [class]="th + ' py-2.5 pr-3 pl-6 text-left'">Prazo</th>
-              <th scope="col" [class]="th + ' px-3 py-2.5 text-left'">
+        <!-- As mesmas colunas e o mesmo desenho de linha do «Todos os Fechos»:
+             identidade, período, os dois totais, a diferença e a etiqueta da
+             divergência — e, a seguir, o que só um caso tem: prazo, fase e
+             e-Ticket. Cada célula com uma leitura principal e, no máximo, uma
+             nota por baixo. -->
+        <table [class]="t.table + ' min-w-5xl'">
+          <thead [class]="t.thead">
+            <tr [class]="t.headRow">
+              <th scope="col" [class]="t.thFirst + ' w-[17rem]'">POS / Comerciante</th>
+              <th scope="col" [class]="t.thRight">Período</th>
+              <th scope="col" [class]="t.thRight">Total SIMO</th>
+              <th scope="col" [class]="t.thRight">Total Banka</th>
+              <th scope="col" [class]="t.thRight">Diferença</th>
+              <th scope="col" [class]="t.thLeft">Divergência</th>
+              <th scope="col" [class]="t.thLeft">Prazo</th>
+              <th scope="col" [class]="t.thLeft">
                 {{ view() === 'resolved' ? 'Regularizado em' : 'Fase' }}
               </th>
-              <th scope="col" [class]="th + ' px-3 py-2.5 text-left'">e-Ticket</th>
-              <th scope="col" [class]="th + ' w-8'"><span class="sr-only">Abrir</span></th>
+              <th scope="col" [class]="t.thLast">e-Ticket</th>
             </tr>
           </thead>
 
           <tbody>
             @for (item of visible(); track item.id) {
               @let resolved = item.status === 'resolved';
+              @let duplicated = item.type === 'duplicated';
+              <!-- Período duplicado com o mesmo fundo âmbar do «Todos os Fechos». -->
               <tr
                 (click)="opened.set(toDetail(item))"
-                class="cursor-pointer border-b border-gray-100/70 text-gray-600 transition-colors last:border-b-0 hover:bg-gray-50/70"
+                [class]="t.row + ' ' + (duplicated ? t.tone.attention : t.tone.neutral)"
               >
-                <td class="py-3.5 pr-3 pl-5" [class]="stripe(item)">
-                  <div class="flex flex-wrap items-center gap-x-2 gap-y-1">
-                    <button
-                      type="button"
-                      (click)="$event.stopPropagation(); opened.set(toDetail(item))"
-                      class="font-bold text-gray-900 tabular-nums underline-offset-2 transition-colors hover:text-moza-600 hover:underline focus-visible:text-moza-600 focus-visible:underline"
-                    >
-                      {{ item.posId }}
-                      <span class="sr-only"> — ver os dados da SIMO e do Banka</span>
-                    </button>
-                    <!-- As pastilhas explicam-se na caixa da app (appTooltip),
-                         não no tooltip do browser: é o mesmo estilo do "i" que
-                         o resto da página usa para informação a pedido. -->
-                    <span
-                      class="rounded-md bg-gray-100 px-1.5 py-0.5 text-2xs font-semibold whitespace-nowrap text-gray-500 tabular-nums"
-                      [appTooltip]="'Período ' + item.period"
-                    >
-                      P. {{ item.period }}
-                    </span>
-                    <!-- Como no "Todos os Fechos": num período duplicado mostram-se
-                         sempre os dois números, ao lado do período — 1 de um lado
-                         não é motivo para esconder o outro, e «em SIMO e Banka»
-                         dizia de que lado era mas não quantos eram. De que lado
-                         duplica fica na caixa, que a pastilha já é o resumo. -->
-                    @if (item.type === 'duplicated') {
-                      <span
-                        class="rounded-full bg-amber-500 px-1.5 py-0.5 text-2xs font-bold whitespace-nowrap text-white tabular-nums"
-                        [appTooltip]="duplicationNote(item)"
-                      >
-                        {{ n(item.simoClosingsCount) }} SIMO ·
-                        {{ n(item.bankaMovementsCount) }} Banka
-                      </span>
-                    }
-                  </div>
-                  <div
-                    class="mt-1 max-w-52 truncate text-xs text-gray-400"
-                    [attr.title]="item.merchant"
-                  >
-                    {{ item.merchant }}
-                  </div>
+                <td [class]="t.tdFirst + ' ' + stripe(item)">
+                  <app-cell-identity
+                    [primary]="item.posId"
+                    [secondary]="item.merchant"
+                    srLabel="ver os dados da SIMO e do Banka"
+                    (activated)="opened.set(toDetail(item))"
+                  />
                 </td>
 
-                <td class="px-3 py-3.5">
-                  <span
-                    class="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-bold whitespace-nowrap"
-                    [class]="chip(item)"
-                  >
-                    <span class="size-1.5 rounded-full" [class]="dot(item)"></span>
-                    {{ typeLabel(item) }}
+                <td [class]="t.tdMuted">
+                  <span class="inline-flex items-center gap-1.5">
+                    {{ item.period }}
+                    <!-- Como no «Todos os Fechos»: num período duplicado, os dois
+                         números ao lado do período. De que lado duplica fica na
+                         caixa, que a pastilha já é o resumo. -->
+                    @if (duplicated) {
+                      <app-pill tone="attention" [appTooltip]="duplicationNote(item)">
+                        {{ n(item.simoClosingsCount) }} SIMO ·
+                        {{ n(item.bankaMovementsCount) }} Banka
+                      </app-pill>
+                    }
                   </span>
                 </td>
 
-                <td class="px-3 py-3.5 text-right">
-                  <app-money [value]="item.simoAmount" />
-                </td>
-                <td class="px-3 py-3.5 text-right">
+                <td [class]="t.tdRight"><app-money [value]="item.simoAmount" /></td>
+                <td [class]="t.tdRight">
                   <app-money [value]="item.type === 'missing' ? null : item.bankaAmount" />
                 </td>
-                <td class="px-3 py-3.5 text-right whitespace-nowrap tabular-nums">
+                <td [class]="t.tdRight + ' whitespace-nowrap'">
                   @let diff = difference(item);
                   @if (diff === null || diff === 0) {
-                    <span class="text-gray-300" [appTooltip]="diffTitle(item)">—</span>
+                    <app-empty-value [appTooltip]="diffTitle(item)" />
                   } @else {
                     <span class="font-bold" [class]="resolved ? 'text-gray-400' : 'text-alert-600'">
                       {{ signed(diff) }}
@@ -276,7 +253,24 @@ const OPEN_SLA_STATES: readonly SlaState[] = ['overdue', 'due-soon', 'on-track']
                   }
                 </td>
 
-                <td class="py-3.5 pr-3 pl-6">
+                <td [class]="t.tdLeft">
+                  <app-status-chip
+                    [label]="typeLabel(item)"
+                    [chip]="chip(item)"
+                    [dot]="dot(item)"
+                  />
+                  @if (reconcilableIds().has(item.id)) {
+                    <span
+                      class="mt-1 flex items-center gap-1 pl-1 text-2xs font-semibold whitespace-nowrap text-emerald-700"
+                      appTooltip="Cada fecho tem no Banka um crédito de valor igual. Concilie-o no painel do caso, ou em lote com «Rever e conciliar»."
+                    >
+                      <svg lucideLink2 [size]="11" [strokeWidth]="2.4"></svg>
+                      Pronto a conciliar
+                    </span>
+                  }
+                </td>
+
+                <td [class]="t.tdLeft">
                   @let sla = slaOf(item);
                   <span
                     class="flex items-center gap-1.5 whitespace-nowrap"
@@ -289,7 +283,7 @@ const OPEN_SLA_STATES: readonly SlaState[] = ['overdue', 'due-soon', 'on-track']
                   </span>
                   <!-- De que lado veio a data que está a contar, e há quanto tempo
                        conta: é o que o operador precisa de saber sem abrir nada. -->
-                  <div class="mt-1 pl-3 text-2xs whitespace-nowrap text-gray-400">
+                  <div [class]="t.note + ' pl-3'">
                     {{ slaAge(sla) }} · data {{ sourceLabel[item.firstDateSource] }}
                   </div>
                 </td>
@@ -298,7 +292,7 @@ const OPEN_SLA_STATES: readonly SlaState[] = ['overdue', 'due-soon', 'on-track']
                      com «Guardar». Campos soltos na lista gravavam ao sair do
                      campo ou ao escolher uma opção — um toque ao lado e o caso
                      mudava sem ninguém confirmar. -->
-                <td class="px-3 py-3.5">
+                <td [class]="t.tdLeft">
                   @if (view() === 'resolved') {
                     <!-- Na lista dos regularizados o estado é o mesmo em todas as
                          linhas; o que distingue é quando fechou. -->
@@ -307,9 +301,7 @@ const OPEN_SLA_STATES: readonly SlaState[] = ['overdue', 'due-soon', 'on-track']
                     >
                       {{ item.resolvedAt ? date(item.resolvedAt) : '—' }}
                     </span>
-                    <div class="mt-1 text-2xs whitespace-nowrap text-gray-400">
-                      há {{ dayCount(daysInStatus(item)) }}
-                    </div>
+                    <div [class]="t.note">há {{ dayCount(daysInStatus(item)) }}</div>
                   } @else {
                     <span
                       class="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold whitespace-nowrap"
@@ -321,7 +313,7 @@ const OPEN_SLA_STATES: readonly SlaState[] = ['overdue', 'due-soon', 'on-track']
                     <!-- Há quanto tempo está assim: é o que responde a «submetido
                          à SIMO há quanto tempo?» sem abrir o fecho. Regularizado
                          (na vista de todos), o que interessa é o dia em que fechou. -->
-                    <div class="mt-1 pl-1 text-2xs whitespace-nowrap text-gray-400">
+                    <div [class]="t.note + ' pl-1'">
                       @if (resolved && item.resolvedAt) {
                         em {{ date(item.resolvedAt) }}
                       } @else {
@@ -331,18 +323,14 @@ const OPEN_SLA_STATES: readonly SlaState[] = ['overdue', 'due-soon', 'on-track']
                   }
                 </td>
 
-                <td class="px-3 py-3.5 whitespace-nowrap">
+                <td [class]="t.tdLast + ' whitespace-nowrap'">
                   @if (item.eTicket) {
                     <span class="font-mono text-xs font-semibold text-gray-800">
                       {{ item.eTicket }}
                     </span>
                   } @else {
-                    <span class="text-xs text-gray-300">Sem e-Ticket</span>
+                    <app-empty-value />
                   }
-                </td>
-
-                <td class="py-3.5 pr-4 pl-1 text-gray-300">
-                  <svg lucideChevronRight [size]="16" [strokeWidth]="2.2" aria-hidden="true"></svg>
                 </td>
               </tr>
             } @empty {
@@ -409,16 +397,16 @@ export class PendingCasesTableComponent {
   readonly settings = input.required<SlaSettings>();
   /** Onde o scroll da página assenta antes de a lista correr — a barra de separadores. */
   readonly scrollAnchor = input<HTMLElement | undefined>(undefined);
+  /** Casos de períodos duplicados que se conciliam com crédito igual — ver a faixa em cima. */
+  readonly reconcilableIds = input<ReadonlySet<string>>(new Set());
   readonly updated = output<CasePatch>();
   readonly reconciled = output<CaseMatches>();
 
   /** O caso aberto no painel lateral — o mesmo painel do "Todos os Fechos". */
   protected readonly opened = signal<ClosingDetail | null>(null);
 
-  /** `bg-gray-50` aqui e não no `<thead>`: é a célula que pinta o fundo de forma fiável. */
-  protected readonly th = 'bg-gray-50 text-2xs font-bold tracking-wider uppercase';
-  protected readonly tableClass = TABLE_CLASS;
-  protected readonly theadClass = THEAD_CLASS;
+  /** O modelo partilhado das tabelas — ver `shared/ui/table`. */
+  protected readonly t = TABLE;
 
   /** A fila de trabalho abre por defeito — é para isso que se vem a este separador. */
   protected readonly view = signal<CaseView>('open');

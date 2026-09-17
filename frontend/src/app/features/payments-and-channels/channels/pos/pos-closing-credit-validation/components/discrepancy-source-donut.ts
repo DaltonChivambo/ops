@@ -7,9 +7,6 @@ import type { ClosingSummary } from '../data/models';
 /**
  * O que está por tratar, em anel — o desenho está no app-donut-chart.
  *
- * Fechos, e também os créditos sem fecho que ficam depois de uma conciliação:
- * uns e outros são trabalho em aberto.
- *
  * Os duplicados entram apesar de não serem divergência: ninguém sabe se a chave
  * confere enquanto a duplicação não se desfizer, e é trabalho igual.
  */
@@ -54,16 +51,6 @@ export class DiscrepancySourceDonutComponent {
         count: s.duplicatedPeriods,
         color: '#fe9a00',
         description: 'O mesmo POS e período aparece mais de uma vez na SIMO ou no Banka.',
-      },
-      // Não é um fecho, é dinheiro: o que sobrou no Banka depois de a conciliação
-      // ligar os fechos da chave. Conta aqui porque é trabalho igual — o caso
-      // fica aberto até alguém o analisar.
-      {
-        name: 'Crédito sem fecho na SIMO',
-        short: 'créditos sem fecho na SIMO',
-        count: s.unmatchedCredits ?? 0,
-        color: '#8b5cf6',
-        description: 'Creditado no Banka, mas sem fecho correspondente na SIMO.',
       },
     ];
   });

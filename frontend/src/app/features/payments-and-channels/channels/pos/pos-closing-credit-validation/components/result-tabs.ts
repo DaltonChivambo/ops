@@ -5,12 +5,19 @@ import {
   computed,
   inject,
   input,
+  linkedSignal,
   output,
   signal,
   viewChild,
   type ElementRef,
 } from '@angular/core';
-import { LucideArrowUp, LucideTriangleAlert } from '@lucide/angular';
+import {
+  LucideArrowLeft,
+  LucideArrowRight,
+  LucideArrowUp,
+  LucideLink2,
+  LucideTriangleAlert,
+} from '@lucide/angular';
 
 import { numberFormatter } from '../../../../../../shared/format';
 import type {
@@ -24,7 +31,10 @@ import { PendingCasesTableComponent } from './pending-cases-table';
 import { ReconciliationQueueComponent } from './reconciliation-queue';
 import { ReconciliationTableComponent } from './reconciliation-table';
 
-type TabId = 'cases' | 'closings' | 'reconciliations';
+type TabId = 'cases' | 'closings';
+
+/** O que o separador dos casos mostra: a fila, ou a conciliação em lote dos duplicados. */
+type CasesView = 'queue' | 'reconcile';
 
 /** Separadores dos resultados — só um montado de cada vez; por omissão mostra todos os fechos. */
 @Component({
@@ -34,7 +44,10 @@ type TabId = 'cases' | 'closings' | 'reconciliations';
     PendingCasesTableComponent,
     ReconciliationQueueComponent,
     ReconciliationTableComponent,
+    LucideArrowLeft,
+    LucideArrowRight,
     LucideArrowUp,
+    LucideLink2,
     LucideTriangleAlert,
   ],
   template: `
@@ -114,24 +127,75 @@ type TabId = 'cases' | 'closings' | 'reconciliations';
       </div>
 
       @if (tab() === 'cases') {
-        <app-pending-cases-table
-          [cases]="r.cases"
-          [executionId]="r.executionId"
-          [settings]="settings()"
-          [scrollAnchor]="anchor()"
-          (updated)="updateCase.emit($event)"
-          (reconciled)="reconcileCase.emit($event)"
-        />
-      } @else if (tab() === 'reconciliations') {
-        <app-reconciliation-queue
-          [executionId]="r.executionId"
-          [candidates]="reconciliationCandidates()"
-          [settings]="settings()"
-          [busy]="reconciling()"
-          (reconciledMany)="reconcileCases.emit($event)"
-          (updated)="updateCase.emit($event)"
-          (reconciled)="reconcileCase.emit($event)"
-        />
+        <!-- A conciliação em lote vive dentro dos casos: são os mesmos casos de
+             períodos duplicados, tratados de uma vez. A fila é a vista principal;
+             a faixa só aparece quando há o que conciliar, e leva até lá. -->
+        @if (showReconcile()) {
+          <div class="flex flex-wrap items-center gap-x-3 gap-y-1">
+            <button
+              type="button"
+              (click)="casesView.set('queue')"
+              class="inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-sm font-semibold text-gray-600 transition-colors hover:bg-white hover:text-gray-900"
+            >
+              <svg lucideArrowLeft [size]="15" [strokeWidth]="2.2"></svg>
+              Voltar aos casos
+            </button>
+            <span class="text-sm text-gray-500">
+              <b class="font-semibold text-gray-900">Conciliar períodos duplicados</b> — cada fecho
+              da SIMO com o crédito do Banka de valor igual.
+            </span>
+          </div>
+          <app-reconciliation-queue
+            [executionId]="r.executionId"
+            [candidates]="reconciliationCandidates()"
+            [settings]="settings()"
+            [busy]="reconciling()"
+            (reconciledMany)="reconcileCases.emit($event)"
+            (updated)="updateCase.emit($event)"
+            (reconciled)="reconcileCase.emit($event)"
+          />
+        } @else {
+          @if (reconcilableCount() > 0) {
+            <div
+              class="flex flex-wrap items-center gap-3 rounded-2xl bg-white px-4 py-3 shadow-sm ring-1 ring-emerald-100"
+            >
+              <span
+                class="inline-flex size-9 shrink-0 items-center justify-center rounded-xl bg-emerald-50 text-emerald-600"
+              >
+                <svg lucideLink2 [size]="18" [strokeWidth]="2.2"></svg>
+              </span>
+              <p class="min-w-0 flex-1 text-sm leading-snug text-gray-600">
+                <b class="font-semibold text-gray-900">
+                  {{ n(reconcilableCount()) }}
+                  {{
+                    reconcilableCount() === 1
+                      ? 'caso de período duplicado pode ser conciliado'
+                      : 'casos de períodos duplicados podem ser conciliados'
+                  }}
+                  de uma vez.
+                </b>
+                Cada fecho tem no Banka um crédito de valor igual.
+              </p>
+              <button
+                type="button"
+                (click)="casesView.set('reconcile')"
+                class="inline-flex shrink-0 items-center gap-1.5 rounded-xl bg-moza-700 px-3.5 py-2 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-moza-800"
+              >
+                Rever e conciliar
+                <svg lucideArrowRight [size]="15" [strokeWidth]="2.2"></svg>
+              </button>
+            </div>
+          }
+          <app-pending-cases-table
+            [cases]="r.cases"
+            [executionId]="r.executionId"
+            [settings]="settings()"
+            [scrollAnchor]="anchor()"
+            [reconcilableIds]="reconcilableIds()"
+            (updated)="updateCase.emit($event)"
+            (reconciled)="reconcileCase.emit($event)"
+          />
+        }
       } @else {
         <app-reconciliation-table
           [executionId]="r.executionId"
@@ -167,6 +231,28 @@ export class ResultTabsComponent {
   protected readonly anchor = computed(() => this.tabList()?.nativeElement);
 
   protected readonly tab = signal<TabId>('closings');
+  /**
+   * Volta-se à fila ao mudar de separador — a conciliação é um desvio, não um
+   * sítio — e também quando deixa de haver o que conciliar.
+   */
+  protected readonly casesView = linkedSignal<string, CasesView>({
+    source: () => {
+      const candidates = this.reconciliationCandidates();
+      return `${this.tab()}|${candidates !== null && candidates.length === 0}`;
+    },
+    computation: () => 'queue',
+  });
+
+  /** Os casos que a conciliação em lote cobre — a lista de casos marca-os. */
+  protected readonly reconcilableIds = computed<ReadonlySet<string>>(
+    () => new Set((this.reconciliationCandidates() ?? []).map((candidate) => candidate.case.id)),
+  );
+  protected readonly reconcilableCount = computed(() => this.reconcilableIds().size);
+  /**
+   * Conciliado tudo, volta-se à fila sozinho: a lista vazia não tem mais nada
+   * para fazer, e os casos regularizados são o que se quer ver a seguir.
+   */
+  protected readonly showReconcile = computed(() => this.casesView() === 'reconcile');
 
   /**
    * Os separadores estão colados. Compara-se com o desvio onde assentam e não
@@ -211,13 +297,8 @@ export class ResultTabsComponent {
     return [
       { id: 'closings' as const, label: 'Todos os Fechos', badge: this.n(summary.processed) },
       { id: 'cases' as const, label: 'Casos para Análise', badge: this.n(summary.openCases) },
-      {
-        id: 'reconciliations' as const,
-        label: 'Períodos Duplicados',
-        badge: this.n(this.reconciliationCandidates()?.length ?? 0),
-      },
     ];
   });
 
-  private n = (value: number) => numberFormatter.format(value);
+  protected n = (value: number) => numberFormatter.format(value);
 }
