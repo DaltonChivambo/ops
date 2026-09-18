@@ -18,7 +18,13 @@ from datetime import date
 from decimal import Decimal
 
 from app.domain.models import BankaCredit, BankaMovement, PosInfo, SimoClosing
-from app.domain.reconciliation import build_report_name, reconcile, validation_rate
+from app.domain.reconciliation import (
+    KeyTally,
+    build_report_name,
+    reconcile,
+    validation_rate,
+    with_simo_duplicates,
+)
 from app.domain.vocabulary import CaseDateSource, CaseType, ClosingType, Validation
 
 DAY = date(2026, 6, 23)
@@ -231,8 +237,179 @@ def test_repeated_simo_export_row_does_not_count_twice() -> None:
     r = reconcile(pos(), [closing(**row), closing(**row)], {"200001101": credit("100.00")})  # type: ignore[arg-type]
 
     assert r.summary.duplicates_discarded == 1
-    assert r.summary.processed == 1
-    assert r.details[0].validation is Validation.MATCH
+    # Conta no total de fechos, numa linha própria; o estado conta o fecho uma vez.
+    assert r.summary.processed == 2
+    assert r.summary.matched == 1
+    assert r.summary.validation_rate == 100.0
+    assert [(d.validation, d.simo_duplicate, d.has_simo_duplicate) for d in r.details] == [
+        (Validation.MATCH, False, True),
+        (Validation.MATCH, True, False),
+    ]
+    # O montante da chave soma o fecho uma vez.
+    assert r.summary.simo_amount_matched == Decimal("100.00")
+
+
+def test_same_line_twice_credited_twice_is_two_real_closings() -> None:
+    """O Banka creditou as duas: não é cópia, são dois fechos com o mesmo valor."""
+    row = {"total": "100.00", "ops": 3}
+    r = reconcile(
+        pos(),
+        [closing(**row), closing(**row)],  # type: ignore[arg-type]
+        {"200001101": credit("100.00", "100.00")},
+    )
+
+    assert r.summary.duplicates_discarded == 0
+    assert [d.validation for d in r.details] == [Validation.DUPLICATED, Validation.DUPLICATED]
+
+
+def test_lines_differing_in_any_file_column_are_not_repeated() -> None:
+    """Iguais nos campos do fecho, mas diferentes noutra coluna do ficheiro: não é cópia."""
+    a = closing(total="100.00", ops=3)
+    b = closing(total="100.00", ops=3)
+    a.row = ("200001", "101", "x")
+    b.row = ("200001", "101", "y")
+
+    r = reconcile(pos(), [a, b], {"200001101": credit("100.00")})
+
+    assert r.summary.duplicates_discarded == 0
+
+
+# ─── O Banka nunca passa a SIMO ──────────────────────────────────────────────
+
+
+def test_banka_side_of_a_repeated_key_never_exceeds_what_simo_closed() -> None:
+    """A conciliação parte dos fechos: crédito sem fecho que o pague não conta.
+
+    Nestas chaves o Banka traz por vezes dinheiro a mais — um período real
+    diferente do mesmo POS que colide em `% 1000`. Deixá-lo entrar punha o
+    Banka acima da SIMO no total, que é dizer que o banco pagou fechos que não
+    existem (visto em `217745596`: 29 900,00 fechados contra 60 440,00).
+    """
+    closings = [closing(period=101, total="100.00"), closing(period=1101, total="50.00")]
+
+    r = reconcile(pos(), closings, {"200001101": credit("400.00", "300.00")})
+
+    assert r.summary.duplicated_periods == 2
+    assert r.summary.simo_amount_duplicated == Decimal("150.00")
+    assert r.summary.banka_amount_duplicated == Decimal("150.00")
+
+
+def test_banka_side_of_a_repeated_key_keeps_what_falls_short() -> None:
+    """Limitar é um tecto, não um acerto: a menos continua a ser a menos."""
+    closings = [closing(period=101, total="100.00"), closing(period=1101, total="50.00")]
+
+    r = reconcile(pos(), closings, {"200001101": credit("40.00", "30.00")})
+
+    assert r.summary.simo_amount_duplicated == Decimal("150.00")
+    assert r.summary.banka_amount_duplicated == Decimal("70.00")
+
+
+# ─── O montante das linhas repetidas da SIMO ─────────────────────────────────
+
+
+def test_repeated_simo_lines_carry_their_own_amount() -> None:
+    """Fica apurado à parte: é o que a reconciliação de montantes conta, ou não."""
+    row = {"total": "100.00", "ops": 3}
+    r = reconcile(pos(), [closing(**row), closing(**row)], {"200001101": credit("100.00")})  # type: ignore[arg-type]
+
+    assert r.summary.simo_amount_duplicate_rows == Decimal("100.00")
+    # O estado não sabe disto: a chave tem um fecho só e confere.
+    assert r.summary.matched == 1
+    assert r.summary.simo_amount_matched == Decimal("100.00")
+    assert r.summary.duplicated_periods == 0
+
+
+def test_repeated_line_carries_the_credit_that_paid_the_original() -> None:
+    """A repetida é cópia de um fecho creditado: o crédito que lhe corresponde é o dela."""
+    row = {"total": "100.00", "ops": 3}
+    r = reconcile(pos(), [closing(**row), closing(**row)], {"200001101": credit("100.00")})  # type: ignore[arg-type]
+
+    assert r.summary.duplicates_discarded == 1
+    assert r.summary.simo_amount_duplicate_rows == Decimal("100.00")
+    # Os dois lados iguais: contar a linha repetida não abre diferença nenhuma.
+    assert r.summary.banka_amount_duplicate_rows == Decimal("100.00")
+
+
+def test_repeated_line_on_an_uncredited_key_has_no_correspondence() -> None:
+    """Sem crédito na chave não há correspondência: a repetida fica em diferença."""
+    row = {"total": "100.00", "ops": 3}
+    r = reconcile(pos(), [closing(**row), closing(**row)], {})  # type: ignore[arg-type]
+
+    assert r.summary.simo_amount_duplicate_rows == Decimal("100.00")
+    assert r.summary.banka_amount_duplicate_rows == Decimal(0)
+
+
+def test_correspondence_never_exceeds_what_the_repeated_lines_are_worth() -> None:
+    """Crédito a mais na chave é problema de outra linha, não das repetidas."""
+    row = {"total": "100.00", "ops": 3}
+    r = reconcile(pos(), [closing(**row), closing(**row)], {"200001101": credit("900.00")})  # type: ignore[arg-type]
+
+    assert r.summary.banka_amount_duplicate_rows == Decimal("100.00")
+
+
+def test_without_repeated_lines_the_amount_is_zero() -> None:
+    r = reconcile(pos(), [closing(total="100.00")], {"200001101": credit("100.00")})
+
+    assert r.summary.simo_amount_duplicate_rows == Decimal(0)
+    assert r.summary.banka_amount_duplicate_rows == Decimal(0)
+    assert r.summary.count_simo_duplicates is False
+
+
+# ─── Contar as linhas repetidas no apuramento ────────────────────────────────
+
+
+def _summary_of(*closings_and_credits: object) -> dict[str, object]:
+    """O `summary` de uma execução, como fica gravado."""
+    closings, credits = closings_and_credits  # type: ignore[misc]
+    return reconcile(pos(), closings, credits).summary.to_json_dict()  # type: ignore[arg-type]
+
+
+def test_counted_repeated_lines_land_in_the_state_of_their_key() -> None:
+    """Não têm estado próprio: contam onde a chave já está, aqui em «confere»."""
+    row = {"total": "100.00", "ops": 3}
+    summary = _summary_of([closing(**row), closing(**row)], {"200001101": credit("100.00")})  # type: ignore[arg-type]
+    key = KeyTally(Validation.MATCH, Decimal("100.00"), Decimal("100.00"), 1, Decimal("100.00"))
+
+    counted = with_simo_duplicates(summary, [key], True)
+
+    assert counted["matched"] == 2
+    # Os dois lados sobem juntos: contá-las não abre divergência nenhuma.
+    assert counted["simoAmountMatched"] == 200.0
+    assert counted["bankaAmountMatched"] == 200.0
+    assert counted["countSimoDuplicates"] is True
+    # Não aparece em «períodos repetidos», que é outro estado e outro problema.
+    assert counted["duplicatedPeriods"] == 0
+
+
+def test_counting_and_uncounting_gets_back_to_the_same_numbers() -> None:
+    row = {"total": "100.00", "ops": 3}
+    summary = _summary_of([closing(**row), closing(**row)], {"200001101": credit("100.00")})  # type: ignore[arg-type]
+    key = KeyTally(Validation.MATCH, Decimal("100.00"), Decimal("100.00"), 1, Decimal("100.00"))
+
+    back = with_simo_duplicates(with_simo_duplicates(summary, [key], True), [key], False)
+
+    assert back == summary
+
+
+def test_counted_repeated_line_on_an_uncredited_key_grows_what_is_missing() -> None:
+    """Sem crédito na chave não há correspondência: a repetida engrossa a falta."""
+    summary = {
+        "missingCount": 1,
+        "simoAmountMissing": 100.0,
+        "divergenceAmount": 100.0,
+        "processed": 2,
+        "matched": 0,
+        "mismatchCount": 0,
+        "duplicatesDiscarded": 1,
+    }
+    key = KeyTally(Validation.MISSING, Decimal("100.00"), Decimal(0), 1, Decimal("100.00"))
+
+    counted = with_simo_duplicates(summary, [key], True)
+
+    assert counted["missingCount"] == 2
+    assert counted["simoAmountMissing"] == 200.0
+    assert counted["divergenceAmount"] == 200.0
+    assert counted["divergent"] == 2
 
 
 def test_unregistered_pos_gets_dash_and_is_counted() -> None:

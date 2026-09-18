@@ -47,7 +47,7 @@ class DetailsPage:
 
 @dataclass(frozen=True, slots=True)
 class ReconciliationCandidate:
-    """Um caso de períodos duplicados com tudo o que é preciso para o conciliar."""
+    """Um caso de períodos repetidos com tudo o que é preciso para o conciliar."""
 
     case: PendingCase
     closings: list[ClosingDetail]
@@ -85,6 +85,23 @@ class ValidationService:
     async def get_latest_execution(self) -> Execution | None:
         return await self._executions.find_latest()
 
+    async def set_count_simo_duplicates(self, execution_id: str, counted: bool) -> dict[str, Any]:
+        """Manda contar, ou não, as linhas repetidas do export da SIMO nos montantes.
+
+        Não mexe em estados nem em casos: uma linha repetida no ficheiro não é
+        um fecho novo, e o estado da chave continua a ser o que era. O que muda
+        é só o apuramento de montantes — se o dinheiro dessas linhas entra ou
+        fica de fora, e a diferença que isso abre.
+
+        A decisão é da execução inteira, e não preferência de quem está a olhar:
+        o relatório sai com ela, logo tem de ser igual para toda a gente.
+        """
+        execution = await self.get_execution(execution_id)
+        summary = dict(execution.summary or {})
+        if execution.count_simo_duplicates == counted:
+            return summary
+        return await self._executions.set_count_simo_duplicates(execution_id, counted, summary)
+
     async def list_cases(
         self, execution_id: str
     ) -> tuple[list[PendingCase], dict[str, tuple[int, int]]]:
@@ -99,8 +116,11 @@ class ValidationService:
         page: Page,
         validation: str | None,
         search: str | None,
+        simo_duplicates: bool = False,
     ) -> DetailsPage:
-        details, total = await self._executions.list_details(execution_id, page, validation, search)
+        details, total = await self._executions.list_details(
+            execution_id, page, validation, search, simo_duplicates
+        )
         counts = await self._executions.count_details_by_validation(execution_id, search)
         duplicated_keys = {
             detail.key for detail in details if detail.validation == Validation.DUPLICATED

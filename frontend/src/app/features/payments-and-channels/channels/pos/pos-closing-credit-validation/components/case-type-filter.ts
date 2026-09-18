@@ -7,11 +7,11 @@ import {
 } from '../../../../../../shared/ui/multi-select-filter';
 import type { CaseType } from '../data/models';
 
-/** Mesma prioridade usada em todo o ecrã: incorrecto, duplicado, não creditado. */
+/** Mesma prioridade usada em todo o ecrã: incorrecto, não creditado, repetido. */
 const TYPES: ReadonlyArray<{ id: CaseType; label: string; dot: string }> = [
   { id: 'mismatch', label: 'Incorrecto', dot: 'bg-alert-500' },
-  { id: 'duplicated', label: 'Período duplicado', dot: 'bg-amber-500' },
   { id: 'missing', label: 'Não creditado', dot: 'bg-moza-500' },
+  { id: 'duplicated', label: 'Período repetido', dot: 'bg-amber-500' },
 ];
 
 /** Filtro da «Divergência» em Casos para Análise — os três tipos de caso no filtro partilhado. */

@@ -156,6 +156,7 @@ class FakeService:
             "missing": 0,
             "zero": 0,
             "duplicated": 0,
+            "simo_duplicates": 0,
         }
         # (nº fechos SIMO, nº movimentos Banka) por chave — só preenchido pelos
         # testes que precisam de simular uma chave `duplicated`. Vazio por
@@ -180,6 +181,14 @@ class FakeService:
     async def get_latest_execution(self) -> Execution | None:
         return self.execution
 
+    async def set_count_simo_duplicates(self, execution_id: str, counted: bool) -> dict[str, Any]:
+        self.calls["set_count_simo_duplicates"] = {"counted": counted}
+        execution = self._guard(execution_id)
+        execution.count_simo_duplicates = counted
+        summary = {**(execution.summary or {}), "countSimoDuplicates": counted}
+        execution.summary = summary
+        return summary
+
     async def list_cases(
         self, _execution_id: str
     ) -> tuple[list[PendingCase], dict[str, tuple[int, int]]]:
@@ -191,6 +200,7 @@ class FakeService:
         page: Any,
         validation: Any,
         search: Any,
+        simo_duplicates: bool = False,
     ) -> DetailsPage:
         self.calls["list_details"] = {
             "page": page.page,
@@ -199,6 +209,7 @@ class FakeService:
             "perPage": page.per_page,
             "validation": validation,
             "search": search,
+            "simoDuplicates": simo_duplicates,
         }
         self._guard(execution_id)
         return DetailsPage(
@@ -278,9 +289,7 @@ class FakeService:
             raise NotFoundError("O caso indicado não existe.")
         case = self.cases[0]
         if case.type != "duplicated":
-            raise InvalidMatchError(
-                "Só os casos de períodos duplicados se conciliam fecho a fecho."
-            )
+            raise InvalidMatchError("Só os casos de períodos repetidos se conciliam fecho a fecho.")
 
         # As regras são as do domínio, como no serviço a sério: é ali que nasce
         # a mensagem em português que a rota tem de fazer chegar ao operador.

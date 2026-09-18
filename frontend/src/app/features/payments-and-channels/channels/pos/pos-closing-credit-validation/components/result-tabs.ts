@@ -17,6 +17,7 @@ import {
   LucideArrowUp,
   LucideLink2,
   LucideTriangleAlert,
+  LucideX,
 } from '@lucide/angular';
 
 import { numberFormatter } from '../../../../../../shared/format';
@@ -33,7 +34,17 @@ import { ReconciliationTableComponent } from './reconciliation-table';
 
 type TabId = 'cases' | 'closings';
 
-/** O que o separador dos casos mostra: a fila, ou a conciliação em lote dos duplicados. */
+const QUALITY_DISMISSED_KEY = 'mozaops.pos.data-quality.dismissed';
+
+function readQualityDismissed(): boolean {
+  try {
+    return localStorage.getItem(QUALITY_DISMISSED_KEY) === '1';
+  } catch {
+    return false;
+  }
+}
+
+/** O que o separador dos casos mostra: a fila, ou a conciliação em lote dos repetidos. */
 type CasesView = 'queue' | 'reconcile';
 
 /** Separadores dos resultados — só um montado de cada vez; por omissão mostra todos os fechos. */
@@ -49,12 +60,13 @@ type CasesView = 'queue' | 'reconcile';
     LucideArrowUp,
     LucideLink2,
     LucideTriangleAlert,
+    LucideX,
   ],
   template: `
     @let r = result();
 
     <div class="flex flex-col gap-4">
-      @if (dataQuality().length > 0) {
+      @if (dataQuality().length > 0 && !qualityDismissed()) {
         <div
           class="flex items-start gap-2.5 rounded-xl bg-amber-50 px-4 py-3 text-sm ring-1 ring-amber-100"
         >
@@ -68,6 +80,14 @@ type CasesView = 'queue' | 'reconcile';
             <span class="font-semibold text-amber-800">Qualidade dos dados de entrada</span>
             <span class="text-amber-700">{{ dataQuality().join(' · ') }}.</span>
           </div>
+          <button
+            type="button"
+            (click)="dismissQuality()"
+            aria-label="Fechar aviso"
+            class="-my-1 ml-auto shrink-0 rounded-full p-1.5 text-amber-600 transition-colors hover:bg-amber-100 hover:text-amber-900"
+          >
+            <svg lucideX [size]="15" [strokeWidth]="2"></svg>
+          </button>
         </div>
       }
 
@@ -128,7 +148,7 @@ type CasesView = 'queue' | 'reconcile';
 
       @if (tab() === 'cases') {
         <!-- A conciliação em lote vive dentro dos casos: são os mesmos casos de
-             períodos duplicados, tratados de uma vez. A fila é a vista principal;
+             períodos repetidos, tratados de uma vez. A fila é a vista principal;
              a faixa só aparece quando há o que conciliar, e leva até lá. -->
         @if (showReconcile()) {
           <div class="flex flex-wrap items-center gap-x-3 gap-y-1">
@@ -141,7 +161,7 @@ type CasesView = 'queue' | 'reconcile';
               Voltar aos casos
             </button>
             <span class="text-sm text-gray-500">
-              <b class="font-semibold text-gray-900">Conciliar períodos duplicados</b> — cada fecho
+              <b class="font-semibold text-gray-900">Conciliar períodos repetidos</b> — cada fecho
               da SIMO com o crédito do Banka de valor igual.
             </span>
           </div>
@@ -169,8 +189,8 @@ type CasesView = 'queue' | 'reconcile';
                   {{ n(reconcilableCount()) }}
                   {{
                     reconcilableCount() === 1
-                      ? 'caso de período duplicado pode ser conciliado'
-                      : 'casos de períodos duplicados podem ser conciliados'
+                      ? 'caso de período repetido pode ser conciliado'
+                      : 'casos de períodos repetidos podem ser conciliados'
                   }}
                   de uma vez.
                 </b>
@@ -280,9 +300,28 @@ export class ResultTabsComponent {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
+  /** Fechado pelo operador, não volta a aparecer — nem ao recarregar, nem noutra execução. */
+  protected readonly qualityDismissed = signal(readQualityDismissed());
+
+  protected dismissQuality(): void {
+    this.qualityDismissed.set(true);
+    try {
+      localStorage.setItem(QUALITY_DISMISSED_KEY, '1');
+    } catch {
+      // Modo privado, armazenamento bloqueado: fica fechado só nesta visita.
+    }
+  }
+
   protected readonly dataQuality = computed(() => {
-    const { keyCollisions, unregisteredPos } = this.result().summary;
+    const { keyCollisions, unregisteredPos, bankaDuplicatesDiscarded } = this.result().summary;
     const notes: string[] = [];
+    // Os duplicados na SIMO não são aviso: contam e ficam marcados na tabela.
+    // O Banka repetido conta uma vez, e diz-se quantos.
+    if (bankaDuplicatesDiscarded) {
+      notes.push(
+        `${this.n(bankaDuplicatesDiscarded)} movimentos repetidos no Banka, contados uma vez`,
+      );
+    }
     if (unregisteredPos > 0) {
       notes.push(`${this.n(unregisteredPos)} POS sem cadastro na Lista de POS`);
     }
@@ -295,7 +334,11 @@ export class ResultTabsComponent {
   protected readonly tabs = computed(() => {
     const summary = this.result().summary;
     return [
-      { id: 'closings' as const, label: 'Todos os Fechos', badge: this.n(summary.processed) },
+      {
+        id: 'closings' as const,
+        label: 'Todos os Fechos',
+        badge: this.n(summary.processed),
+      },
       { id: 'cases' as const, label: 'Casos para Análise', badge: this.n(summary.openCases) },
     ];
   });

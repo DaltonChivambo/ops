@@ -27,4 +27,5 @@ export const caseToDetail = (item: PendingCase): ClosingDetail => ({
   difference: item.bankaAmount - item.simoAmount,
   simoClosingsCount: item.simoClosingsCount,
   bankaMovementsCount: item.bankaMovementsCount,
+  simoDuplicate: false,
 });

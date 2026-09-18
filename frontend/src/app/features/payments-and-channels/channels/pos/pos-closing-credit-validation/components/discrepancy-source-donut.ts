@@ -7,7 +7,7 @@ import type { ClosingSummary } from '../data/models';
 /**
  * O que está por tratar, em anel — o desenho está no app-donut-chart.
  *
- * Os duplicados entram apesar de não serem divergência: ninguém sabe se a chave
+ * Os repetidos entram apesar de não serem divergência: ninguém sabe se a chave
  * confere enquanto a duplicação não se desfizer, e é trabalho igual.
  */
 @Component({
@@ -36,21 +36,22 @@ export class DiscrepancySourceDonutComponent {
         short: 'não creditados',
         count: s.missingCount,
         color: '#57617a',
-        description: 'Apurado na SIMO, mas sem crédito correspondente no Banka.',
+        description: 'Fechos apurados na SIMO, mas sem crédito correspondente no Banka.',
       },
       {
         name: 'Creditado incorrectamente',
         short: 'incorrectamente creditados',
         count: s.mismatchCount,
         color: '#e8342a',
-        description: 'Foi creditado no Banka, mas o valor não corresponde ao apurado na SIMO.',
+        description: 'Fechos creditados no Banka, mas com valor diferente do apurado na SIMO.',
       },
       {
-        name: 'Períodos duplicados',
-        short: 'em períodos duplicados',
+        name: 'Períodos repetidos',
+        short: 'em períodos repetidos',
         count: s.duplicatedPeriods,
         color: '#fe9a00',
-        description: 'O mesmo POS e período aparece mais de uma vez na SIMO ou no Banka.',
+        description:
+          'Fechos com períodos repetidos: o mesmo POS e período aparece mais do que uma vez, na SIMO ou no Banka.',
       },
     ];
   });

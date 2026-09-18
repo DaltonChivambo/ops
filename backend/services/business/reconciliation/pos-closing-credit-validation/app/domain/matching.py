@@ -1,6 +1,6 @@
-"""Conciliação fecho a fecho numa chave de períodos duplicados.
+"""Conciliação fecho a fecho numa chave de períodos repetidos.
 
-Uma chave «períodos duplicados» não se valida por soma (ver
+Uma chave «períodos repetidos» não se valida por soma (ver
 `domain/reconciliation.py`): tem vários fechos na SIMO, ou vários movimentos no
 Banka, e a soma de um lado contra a soma do outro não diz qual crédito pagou qual
 fecho. Quem desfaz isso é o operador, emparelhando um fecho com um movimento.
@@ -148,7 +148,7 @@ def reconciled_summary(
 
     **Um fecho conciliado confere.** Ligado a um crédito de valor exactamente
     igual, é o que a reconciliação teria dito se a chave não fosse ambígua — por
-    isso sai de «períodos duplicados» e entra em «crédito confere», com os
+    isso sai de «períodos repetidos» e entra em «crédito confere», com os
     montantes dos dois lados, e a taxa de validação recalcula-se. Desfazer um par
     faz o caminho inverso.
 
@@ -170,5 +170,7 @@ def reconciled_summary(
     updated["bankaAmountMatched"] = shifted("bankaAmountMatched", banka)
     updated["simoAmountDuplicated"] = shifted("simoAmountDuplicated", -simo)
     updated["bankaAmountDuplicated"] = shifted("bankaAmountDuplicated", -banka)
-    updated["validationRate"] = validation_rate(updated["matched"], summary.get("processed", 0))
+    # Os duplicados na SIMO contam em `processed` mas não na taxa — ver `reconcile`.
+    validated = summary.get("processed", 0) - summary.get("duplicatesDiscarded", 0)
+    updated["validationRate"] = validation_rate(updated["matched"], validated)
     return updated

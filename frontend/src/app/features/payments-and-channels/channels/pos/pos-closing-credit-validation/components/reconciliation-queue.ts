@@ -40,7 +40,7 @@ interface ProposedPair {
 const COLUMNS = 7;
 
 /**
- * O separador «Períodos Duplicados»: as chaves de períodos duplicados em que cada fecho
+ * O separador «Períodos Repetidos»: as chaves de períodos repetidos em que cada fecho
  * tem no Banka um crédito com o mesmo valor — no mesmo formato de «Todos os
  * Fechos», com pesquisa, selecção e a acção de conciliar as escolhidas de uma vez.
  *
@@ -98,7 +98,7 @@ const COLUMNS = 7;
             @if (rows().length !== all.length) {
               <span class="tabular-nums"> de {{ n(all.length) }}</span>
             }
-            {{ all.length === 1 ? 'período duplicado' : 'períodos duplicados' }}
+            {{ all.length === 1 ? 'período repetido' : 'períodos repetidos' }}
           </p>
 
           <!-- A acção vive na barra, como os filtros: fica à vista com a lista a
@@ -272,11 +272,11 @@ const COLUMNS = 7;
             <tr>
               <td [attr.colspan]="columns" [class]="t.emptyCell">
                 @if (candidates() === null) {
-                  A procurar períodos duplicados…
+                  A procurar períodos repetidos…
                 } @else if (all.length === 0) {
-                  Não há períodos duplicados para conciliar com crédito igual.
+                  Não há períodos repetidos para conciliar com crédito igual.
                 } @else {
-                  Nenhum período duplicado corresponde à pesquisa.
+                  Nenhum período repetido corresponde à pesquisa.
                 }
               </td>
             </tr>

@@ -52,6 +52,7 @@ CONTRACT: dict[str, tuple[type[Any], set[str]]] = {
             "difference",
             "simoClosingsCount",
             "bankaMovementsCount",
+            "simoDuplicate",
         },
     ),
     "CreditMovement": (
@@ -111,7 +112,7 @@ CONTRACT: dict[str, tuple[type[Any], set[str]]] = {
     ),
     "DetailCounts": (
         DetailCountsOut,
-        {"all", "match", "mismatch", "missing", "zero", "duplicated"},
+        {"all", "simoDuplicates", "match", "mismatch", "missing", "zero", "duplicated"},
     ),
     "DetailsPage": (
         DetailsPageOut,
@@ -143,7 +144,7 @@ def test_patch_response_has_both_parts() -> None:
 
 
 def test_summary_indicators_are_the_dashboard_ones() -> None:
-    """Os 24 campos do `ClosingSummary` (PDD §4.2.1), como o domínio os produz.
+    """Os 27 campos do `ClosingSummary` (PDD §4.2.1), como o domínio os produz.
 
     O `summary` é o único que não é tipado no schema — é o documento JSONB tal
     como foi gravado. Confere-se aqui, na fonte, para não ficar sem verificação
@@ -164,6 +165,7 @@ def test_summary_indicators_are_the_dashboard_ones() -> None:
         "zeroClosings",
         "duplicatedPeriods",
         "duplicatesDiscarded",
+        "countSimoDuplicates",
         "bankaDuplicatesDiscarded",
         "keyCollisions",
         "unregisteredPos",
@@ -174,4 +176,6 @@ def test_summary_indicators_are_the_dashboard_ones() -> None:
         "simoAmountMissing",
         "simoAmountDuplicated",
         "bankaAmountDuplicated",
+        "simoAmountDuplicateRows",
+        "bankaAmountDuplicateRows",
     }

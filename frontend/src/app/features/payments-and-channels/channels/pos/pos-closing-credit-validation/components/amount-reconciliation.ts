@@ -1,4 +1,5 @@
-import { ChangeDetectionStrategy, Component, computed, input, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, input, output, signal } from '@angular/core';
+import { LucideCopyCheck, LucideCopyX, LucideLoaderCircle } from '@lucide/angular';
 
 import {
   formatAmount,
@@ -27,7 +28,15 @@ interface Row {
 
 type Source = 'simo' | 'banka' | 'difference';
 
-/** Reconciliação de montantes — não quantos fechos divergem, mas quanto dinheiro está em cada estado. */
+/**
+ * Reconciliação de montantes — não quantos fechos divergem, mas quanto dinheiro
+ * está em cada estado.
+ *
+ * As linhas repetidas da SIMO não entram aqui: o montante delas é o do fecho
+ * original, que já está na linha do seu estado, e uma linha própria punha os
+ * dois lados a somar duas vezes o mesmo dinheiro. Vivem na faixa por cima
+ * (`app-simo-repeated-lines`) e, com valor, no relatório.
+ */
 @Component({
   selector: 'app-amount-reconciliation',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -160,7 +169,6 @@ type Source = 'simo' | 'banka' | 'difference';
 })
 export class AmountReconciliationComponent {
   readonly summary = input.required<ClosingSummary>();
-
   protected readonly th = 'text-2xs font-semibold tracking-wider uppercase';
 
   /** Estado em destaque — vindo da barra ou da linha da tabela, indiferentemente. */
@@ -203,7 +211,7 @@ export class AmountReconciliationComponent {
         banka: s.bankaAmountMatched,
         barClass: 'bg-emerald-500',
         dotClass: 'bg-emerald-500',
-        description: 'O valor creditado no Banka corresponde ao apurado na SIMO.',
+        description: 'Fechos cujo crédito no Banka corresponde ao valor apurado na SIMO.',
       },
       {
         key: 'mismatch',
@@ -213,7 +221,7 @@ export class AmountReconciliationComponent {
         banka: s.bankaAmountMismatched,
         barClass: 'bg-alert-500',
         dotClass: 'bg-alert-500',
-        description: 'Foi creditado no Banka, mas o valor não corresponde ao apurado na SIMO.',
+        description: 'Fechos creditados no Banka, mas com valor diferente do apurado na SIMO.',
       },
       {
         key: 'missing',
@@ -223,18 +231,19 @@ export class AmountReconciliationComponent {
         banka: 0,
         barClass: 'bg-moza-500',
         dotClass: 'bg-moza-500',
-        description: 'Apurado na SIMO, mas sem crédito correspondente no Banka.',
+        description: 'Fechos apurados na SIMO, mas sem crédito correspondente no Banka.',
       },
       // Banka duplica tal como a SIMO aqui; dar o lado por zero punha esse dinheiro como em falta.
       {
         key: 'duplicated',
-        label: 'Períodos duplicados',
+        label: 'Períodos repetidos',
         count: s.duplicatedPeriods,
         simo: s.simoAmountDuplicated,
         banka: s.bankaAmountDuplicated,
         barClass: 'bg-amber-500',
         dotClass: 'bg-amber-500',
-        description: 'O mesmo POS e período aparece mais de uma vez na SIMO ou no Banka.',
+        description:
+          'Fechos com períodos repetidos: o mesmo POS e período aparece mais do que uma vez, na SIMO ou no Banka.',
       },
     ];
   });

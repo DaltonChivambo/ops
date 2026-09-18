@@ -230,6 +230,7 @@ def parse_simo_closings(stream: IO[bytes], filename: str) -> list[SimoClosing]:
                 closing_date=closing_date,
                 operation_number=int(operation) if operation is not None else 0,
                 total=total,
+                row=tuple(cell_text(value) for value in row),
             )
         )
     return closings
@@ -246,7 +247,7 @@ def parse_banka_credits(stream: IO[bytes], filename: str) -> tuple[dict[str, Ban
     **Cada movimento entra uma vez só.** Um extracto montado a partir de dois
     que se sobrepõem traz o dia da junção duas vezes — visto num ficheiro de
     Agosto com o 19/08 inteiro repetido: 2 423 movimentos a dobrar, somados, e
-    394 chaves a cair em «períodos duplicados» sem o serem. A identidade é o
+    394 chaves a cair em «períodos repetidos» sem o serem. A identidade é o
     N_DOCUMENTO, único por movimento num export correcto; sem ele (coluna ausente
     ou célula vazia), a linha inteira — só colapsa o que é igual em tudo.
 

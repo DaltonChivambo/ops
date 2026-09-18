@@ -30,7 +30,7 @@ const EMPTY_PAGE: DetailsPage = {
   total: 0,
   page: 1,
   perPage: 50,
-  counts: { all: 0, match: 0, mismatch: 0, missing: 0, zero: 0, duplicated: 0 },
+  counts: { all: 0, simoDuplicates: 0, match: 0, mismatch: 0, missing: 0, zero: 0, duplicated: 0 },
 };
 
 /**
@@ -74,6 +74,7 @@ export class ReconciliationApi {
     if (query.page !== undefined) params = params.set('page', query.page);
     if (query.perPage !== undefined) params = params.set('perPage', query.perPage);
     if (query.q) params = params.set('q', query.q);
+    if (query.simoDuplicates) params = params.set('simoDuplicates', true);
 
     const validation = serializeValidations(query.validation);
     if (validation !== null) params = params.set('validation', validation);
@@ -110,7 +111,7 @@ export class ReconciliationApi {
   }
 
   /**
-   * Guarda os pares fecho ↔ crédito de um caso de períodos duplicados. Conciliar
+   * Guarda os pares fecho ↔ crédito de um caso de períodos repetidos. Conciliar
    * todos os fechos regulariza o caso — é o servidor que o decide e o devolve.
    */
   reconcileCase(caseId: string, matches: readonly ClosingMatch[]): Promise<CaseReconciliation> {
@@ -119,7 +120,21 @@ export class ReconciliationApi {
     );
   }
 
-  /** Os casos de períodos duplicados por tratar que têm créditos, com os pares sugeridos. */
+  /**
+   * Manda contar, ou não, o dinheiro das linhas repetidas da SIMO no apuramento.
+   *
+   * Não mexe em estados nem em casos — só nos montantes. Volta a execução
+   * inteira porque é ela que o ecrã tem em mão.
+   */
+  setSimoDuplicates(executionId: string, counted: boolean): Promise<ValidationResult> {
+    return firstValueFrom(
+      this.http.put<ValidationResult>(`${this.base}/execucoes/${executionId}/duplicados-simo`, {
+        counted,
+      }),
+    );
+  }
+
+  /** Os casos de períodos repetidos por tratar que têm créditos, com os pares sugeridos. */
   listReconciliationCandidates(executionId: string): Promise<ReconciliationCandidate[]> {
     return firstValueFrom(
       this.http.get<ReconciliationCandidate[]>(

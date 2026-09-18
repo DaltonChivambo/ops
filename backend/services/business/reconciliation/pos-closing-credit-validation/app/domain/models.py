@@ -41,6 +41,9 @@ class SimoClosing:
     closing_date: date
     operation_number: int
     total: Decimal
+    # A linha do export tal como veio, coluna a coluna — o que prova que duas
+    # linhas são a mesma. Vazio quando o fecho não vem de um ficheiro (testes).
+    row: tuple[str, ...] = ()
 
 
 @dataclass(slots=True)
@@ -93,6 +96,11 @@ class ClosingDetail:
     closing_type: ClosingType
     validation: Validation
     difference: Decimal | None
+    # Linha que o export da SIMO traz repetida. Não é anomalia: conta como fecho,
+    # com a validação da original, e fica só marcada.
+    simo_duplicate: bool = False
+    # A original de uma linha duplicada na SIMO — para a tabela as pôr juntas.
+    has_simo_duplicate: bool = False
 
 
 @dataclass(slots=True)
@@ -138,8 +146,22 @@ class ClosingSummary:
     # chave): não se somam, ficam fora do match/mismatch e vão para análise
     # manual individual.
     duplicated_periods: int = 0
-    # Linhas repetidas no export da SIMO que foram descartadas antes de somar.
+    # Linhas repetidas no export da SIMO: entram em `processed`, numa linha
+    # própria, e NUNCA nos estados nem na taxa — o estado é o da linha original,
+    # que continua a ser um fecho só. O que a decisão do operador muda é apenas
+    # se o dinheiro delas entra na reconciliação de montantes.
     duplicates_discarded: int = 0
+    # O que essas linhas somam do lado da SIMO. Fica sempre calculado; entra no
+    # apuramento só quando `count_simo_duplicates`.
+    simo_amount_duplicate_rows: Decimal = Decimal(0)
+    # E o crédito do Banka que lhes corresponde — ver `_duplicate_rows_credit`.
+    # É o mesmo que já conta na linha do estado da chave, mostrado outra vez para
+    # os dois lados ficarem simétricos quando o operador manda contar as repetidas.
+    banka_amount_duplicate_rows: Decimal = Decimal(0)
+    # O operador mandou contar esse dinheiro na reconciliação de montantes.
+    # Decisão da execução inteira, gravada em `execution` — não mexe em estados,
+    # em casos nem na taxa de validação.
+    count_simo_duplicates: bool = False
     # O mesmo, do lado do Banka: movimentos com o N_DOCUMENTO já visto (um dia
     # exportado duas vezes), descartados antes de somar a chave.
     banka_duplicates_discarded: int = 0
@@ -153,7 +175,7 @@ class ClosingSummary:
     simo_amount_mismatched: Decimal = Decimal(0)
     banka_amount_mismatched: Decimal = Decimal(0)
     simo_amount_missing: Decimal = Decimal(0)
-    # Somas das chaves com períodos duplicados. Não é divergência — é o que está
+    # Somas das chaves com períodos repetidos. Não é divergência — é o que está
     # retido à espera de análise manual, e vai ao relatório como tal. O Banka
     # duplica na mesma proporção da SIMO (a chave tem lá vários movimentos), por
     # isso há crédito a apontar-lhes: dá-lo por zero punha o montante todo como

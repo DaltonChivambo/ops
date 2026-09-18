@@ -13,9 +13,11 @@ export const STATE_OPTIONS: Array<{
   dot: string;
   count: (c: DetailCounts) => number;
 }> = [
-  // Incorrecto, depois duplicado, depois não creditado: o que exige mais
-  // trabalho primeiro. Confere a seguir, e zerado por último — não pede
-  // nada a ninguém.
+  // Incorrecto e não creditado à frente: são os dois casos onde há dinheiro
+  // errado ou dinheiro em falta, e é por eles que o operador começa. Períodos
+  // repetidos a seguir (ambiguidade a desfazer, não divergência), confere
+  // depois, e zerado por último, que não pede nada a ninguém. É a mesma ordem
+  // do relatório, para o ecrã e o Excel se lerem da mesma maneira.
   {
     id: 'mismatch',
     label: 'Incorrecto',
@@ -24,18 +26,18 @@ export const STATE_OPTIONS: Array<{
     count: (c) => c.mismatch,
   },
   {
-    id: 'duplicated',
-    label: 'Duplicados',
-    validations: ['duplicated'],
-    dot: 'bg-amber-500',
-    count: (c) => c.duplicated,
-  },
-  {
     id: 'missing',
     label: 'Não creditado',
     validations: ['missing'],
     dot: 'bg-moza-500',
     count: (c) => c.missing,
+  },
+  {
+    id: 'duplicated',
+    label: 'Períodos repetidos',
+    validations: ['duplicated'],
+    dot: 'bg-amber-500',
+    count: (c) => c.duplicated,
   },
   {
     id: 'match',
@@ -61,7 +63,7 @@ export const STATE_LABEL: Record<Validation, string> = {
   mismatch: 'Incorrecto',
   missing: 'Não creditado',
   zero: 'Fecho zerado',
-  duplicated: 'Períodos duplicados',
+  duplicated: 'Períodos repetidos',
 };
 
 /** Cor por família: verde confere, quente (vermelho/âmbar) exige trabalho, navy não creditado, cinza zerado. */

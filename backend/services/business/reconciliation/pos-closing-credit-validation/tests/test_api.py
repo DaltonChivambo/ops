@@ -93,6 +93,7 @@ def test_details_return_page_with_counts(client):
         "missing": 0,
         "zero": 0,
         "duplicated": 0,
+        "simoDuplicates": 0,
     }
 
     row = body["items"][0]
@@ -144,7 +145,58 @@ def test_details_forward_page_filter_and_search(client, service: FakeService):
         "perPage": 25,
         "validation": "missing,mismatch",
         "search": "259342",
+        "simoDuplicates": False,
     }
+
+
+def test_details_forward_the_simo_duplicates_filter(client, service: FakeService):
+    client.get(f"{BASE}/execucoes/{EXECUTION_ID}/detalhes", params={"simoDuplicates": "true"})
+
+    assert service.calls["list_details"]["simoDuplicates"] is True
+
+
+# ─── Contar, ou não, as linhas repetidas da SIMO ─────────────────────────────
+
+
+def test_simo_duplicates_decision_reaches_the_service(client, service: FakeService):
+    response = client.put(
+        f"{BASE}/execucoes/{EXECUTION_ID}/duplicados-simo", json={"counted": True}
+    )
+
+    assert response.status_code == 200
+    assert service.calls["set_count_simo_duplicates"] == {"counted": True}
+
+
+def test_simo_duplicates_decision_returns_the_whole_execution(client):
+    """Muda os indicadores, os casos e o estado de cada fecho: o ecrã recarrega tudo."""
+    response = client.put(
+        f"{BASE}/execucoes/{EXECUTION_ID}/duplicados-simo", json={"counted": True}
+    )
+
+    body = response.json()
+    assert body["executionId"] == EXECUTION_ID
+    assert "summary" in body
+    assert "cases" in body
+
+
+def test_simo_duplicates_decision_leaves_the_states_alone(client):
+    """A decisão é só do apuramento: uma linha repetida não é um fecho novo."""
+    before = client.get(f"{BASE}/execucoes/ultima").json()["summary"]
+
+    client.put(f"{BASE}/execucoes/{EXECUTION_ID}/duplicados-simo", json={"counted": True})
+    after = client.get(f"{BASE}/execucoes/ultima").json()["summary"]
+
+    assert after["countSimoDuplicates"] is True
+    # Tudo o resto fica onde estava — estados, casos e taxa incluídos.
+    assert {k: v for k, v in after.items() if k != "countSimoDuplicates"} == {
+        k: v for k, v in before.items() if k != "countSimoDuplicates"
+    }
+
+
+def test_simo_duplicates_decision_on_an_unknown_execution_is_404(client):
+    response = client.put(f"{BASE}/execucoes/nao-existe/duplicados-simo", json={"counted": True})
+
+    assert response.status_code == 404
 
 
 def test_details_cap_per_page_at_maximum(client, service: FakeService):
@@ -252,7 +304,7 @@ def test_update_case_with_nothing_to_change_is_bad_request(client):
     assert response.json()["error"]["code"] == "bad_request"
 
 
-# ─── Conciliar um caso de períodos duplicados, fecho a fecho ─────────────────
+# ─── Conciliar um caso de períodos repetidos, fecho a fecho ─────────────────
 
 
 def _duplicated_key(service: FakeService) -> None:
@@ -332,7 +384,7 @@ def test_reconcile_non_duplicated_case_is_business_rule(client):
     response = client.put(f"{BASE}/casos/{CASE_ID}/conciliacao", json={"matches": []})
 
     assert response.status_code == 422
-    assert "períodos duplicados" in response.json()["error"]["message"]
+    assert "períodos repetidos" in response.json()["error"]["message"]
 
 
 def test_reconcile_unknown_case_returns_404(client):

@@ -16,13 +16,13 @@ from app.domain.vocabulary import CaseStatus, CaseType
 from app.infrastructure.tables import PendingCase
 
 # Ordem de leitura do operador: dinheiro errado primeiro (é o que mais salta à
-# vista), depois a ambiguidade por desfazer, e só no fim o que falta chegar —
-# não é a ordem de declaração do enum (essa é `missing, mismatch, duplicated`,
-# e serve a `Validation`, não isto).
+# vista), depois o que falta chegar, e só no fim a ambiguidade por desfazer, que
+# não é divergência — não é a ordem de declaração do enum (essa é `missing,
+# mismatch, duplicated`, e serve a `Validation`, não isto).
 _TYPE_ORDER = sa.case(
     (PendingCase.type == CaseType.MISMATCH, 0),
-    (PendingCase.type == CaseType.DUPLICATED, 1),
-    (PendingCase.type == CaseType.MISSING, 2),
+    (PendingCase.type == CaseType.MISSING, 1),
+    (PendingCase.type == CaseType.DUPLICATED, 2),
 )
 
 
@@ -41,7 +41,7 @@ class CaseRepository:
         return list(result.scalars().all())
 
     async def list_open_duplicated(self, execution_id: str) -> list[PendingCase]:
-        """Os casos de períodos duplicados por tratar — os que se conciliam. Maiores primeiro."""
+        """Os casos de períodos repetidos por tratar — os que se conciliam. Maiores primeiro."""
         result = await self._session.execute(
             sa.select(PendingCase)
             .where(

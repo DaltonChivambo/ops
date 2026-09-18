@@ -106,7 +106,7 @@ class CaseService:
     async def reconcile(
         self, case_id: str, matches: Sequence[Match], matched_by: str | None
     ) -> tuple[ReconciledCase, dict[str, Any]]:
-        """Guarda os pares fecho ↔ crédito de um caso de períodos duplicados.
+        """Guarda os pares fecho ↔ crédito de um caso de períodos repetidos.
 
         O conjunto enviado substitui o que havia. Quando cobre todos os fechos
         da chave, o caso fica regularizado — foi para isso que se conciliou. Senão
@@ -163,9 +163,7 @@ class CaseService:
         if case is None:
             raise NotFoundError("O caso indicado não existe.")
         if case.type != CaseType.DUPLICATED:
-            raise InvalidMatchError(
-                "Só os casos de períodos duplicados se conciliam fecho a fecho."
-            )
+            raise InvalidMatchError("Só os casos de períodos repetidos se conciliam fecho a fecho.")
         return case
 
     async def _apply_matches(
@@ -246,6 +244,15 @@ class CaseService:
         # que o frontend lê tal como está — não são atributos de Python.
         summary["resolvedCases"] = resolved
         summary["openCases"] = sum(counts.values()) - resolved
+        # Os períodos repetidos recontam-se a partir dos fechos: depois de conciliar,
+        # o que sobra no Banka numa chave arrumada não é fecho nenhum da SIMO, e
+        # acertar só por diferenças deixava esse dinheiro na linha sem fechos.
+        duplicated = await self._executions.duplicated_totals(execution_id)
+        if duplicated is not None:
+            count, simo, banka = duplicated
+            summary["duplicatedPeriods"] = count
+            summary["simoAmountDuplicated"] = float(simo)
+            summary["bankaAmountDuplicated"] = float(banka)
         await self._executions.save_summary(execution_id, summary)
         return summary
 

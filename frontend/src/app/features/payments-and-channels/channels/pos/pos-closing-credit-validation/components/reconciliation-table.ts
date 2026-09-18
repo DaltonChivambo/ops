@@ -13,7 +13,13 @@ import {
   type ElementRef,
 } from '@angular/core';
 import { NgTemplateOutlet } from '@angular/common';
-import { LucideChevronRight, LucideCornerDownRight, LucideSearch, LucideX } from '@lucide/angular';
+import {
+  LucideChevronRight,
+  LucideCopy,
+  LucideCornerDownRight,
+  LucideSearch,
+  LucideX,
+} from '@lucide/angular';
 
 import {
   formatAmount,
@@ -22,6 +28,7 @@ import {
   numberFormatter,
 } from '../../../../../../shared/format';
 import { DataTableComponent } from '../../../../../../shared/ui/data-table';
+import { ToggleFilterComponent } from '../../../../../../shared/ui/toggle-filter';
 import {
   CellIdentityComponent,
   EmptyValueComponent,
@@ -57,6 +64,7 @@ const UNREGISTERED = '—';
 
 const EMPTY_COUNTS: DetailCounts = {
   all: 0,
+  simoDuplicates: 0,
   match: 0,
   mismatch: 0,
   missing: 0,
@@ -74,7 +82,13 @@ function groupByKey(items: readonly ClosingDetail[]): KeyGroup[] {
   const groups: KeyGroup[] = [];
   for (const item of items) {
     const current = groups.at(-1);
-    if (current && current.key === item.key) current.items.push(item);
+    // Juntam-se numa linha da chave os períodos repetidos, e cada linha duplicada
+    // no ficheiro da SIMO com a sua original, que vem logo antes.
+    const together =
+      current?.key === item.key &&
+      ((item.validation === 'duplicated' && current.items[0].validation === 'duplicated') ||
+        item.simoDuplicate);
+    if (current && together) current.items.push(item);
     else groups.push({ key: item.key, items: [item] });
   }
   return groups;
@@ -97,8 +111,10 @@ function groupByKey(items: readonly ClosingDetail[]): KeyGroup[] {
     MoneyComponent,
     PillComponent,
     StatusChipComponent,
+    ToggleFilterComponent,
     StateFilterComponent,
     LucideChevronRight,
+    LucideCopy,
     LucideCornerDownRight,
     LucideSearch,
     LucideX,
@@ -119,6 +135,21 @@ function groupByKey(items: readonly ClosingDetail[]): KeyGroup[] {
           [selected]="selected()"
           (changed)="selected.set($event)"
         />
+
+        <!-- As linhas repetidas no ficheiro da SIMO. Não é um estado (contam na
+             validação da original), por isso é um filtro à parte. O número são só
+             as cópias, como no resumo e no relatório; ligado, o filtro mostra
+             também a original de cada uma. Só aparece quando há. -->
+        @if (counts().simoDuplicates > 0 || simoDuplicatesOnly()) {
+          <app-toggle-filter
+            label="Linhas repetidas"
+            [active]="simoDuplicatesOnly()"
+            [count]="counts().simoDuplicates"
+            (toggled)="simoDuplicatesOnly.set(!simoDuplicatesOnly())"
+          >
+            <svg lucideCopy filterIcon [size]="15" [strokeWidth]="2" class="shrink-0"></svg>
+          </app-toggle-filter>
+        }
 
         @if (filtered()) {
           <button
@@ -173,7 +204,7 @@ function groupByKey(items: readonly ClosingDetail[]): KeyGroup[] {
         <tbody>
           @for (group of groups(); track group.key) {
             @let detail = group.items[0];
-            <!-- "Período duplicado" pode vir de três formas: vários fechos na
+            <!-- "Período repetido" pode vir de três formas: vários fechos na
                  SIMO, vários créditos no Banka (outro período real colidindo
                  em módulo 1000 — ver domain/reconciliation.py), ou as duas ao
                  mesmo tempo. Mostram-se sempre os dois números — 1 de um lado
@@ -181,8 +212,108 @@ function groupByKey(items: readonly ClosingDetail[]): KeyGroup[] {
             @let expandable = detail.validation === 'duplicated';
             @let simoDuplicated = detail.simoClosingsCount > 1;
             @let open = expanded().has(group.key);
+            <!-- O fecho e as suas linhas duplicadas no ficheiro da SIMO: uma linha,
+                 que se abre para as mostrar. Contam todas; só ficam marcadas. -->
+            @let simoGroup = !expandable && group.items.length > 1;
 
-            @if (!expandable) {
+            @if (simoGroup) {
+              <tr (click)="opened.set(detail)" [class]="t.row + ' ' + t.tone.marked">
+                <td [class]="t.tdFirst + ' ' + stripe(detail)">
+                  <div class="flex items-start gap-2">
+                    <button
+                      type="button"
+                      [attr.aria-expanded]="open"
+                      [attr.aria-label]="
+                        (open ? 'Encolher' : 'Expandir') +
+                        ' as linhas duplicadas na SIMO do POS ' +
+                        detail.posId +
+                        ' no período ' +
+                        detail.period
+                      "
+                      (click)="$event.stopPropagation(); toggleOpen(group.key)"
+                      class="mt-0.5 inline-flex size-5 shrink-0 items-center justify-center rounded-md text-rose-600 transition-colors hover:bg-rose-100"
+                    >
+                      <svg
+                        lucideChevronRight
+                        [size]="15"
+                        [strokeWidth]="2.5"
+                        class="transition-transform"
+                        [class.rotate-90]="open"
+                      ></svg>
+                    </button>
+                    <div class="min-w-0">
+                      <ng-container
+                        [ngTemplateOutlet]="identity"
+                        [ngTemplateOutletContext]="{ $implicit: detail }"
+                      />
+                    </div>
+                  </div>
+                </td>
+                <td [class]="t.tdMuted">
+                  <span class="inline-flex items-center gap-1.5">
+                    {{ detail.period }}
+                    <app-pill tone="rose">{{ n(group.items.length) }} linhas na SIMO</app-pill>
+                  </span>
+                </td>
+                <td [class]="t.tdMuted + ' hidden text-left @5xl:table-cell'">
+                  {{ date(detail.simoClosingDate) }}
+                </td>
+                <td [class]="t.tdRight"><app-money [value]="detail.simoClosingTotal" /></td>
+                <td [class]="t.tdRight"><app-money [value]="detail.bankaClosingTotal" /></td>
+                <td [class]="t.tdRight">
+                  @if (detail.difference !== null && detail.difference !== 0) {
+                    <span class="font-bold text-alert-600">{{ signed(detail.difference) }}</span>
+                  } @else {
+                    <app-empty-value />
+                  }
+                </td>
+                <td [class]="t.tdLast">
+                  <app-status-chip
+                    [label]="stateLabel(detail)"
+                    [chip]="chip(detail)"
+                    [dot]="dot(detail)"
+                  />
+                </td>
+              </tr>
+
+              @if (open) {
+                @for (item of group.items; track item.id; let position = $index) {
+                  <tr (click)="opened.set(item)" [class]="t.subRowMarked">
+                    <td [class]="t.subTdFirst + ' shadow-[inset_3px_0_0_var(--color-rose-200)]'">
+                      <span
+                        class="inline-flex items-center gap-1.5 text-xs font-semibold text-rose-700/80"
+                      >
+                        <svg
+                          lucideCornerDownRight
+                          [size]="13"
+                          [strokeWidth]="2"
+                          class="text-rose-400"
+                        ></svg>
+                        SIMO {{ n(position + 1) }}
+                        @if (item.simoDuplicate) {
+                          <span class="font-normal text-rose-600">· duplicada</span>
+                        }
+                      </span>
+                    </td>
+                    <td [class]="t.subTd + ' text-right text-xs tabular-nums text-gray-300'">
+                      {{ item.period }}
+                    </td>
+                    <td [class]="t.subTd + ' hidden tabular-nums text-gray-400 @5xl:table-cell'">
+                      {{ date(item.simoClosingDate) }}
+                    </td>
+                    <td [class]="t.subTd + ' text-right'">
+                      <app-money [value]="item.simoClosingTotal" />
+                    </td>
+                    <!-- O crédito é do fecho, uma vez: já está na linha de cima. -->
+                    <td [class]="t.subTd + ' text-right'"><app-empty-value /></td>
+                    <td [class]="t.subTd + ' text-right'"><app-empty-value /></td>
+                    <td [class]="t.subTd + ' text-xs text-gray-400'">
+                      Op. <span class="tabular-nums">{{ item.operationNumber }}</span>
+                    </td>
+                  </tr>
+                }
+              }
+            } @else if (!expandable) {
               <tr
                 (click)="opened.set(detail)"
                 [class]="
@@ -197,7 +328,19 @@ function groupByKey(items: readonly ClosingDetail[]): KeyGroup[] {
                     [ngTemplateOutletContext]="{ $implicit: detail }"
                   />
                 </td>
-                <td [class]="t.tdMuted">{{ detail.period }}</td>
+                <!-- Linha duplicada no ficheiro da SIMO: o período a vermelho claro,
+                     como no Excel. Conta como as outras; só fica marcada. -->
+                <td [class]="t.tdMuted">
+                  @if (detail.simoDuplicate) {
+                    <span
+                      class="rounded-md bg-rose-50 px-1.5 py-0.5 font-semibold text-rose-700"
+                      title="Linha repetida na SIMO"
+                      >{{ detail.period }}</span
+                    >
+                  } @else {
+                    {{ detail.period }}
+                  }
+                </td>
                 <td [class]="t.tdMuted + ' hidden text-left @5xl:table-cell'">
                   {{ date(detail.simoClosingDate) }}
                 </td>
@@ -219,7 +362,7 @@ function groupByKey(items: readonly ClosingDetail[]): KeyGroup[] {
                 </td>
               </tr>
             } @else {
-              <!-- Chave duplicada (SIMO ou Banka): linha-resumo, detalhe por baixo. -->
+              <!-- Chave repetida (SIMO ou Banka): linha-resumo, detalhe por baixo. -->
               <tr (click)="opened.set(detail)" [class]="t.row + ' ' + t.tone.attention">
                 <td [class]="t.tdFirst + ' ' + stripe(detail)">
                   <div class="flex items-start gap-2">
@@ -273,7 +416,7 @@ function groupByKey(items: readonly ClosingDetail[]): KeyGroup[] {
                 <td [class]="t.tdRight"><app-money [value]="detail.simoKeyTotal" /></td>
                 <!-- Banka é da CHAVE, não do fecho. -->
                 <td [class]="t.tdRight"><app-money [value]="detail.bankaClosingTotal" /></td>
-                <!-- Vazio: os dois lados vêm duplicados, a soma não confere nada. -->
+                <!-- Vazio: os dois lados vêm repetidos, a soma não confere nada. -->
                 <td [class]="t.tdRight"><app-empty-value /></td>
                 <td [class]="t.tdLast">
                   <app-status-chip
@@ -300,6 +443,9 @@ function groupByKey(items: readonly ClosingDetail[]): KeyGroup[] {
                           class="text-amber-400"
                         ></svg>
                         SIMO {{ n(position + 1) }}
+                        @if (item.simoDuplicate) {
+                          <span class="font-normal text-rose-600">· duplicada</span>
+                        }
                       </button>
                     </td>
                     <td [class]="t.subTd + ' text-right text-xs tabular-nums text-gray-300'">
@@ -413,6 +559,9 @@ function groupByKey(items: readonly ClosingDetail[]): KeyGroup[] {
         srLabel="ver os dados da SIMO e do Banka"
         (activated)="opened.set(detail)"
       >
+        @if (detail.simoDuplicate) {
+          <app-pill tone="rose" class="mt-1 inline-block">Linha repetida na SIMO</app-pill>
+        }
       </app-cell-identity>
     </ng-template>
   `,
@@ -442,11 +591,13 @@ export class ReconciliationTableComponent {
   private readonly search = signal('');
   /** Estados visíveis — todos por omissão. */
   protected readonly selected = signal<StateId[]>([...ALL_STATES]);
+  /** Só os fechos com linha duplicada na SIMO. */
+  protected readonly simoDuplicatesOnly = signal(false);
 
   /** A identidade da consulta — tudo o que dela deriva reinicia via `linkedSignal` quando ela muda. */
   private readonly queryKey = computed(() => {
     const validations = toValidations(this.selected());
-    return `${this.executionId()}|${validations?.join(',') ?? 'todos'}|${this.search()}`;
+    return `${this.executionId()}|${validations?.join(',') ?? 'todos'}|${this.search()}|${this.simoDuplicatesOnly()}`;
   });
 
   /**
@@ -469,7 +620,7 @@ export class ReconciliationTableComponent {
     computation: () => new Set<string>(),
   });
   /**
-   * Cache por chave dos movimentos Banka de uma chave duplicada só desse lado
+   * Cache por chave dos movimentos Banka de uma chave repetida só desse lado
    * (1 fecho SIMO, >1 movimento) — não vêm em `items()`, que só traz fechos.
    * Ao contrário dos sub-fechos de uma chave duplicada na SIMO (já em
    * memória), estes têm de ser pedidos ao abrir a linha.
@@ -497,7 +648,10 @@ export class ReconciliationTableComponent {
   );
   /** `query` e não `search`: o botão reage à tecla, não espera pelo debounce. */
   protected readonly filtered = computed(
-    () => this.query() !== '' || this.selected().length !== ALL_STATES.length,
+    () =>
+      this.query() !== '' ||
+      this.selected().length !== ALL_STATES.length ||
+      this.simoDuplicatesOnly(),
   );
 
   constructor() {
@@ -526,6 +680,7 @@ export class ReconciliationTableComponent {
       const page = this.page();
       const validations = toValidations(this.selected());
       const search = this.search();
+      const simoDuplicates = this.simoDuplicatesOnly();
 
       let cancelled = false;
       onCleanup(() => {
@@ -542,6 +697,7 @@ export class ReconciliationTableComponent {
           perPage: PER_PAGE,
           validation: validations,
           q: search,
+          simoDuplicates,
         })
         .then((result) => {
           if (cancelled) return;
@@ -558,6 +714,15 @@ export class ReconciliationTableComponent {
     });
 
     destroyRef.onDestroy(() => this.opened.set(null));
+  }
+
+  /** Abre ou fecha as linhas de uma chave sem ir ao servidor — já estão todas em `items()`. */
+  protected toggleOpen(key: string): void {
+    this.expanded.update((current) => {
+      const next = new Set(current);
+      if (!next.delete(key)) next.add(key);
+      return next;
+    });
   }
 
   protected toggle(group: KeyGroup): void {
@@ -585,6 +750,7 @@ export class ReconciliationTableComponent {
 
   protected clearFilters(): void {
     this.selected.set([...ALL_STATES]);
+    this.simoDuplicatesOnly.set(false);
     this.query.set('');
     this.search.set('');
   }

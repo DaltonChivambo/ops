@@ -70,6 +70,8 @@ export const TABLE = {
     attention: 'bg-amber-50/40 text-gray-600 hover:bg-amber-50/70',
     /** O que não pede nada — fechos zerados, por exemplo. */
     muted: 'text-gray-400 hover:bg-gray-50/70',
+    /** Marcado sem ser problema — linhas duplicadas no ficheiro, por exemplo. */
+    marked: 'bg-rose-50/40 text-gray-600 hover:bg-rose-50/70',
   },
   /**
    * Risca a linha inteira, colunas vazias incluídas — um registo que não conta.
@@ -80,6 +82,9 @@ export const TABLE = {
   /** Linha de detalhe por baixo de uma linha que expande. */
   subRow:
     'cursor-pointer border-b border-gray-50 bg-amber-50/20 text-gray-500 transition-colors last:border-b-0 hover:bg-amber-50/50',
+  /** Linha de detalhe de uma linha marcada (`tone.marked`). */
+  subRowMarked:
+    'cursor-pointer border-b border-gray-50 bg-rose-50/20 text-gray-500 transition-colors last:border-b-0 hover:bg-rose-50/50',
   /** Linha de aviso sem clique — a lista vazia, «a carregar…». */
   messageRow: 'border-b border-gray-50 last:border-b-0',
 
@@ -202,6 +207,7 @@ const PILL_TONE = {
   attention: 'bg-amber-500 text-white',
   neutral: 'bg-gray-100 text-gray-500',
   violet: 'bg-violet-50 text-violet-700',
+  rose: 'bg-rose-50 text-rose-700',
 } as const;
 
 /**

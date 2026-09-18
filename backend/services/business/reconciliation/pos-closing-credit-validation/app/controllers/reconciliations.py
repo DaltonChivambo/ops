@@ -25,7 +25,7 @@ router = APIRouter()
 async def list_reconciliation_candidates(
     execution_id: str, service: ValidationServiceDep
 ) -> list[KeyBreakdownOut]:
-    """Os casos de períodos duplicados por tratar que têm créditos, com os pares sugeridos."""
+    """Os casos de períodos repetidos por tratar que têm créditos, com os pares sugeridos."""
     candidates = await service.list_reconciliation_candidates(execution_id)
     return [
         KeyBreakdownOut.from_parts(

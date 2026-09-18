@@ -19,6 +19,7 @@ from app.controllers.schemas import (
     DetailCountsOut,
     DetailsPageOut,
     KeyBreakdownOut,
+    SimoDuplicatesIn,
     ValidationResultOut,
 )
 from app.domain.errors import InvalidInputError, UploadTooLargeError
@@ -103,6 +104,24 @@ async def get_latest_execution(service: ValidationServiceDep) -> Any:
     return ValidationResultOut.from_row(execution, cases, key_counts)
 
 
+@router.put("/execucoes/{execution_id}/duplicados-simo")
+async def set_simo_duplicates(
+    execution_id: str,
+    body: SimoDuplicatesIn,
+    service: ValidationServiceDep,
+) -> ValidationResultOut:
+    """Conta, ou deixa de contar, as linhas repetidas do export da SIMO.
+
+    PUT e não POST: mandar o mesmo valor duas vezes deixa tudo como mandá-lo uma.
+    Devolve a execução inteira porque muda tudo o que o ecrã mostra — os
+    indicadores, os casos e o estado de cada fecho.
+    """
+    await service.set_count_simo_duplicates(execution_id, body.counted)
+    execution = await service.get_execution(execution_id)
+    cases, key_counts = await service.list_cases(execution_id)
+    return ValidationResultOut.from_row(execution, cases, key_counts)
+
+
 @router.get("/execucoes/{execution_id}/detalhes")
 async def list_details(
     execution_id: str,
@@ -111,10 +130,12 @@ async def list_details(
     per_page: int | None = Query(default=None, alias="perPage"),
     validation: str | None = Query(default=None),
     q: str | None = Query(default=None),
+    # Só os fechos com linha duplicada na SIMO — à parte do `validation`: não é um estado.
+    simo_duplicates: bool = Query(default=False, alias="simoDuplicates"),
 ) -> DetailsPageOut:
     await service.get_execution(execution_id)  # 404 se não existir
     parsed_page = parse_page(page, per_page)
-    result = await service.list_details(execution_id, parsed_page, validation, q)
+    result = await service.list_details(execution_id, parsed_page, validation, q, simo_duplicates)
     return DetailsPageOut(
         items=[
             ClosingDetailOut.from_row(detail, *result.key_counts.get(detail.key, (1, 1)))

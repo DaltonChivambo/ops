@@ -213,7 +213,7 @@ import type {
               >
                 <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
                   <label class="block min-w-0">
-                    <span [class]="fieldLabel">Fase do tratamento</span>
+                    <span [class]="fieldLabel">Tratamento</span>
                     <span class="relative mt-1 block">
                       <span
                         class="pointer-events-none absolute top-1/2 left-3 size-2 -translate-y-1/2 rounded-full"
@@ -338,7 +338,7 @@ import type {
           }
 
           @if (canMatch() && breakdown.case; as pendingCase) {
-            <!-- Períodos duplicados: a soma não diz que crédito pagou que fecho. Em
+            <!-- Períodos repetidos: a soma não diz que crédito pagou que fecho. Em
                  vez das duas listas soltas, um quadro só — cada fecho da SIMO na
                  linha do crédito do Banka que o paga, e cada lado aparece uma vez.
                  Os pares pelo valor chegam já propostos: o caso comum é confirmar. -->
@@ -623,12 +623,13 @@ import type {
 
               @if (movements().length === 0) {
                 <p class="mt-2.5 rounded-xl bg-white/70 px-4 py-3 text-sm text-gray-500">
-                  Não há nenhum movimento do Banka com esta chave.
-                  @if (d.bankaClosingTotal !== null) {
-                    O crédito da chave está apurado em
-                    <b class="text-gray-900">{{ amount(d.bankaClosingTotal) }} MZN</b>, mas as
-                    parcelas não foram guardadas — é uma execução anterior à versão que as passou a
-                    registar. Volte a correr a validação para as ver.
+                  <!-- Com total mas sem movimentos: execução antiga, que não guardava as parcelas. -->
+                  @if (d.bankaClosingTotal) {
+                    Creditado
+                    <b class="text-gray-900">{{ amount(d.bankaClosingTotal) }} MZN</b>. Detalhe
+                    indisponível nesta execução.
+                  } @else {
+                    Sem crédito no Banka.
                   }
                 </p>
               } @else {
@@ -878,7 +879,7 @@ export class KeyDetailPanelComponent {
 
   // ─── Conciliação ─────────────────────────────────────────────────────────
 
-  /** Só períodos duplicados com créditos: sem créditos não há par possível. */
+  /** Só períodos repetidos com créditos: sem créditos não há par possível. */
   protected readonly canMatch = computed(
     () =>
       // Pelo caso e não pelo fecho: um fecho já conciliado passa a «confere», e

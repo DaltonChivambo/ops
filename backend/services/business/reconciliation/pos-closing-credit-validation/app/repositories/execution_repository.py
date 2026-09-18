@@ -18,9 +18,11 @@ import sqlalchemy as sa
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.domain.models import ReconciliationResult
+from app.domain.reconciliation import KeyTally, with_simo_duplicates
 from app.domain.vocabulary import UploadSlot, Validation
 from app.infrastructure.tables import (
     ClosingDetail,
+    ClosingMatch,
     CreditMovement,
     Execution,
     PendingCase,
@@ -34,18 +36,25 @@ INSERT_BATCH = 5_000
 VALIDATION_STATES = frozenset(Validation)
 
 # Ordem de leitura do operador na tabela de fechos — a mesma dos casos (ver
-# `CaseRepository._TYPE_ORDER`): incorrecto, duplicado, não creditado à
-# frente, por exigirem trabalho; confere depois; zerado por último, que não
-# pede nada a ninguém. Não é a ordem de declaração do enum `Validation`
-# (essa é `zero, match, mismatch, missing, duplicated`, contrato da migração
-# `9e88fa0665cd`) — só a leitura muda, não a base.
+# `CaseRepository._TYPE_ORDER`) e a do relatório: incorrecto e não creditado à
+# frente, que é onde há dinheiro errado ou dinheiro em falta; períodos repetidos
+# a seguir (ambiguidade a desfazer, não divergência); depois os fechos com linha
+# repetida na SIMO, juntos num bloco (não são anomalia, mas vêem-se); confere
+# depois; zerado por último, que não pede nada a ninguém. Não é a ordem de
+# declaração do enum `Validation` (essa é `zero, match, mismatch, missing,
+# duplicated`, contrato da migração `9e88fa0665cd`) — só a leitura muda.
 _VALIDATION_ORDER = sa.case(
     (ClosingDetail.validation == Validation.MISMATCH, 0),
-    (ClosingDetail.validation == Validation.DUPLICATED, 1),
-    (ClosingDetail.validation == Validation.MISSING, 2),
-    (ClosingDetail.validation == Validation.MATCH, 3),
-    (ClosingDetail.validation == Validation.ZERO, 4),
+    (ClosingDetail.validation == Validation.MISSING, 1),
+    (ClosingDetail.validation == Validation.DUPLICATED, 2),
+    (sa.or_(ClosingDetail.simo_duplicate, ClosingDetail.has_simo_duplicate), 3),
+    (ClosingDetail.validation == Validation.MATCH, 4),
+    (ClosingDetail.validation == Validation.ZERO, 5),
 )
+
+# As cópias do export da SIMO não são fechos da chave: ficam fora do que se
+# concilia e do que se conta por chave.
+_REAL_CLOSING = ClosingDetail.simo_duplicate.is_(False)
 
 
 class ExecutionRepository:
@@ -100,6 +109,8 @@ class ExecutionRepository:
                 "closing_type": detail.closing_type,
                 "validation": detail.validation,
                 "difference": detail.difference,
+                "simo_duplicate": detail.simo_duplicate,
+                "has_simo_duplicate": detail.has_simo_duplicate,
             }
             for detail in result.details
         ]
@@ -163,8 +174,9 @@ class ExecutionRepository:
         page: Page,
         validation: str | None = None,
         search: str | None = None,
+        simo_duplicates: bool = False,
     ) -> tuple[list[ClosingDetail], int]:
-        where = _details_where(execution_id, validation, search)
+        where = _details_where(execution_id, validation, search, simo_duplicates)
         items_result = await self._session.execute(
             sa.select(ClosingDetail)
             .where(*where)
@@ -176,6 +188,9 @@ class ExecutionRepository:
                 ClosingDetail.pos_id.asc(),
                 ClosingDetail.period.asc(),
                 ClosingDetail.simo_closing_date.asc(),
+                # A original antes das suas linhas duplicadas na SIMO: o ecrã junta-as.
+                ClosingDetail.simo_duplicate.asc(),
+                ClosingDetail.operation_number.asc(),
             )
             .offset(page.skip)
             .limit(page.take)
@@ -206,7 +221,11 @@ class ExecutionRepository:
             return []
         result = await self._session.execute(
             sa.select(ClosingDetail)
-            .where(ClosingDetail.execution_id == execution_id, ClosingDetail.key.in_(keys))
+            .where(
+                ClosingDetail.execution_id == execution_id,
+                ClosingDetail.key.in_(keys),
+                _REAL_CLOSING,
+            )
             .order_by(
                 ClosingDetail.key.asc(),
                 ClosingDetail.simo_closing_date.asc(),
@@ -236,15 +255,23 @@ class ExecutionRepository:
         self, execution_id: str, search: str | None = None
     ) -> dict[str, int]:
         """Contagens para os chips — sobre TODAS as linhas da execução, não da página."""
-        counts: dict[str, int] = {"all": 0, **dict.fromkeys(Validation, 0)}
+        counts: dict[str, int] = {"all": 0, "simo_duplicates": 0, **dict.fromkeys(Validation, 0)}
         where = _details_where(execution_id, None, search)
+        # As linhas duplicadas na SIMO entram em «todos», mas não no estado da
+        # original: não são mais um fecho a conferir nem a tratar.
         result = await self._session.execute(
-            sa.select(ClosingDetail.validation, sa.func.count())
+            sa.select(ClosingDetail.validation, ClosingDetail.simo_duplicate, sa.func.count())
             .where(*where)
-            .group_by(ClosingDetail.validation)
+            .group_by(ClosingDetail.validation, ClosingDetail.simo_duplicate)
         )
-        for validation, total in result.all():
-            counts[validation] = total
+        for validation, simo_duplicate, total in result.all():
+            if simo_duplicate:
+                # O número do filtro «Duplicados na SIMO»: só as cópias, o mesmo
+                # que o resumo e o relatório. O filtro ligado mostra mais linhas
+                # do que isto — traz também a original de cada cópia.
+                counts["simo_duplicates"] += total
+            else:
+                counts[validation] += total
             counts["all"] += total
         return counts
 
@@ -264,7 +291,11 @@ class ExecutionRepository:
             return {}
         simo = await self._session.execute(
             sa.select(ClosingDetail.key, sa.func.count())
-            .where(ClosingDetail.execution_id == execution_id, ClosingDetail.key.in_(keys))
+            .where(
+                ClosingDetail.execution_id == execution_id,
+                ClosingDetail.key.in_(keys),
+                _REAL_CLOSING,
+            )
             .group_by(ClosingDetail.key)
         )
         simo_counts: dict[str, int] = {}
@@ -296,6 +327,121 @@ class ExecutionRepository:
             .values(validation=validation, difference=difference)
         )
 
+    async def duplicated_totals(self, execution_id: str) -> tuple[int, Decimal, Decimal] | None:
+        """O que ainda está em «períodos repetidos»: nº de fechos, soma SIMO e soma Banka.
+
+        O Banka conta só os movimentos das chaves com fechos por conciliar que
+        nenhum par levou — os que já têm par estão em «confere», e os que sobram
+        numa chave toda conciliada não são fecho nenhum da SIMO. `None` numa
+        execução sem movimentos guardados (anterior à migração que os passou a
+        gravar): aí não há como recontar o Banka.
+
+        Em dois passos, com a lista de chaves na mão — ver a nota de desempenho
+        em `list_details`: subconsultas sobre as duas tabelas grandes de uma
+        execução acabada de gravar deixavam o Postgres minutos preso.
+        """
+        has_movements = await self._session.execute(
+            sa.select(CreditMovement.id).where(CreditMovement.execution_id == execution_id).limit(1)
+        )
+        if has_movements.first() is None:
+            return None
+
+        closings = await self._session.execute(
+            sa.select(
+                ClosingDetail.key,
+                sa.func.count(),
+                sa.func.coalesce(sa.func.sum(ClosingDetail.simo_closing_total), 0),
+            )
+            .where(
+                ClosingDetail.execution_id == execution_id,
+                ClosingDetail.validation == Validation.DUPLICATED,
+                _REAL_CLOSING,
+            )
+            .group_by(ClosingDetail.key)
+        )
+        count, simo = 0, Decimal(0)
+        simo_by_key: dict[str, Decimal] = {}
+        for key, key_count, key_simo in closings.all():
+            simo_by_key[key] = Decimal(key_simo)
+            count += key_count
+            simo += Decimal(key_simo)
+        if not simo_by_key:
+            return 0, Decimal(0), Decimal(0)
+
+        keys = list(simo_by_key)
+        used = await self._session.execute(
+            sa.select(ClosingMatch.movement_id).where(
+                ClosingMatch.execution_id == execution_id, ClosingMatch.key.in_(keys)
+            )
+        )
+        used_ids = list(used.scalars().all())
+        banka_where = [CreditMovement.execution_id == execution_id, CreditMovement.key.in_(keys)]
+        if used_ids:
+            banka_where.append(CreditMovement.id.not_in(used_ids))
+        # Chave a chave e não uma soma só: o lado do Banka nunca passa o da SIMO
+        # — a mesma regra do `compute_summary`, e pela mesma razão (crédito de um
+        # período que colide em `% 1000` não é crédito desta chave).
+        banka_rows = await self._session.execute(
+            sa.select(CreditMovement.key, sa.func.coalesce(sa.func.sum(CreditMovement.amount), 0))
+            .where(*banka_where)
+            .group_by(CreditMovement.key)
+        )
+        banka = sum(
+            (min(Decimal(amount), simo_by_key.get(key, Decimal(0))) for key, amount in banka_rows),
+            Decimal(0),
+        )
+        return count, simo, banka
+
+    async def set_count_simo_duplicates(
+        self, execution_id: str, counted: bool, summary: dict[str, Any]
+    ) -> dict[str, Any]:
+        """Grava a decisão sobre as linhas repetidas da SIMO e refaz o apuramento.
+
+        **Nada se revalida.** O estado de cada fecho é o que está gravado, e isso
+        inclui os que uma conciliação já pôs em «confere». O que muda é só se as
+        linhas repetidas contam, e é a `with_simo_duplicates` que diz onde elas
+        entram: no estado da chave delas, nunca num estado próprio.
+        """
+        updated = with_simo_duplicates(summary, await self._repeated_keys(execution_id), counted)
+        await self._session.execute(
+            sa.update(Execution)
+            .where(Execution.id == execution_id)
+            .values(summary=updated, count_simo_duplicates=counted)
+        )
+        return updated
+
+    async def _repeated_keys(self, execution_id: str) -> list[KeyTally]:
+        """As chaves COM linhas repetidas, com o que elas valem e o que a chave já pesa.
+
+        Só essas: o apuramento das outras não muda com esta decisão, e mexer-lhes
+        desfazia o que as conciliações já acertaram no `summary`.
+
+        `simoKeyTotal` e `bankaClosingTotal` são da chave e repetem-se em todas
+        as linhas dela — daí `MAX` e não `SUM`. A validação sai das próprias
+        linhas repetidas: é nesse estado que elas vão contar.
+        """
+        rows = await self._session.execute(
+            sa.select(
+                ClosingDetail.validation,
+                sa.func.max(ClosingDetail.simo_key_total),
+                sa.func.max(sa.func.coalesce(ClosingDetail.banka_closing_total, 0)),
+                sa.func.count(),
+                sa.func.sum(ClosingDetail.simo_closing_total),
+            )
+            .where(ClosingDetail.execution_id == execution_id, ClosingDetail.simo_duplicate)
+            .group_by(ClosingDetail.key, ClosingDetail.validation)
+        )
+        return [
+            KeyTally(
+                validation=validation,
+                simo=Decimal(simo),
+                banka=Decimal(banka),
+                repeated=repeated,
+                repeated_amount=Decimal(amount),
+            )
+            for validation, simo, banka, repeated, amount in rows.all()
+        ]
+
     async def save_summary(self, execution_id: str, summary: dict[str, Any]) -> None:
         await self._session.execute(
             sa.update(Execution).where(Execution.id == execution_id).values(summary=summary)
@@ -306,8 +452,12 @@ def _details_where(
     execution_id: str,
     validation: str | None,
     search: str | None,
+    simo_duplicates: bool = False,
 ) -> list[Any]:
     conditions: list[Any] = [ClosingDetail.execution_id == execution_id]
+    if simo_duplicates:
+        # Os fechos com linha duplicada na SIMO: a original e as cópias.
+        conditions.append(sa.or_(ClosingDetail.simo_duplicate, ClosingDetail.has_simo_duplicate))
     if validation:
         # Lista de estados a mostrar, separada por vírgulas. Tokens desconhecidos
         # caem fora, por isso a selecção vazia (o cliente manda «nenhum») não

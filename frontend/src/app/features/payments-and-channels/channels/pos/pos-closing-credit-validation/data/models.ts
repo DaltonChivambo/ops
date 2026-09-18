@@ -16,7 +16,7 @@
 
 export type ClosingType = 'D' | 'D+1' | 'n.a';
 
-/** Confere · incorrecto · não creditado · zerado (0,00) · períodos duplicados. */
+/** Confere · incorrecto · não creditado · zerado (0,00) · períodos repetidos. */
 export type Validation = 'match' | 'mismatch' | 'missing' | 'zero' | 'duplicated';
 
 /**
@@ -60,6 +60,8 @@ export interface ClosingDetail {
   simoClosingsCount: number;
   /** Movimentos Banka nesta chave. >1 é duplicação do lado Banka; 1 fora de `duplicated`. */
   bankaMovementsCount: number;
+  /** Linha duplicada no ficheiro da SIMO: conta, com a validação da original, e fica marcada. */
+  simoDuplicate: boolean;
 }
 
 /** Um movimento de crédito do Banka atribuído a uma chave — a parcela do total. */
@@ -80,7 +82,7 @@ export interface ClosingMatch {
 /** Os dois lados de uma chave — o que o painel de detalhe de um fecho mostra. */
 export interface KeyBreakdown {
   key: string;
-  /** Todos os fechos SIMO desta chave (mais do que um = períodos duplicados). */
+  /** Todos os fechos SIMO desta chave (mais do que um = períodos repetidos). */
   closings: ClosingDetail[];
   /** Vazio nas execuções anteriores à migração que passou a guardá-los. */
   movements: CreditMovement[];
@@ -98,7 +100,7 @@ export interface CaseReconciliation {
   matches: ClosingMatch[];
 }
 
-/** Um caso de períodos duplicados por tratar, com tudo para o conciliar — a chave, com caso. */
+/** Um caso de períodos repetidos por tratar, com tudo para o conciliar — a chave, com caso. */
 export type ReconciliationCandidate = KeyBreakdown & { case: PendingCase };
 
 /** Os casos conciliados de uma vez, e o `summary` já com todos eles. */
@@ -151,7 +153,7 @@ export interface CasePatch {
   readonly patch: { status?: CaseStatus; eTicket?: string | null };
 }
 
-/** Os pares de um caso de períodos duplicados, inteiros — substituem os que havia. */
+/** Os pares de um caso de períodos repetidos, inteiros — substituem os que havia. */
 export interface CaseMatches {
   readonly caseId: string;
   readonly matches: readonly ClosingMatch[];
@@ -172,8 +174,19 @@ export interface ClosingSummary {
   zeroClosings: number;
   /** Fechos em chaves com >1 fecho (período repetido/colidido); análise manual. */
   duplicatedPeriods: number;
-  /** Linhas repetidas no export da SIMO, descartadas antes de somar. */
+  /** Linhas repetidas no ficheiro da SIMO. Contam como fechos e ficam marcadas;
+   *  nunca mexem no estado da chave, que continua a ser um fecho só. */
   duplicatesDiscarded: number;
+  /** O que essas linhas somam do lado da SIMO. Entra no apuramento só quando
+   *  `countSimoDuplicates`. Ausente nas execuções antigas. */
+  simoAmountDuplicateRows?: number;
+  /** O crédito do Banka que corresponde a essas linhas — o mesmo que pagou o
+   *  fecho original, contado aqui outra vez para os dois lados ficarem
+   *  simétricos quando as repetidas contam. */
+  bankaAmountDuplicateRows?: number;
+  /** O operador mandou contar esse dinheiro na reconciliação de montantes.
+   *  Ausente nas execuções antigas. */
+  countSimoDuplicates?: boolean;
   /** Movimentos repetidos no extracto do Banka (o mesmo N_DOCUMENTO), descartados
    *  antes de somar. Ausente nas execuções gravadas antes de se contar. */
   bankaDuplicatesDiscarded?: number;
@@ -186,7 +199,7 @@ export interface ClosingSummary {
   simoAmountMismatched: number;
   bankaAmountMismatched: number;
   simoAmountMissing: number;
-  /** Somas das chaves com períodos duplicados — retido à espera de análise. O
+  /** Somas das chaves com períodos repetidos — retido à espera de análise. O
    *  Banka duplica nestas chaves tal como a SIMO, por isso há crédito feito. */
   simoAmountDuplicated: number;
   bankaAmountDuplicated: number;
@@ -206,6 +219,8 @@ export interface ValidationResult {
 
 export interface DetailCounts {
   all: number;
+  /** Linhas dos fechos com duplicado na SIMO — o número do filtro, não um estado. */
+  simoDuplicates: number;
   match: number;
   mismatch: number;
   missing: number;
@@ -228,6 +243,8 @@ export interface DetailsQuery {
   /** Classes a mostrar. `null`/ausente = todas; lista vazia = nenhuma. */
   validation?: Validation[] | null;
   q?: string;
+  /** Só os fechos com linha duplicada na SIMO (a original e as cópias). */
+  simoDuplicates?: boolean;
 }
 
 /** Fases grosseiras: o upload e a execução são um único round-trip HTTP. */

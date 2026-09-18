@@ -50,7 +50,10 @@ export class ResultStatsComponent {
           value: s.processed,
           icon: 'file-check',
         },
-        note: `${n(s.divergent)} com divergência`,
+        note:
+          s.duplicatesDiscarded > 0
+            ? `${n(s.divergent)} com divergência · ${n(s.duplicatesDiscarded)} linhas repetidas`
+            : `${n(s.divergent)} com divergência`,
       },
       {
         stat: {

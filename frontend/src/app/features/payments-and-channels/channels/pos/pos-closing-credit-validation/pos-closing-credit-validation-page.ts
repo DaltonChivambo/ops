@@ -18,6 +18,7 @@ import { AmountReconciliationComponent } from './components/amount-reconciliatio
 import { DiscrepancySourceDonutComponent } from './components/discrepancy-source-donut';
 import { PageHeaderComponent } from './components/page-header';
 import { ResultStatsComponent } from './components/result-stats';
+import { SimoRepeatedLinesComponent } from './components/simo-repeated-lines';
 import { ResultTabsComponent } from './components/result-tabs';
 import { UploadZoneComponent } from './components/upload-zone';
 import { ReconciliationApi } from './data/reconciliation-api.service';
@@ -47,6 +48,7 @@ import { DEFAULT_SLA } from './data/sla';
     DiscrepancySourceDonutComponent,
     PageHeaderComponent,
     ResultStatsComponent,
+    SimoRepeatedLinesComponent,
     ResultTabsComponent,
     ToastComponent,
     UploadZoneComponent,
@@ -102,6 +104,21 @@ import { DEFAULT_SLA } from './data/sla';
         }
       } @else if (result(); as current) {
         <app-result-stats [result]="current" />
+
+        @if (current.summary.duplicatesDiscarded > 0) {
+          <!-- Mesma grelha dos cartões, só para a faixa cair na coluna da
+               «Reconciliação de Montantes» e ficar da largura dela. -->
+          <div
+            class="grid grid-cols-1 gap-4 sm:gap-5 min-[1360px]:grid-cols-[minmax(18rem,1fr)_minmax(0,2fr)] min-[1170px]:group-data-[sidebar=collapsed]/shell:grid-cols-[minmax(18rem,1fr)_minmax(0,2fr)]"
+          >
+            <app-simo-repeated-lines
+              class="min-[1360px]:col-start-2 min-[1170px]:group-data-[sidebar=collapsed]/shell:col-start-2"
+              [summary]="current.summary"
+              [busy]="revalidating()"
+              (countedChanged)="setSimoDuplicates($event)"
+            />
+          </div>
+        }
 
         <!-- O apuramento por estado — os fechos por tratar e os montantes dos dois
              lados — esteve num separador «Resumo por Estado». É leitura e não
@@ -162,6 +179,8 @@ export class PosClosingCreditValidationPageComponent {
   protected readonly description = computed(() => this.feature()?.description ?? '');
 
   protected readonly result = signal<ValidationResult | null>(null);
+  /** A decisão sobre as linhas repetidas da SIMO está a ser gravada. */
+  protected readonly revalidating = signal(false);
   protected readonly loading = signal(true);
   protected readonly processing = signal(false);
   protected readonly phase = signal<ProgressPhase | null>(null);
@@ -184,7 +203,6 @@ export class PosClosingCreditValidationPageComponent {
   /** O prazo de tratamento em vigor. Falhar a leitura não tranca o ecrã: o
    *  valor por omissão serve, e a gravação volta a tentar. */
   protected readonly settings = signal<SlaSettings>(DEFAULT_SLA);
-
   constructor() {
     // A lista de conciliações volta a pedir-se sempre que o resultado muda: uma
     // conciliação, uma mudança de fase ou uma execução nova mudam quais chaves
@@ -210,7 +228,7 @@ export class PosClosingCreditValidationPageComponent {
           if (cancelled) return;
           this.reconciliationCandidates.set([]);
           this.error.set({
-            title: 'Períodos duplicados indisponíveis',
+            title: 'Períodos repetidos indisponíveis',
             detail: 'Não foi possível carregá-los. Tente recarregar a página.',
           });
         });
@@ -275,6 +293,40 @@ export class PosClosingCreditValidationPageComponent {
 
     this.processing.set(false);
     this.phase.set(null);
+  }
+
+  /**
+   * Manda contar, ou não, o dinheiro das linhas repetidas da SIMO no apuramento.
+   *
+   * Só mexe nos montantes: os estados, os casos e a taxa ficam onde estavam —
+   * uma linha repetida no ficheiro não é um fecho novo. Por isso também não há
+   * tabela de fechos a recarregar.
+   */
+  protected async setSimoDuplicates(counted: boolean): Promise<void> {
+    const current = this.result();
+    if (!current || this.revalidating()) return;
+
+    this.revalidating.set(true);
+    try {
+      const updated = await this.api.setSimoDuplicates(current.executionId, counted);
+      this.result.set(updated);
+      this.success.set({
+        title: counted ? 'Linhas repetidas a contar' : 'Linhas repetidas fora',
+        detail: counted
+          ? 'O montante delas entra na reconciliação e no relatório.'
+          : 'O apuramento voltou a somar cada fecho uma vez.',
+      });
+    } catch (problem) {
+      this.error.set({
+        title: 'Decisão não guardada',
+        detail:
+          problem instanceof ApiError && problem.status === 422
+            ? problem.message
+            : 'Não foi possível guardar a decisão. Tente novamente.',
+      });
+    } finally {
+      this.revalidating.set(false);
+    }
   }
 
   protected async updateCase({ caseId, patch }: CasePatch): Promise<void> {
@@ -379,7 +431,7 @@ export class PosClosingCreditValidationPageComponent {
 
       const closings = items.reduce((total, item) => total + item.matches.length, 0);
       this.success.set({
-        title: 'Períodos duplicados conciliados',
+        title: 'Períodos repetidos conciliados',
         facts: [
           { label: 'Chaves conciliadas', value: count(items.length) },
           { label: 'Fechos em «Crédito confere»', value: count(closings) },
@@ -439,6 +491,7 @@ const posLabel = (item: PendingCase): string => `POS ${item.posId} · período $
  */
 function executionToast({ reportName, summary }: ValidationResult): Toast {
   const repeated = summary.bankaDuplicatesDiscarded ?? 0;
+  const simoRepeated = summary.duplicatesDiscarded;
   return {
     title: 'Validação concluída',
     detail: reportName,
@@ -453,6 +506,14 @@ function executionToast({ reportName, summary }: ValidationResult): Toast {
         value: count(summary.openCases),
         tone: summary.openCases > 0 ? 'warning' : 'neutral',
       },
+      ...(simoRepeated > 0
+        ? [
+            {
+              label: 'Linhas repetidas na SIMO',
+              value: count(simoRepeated),
+            },
+          ]
+        : []),
       ...(repeated > 0
         ? [
             {

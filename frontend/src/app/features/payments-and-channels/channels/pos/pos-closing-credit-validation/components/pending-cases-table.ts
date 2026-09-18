@@ -71,7 +71,7 @@ const TYPE_DOT: Record<CaseType, string> = {
 const TYPE_LABEL: Record<CaseType, string> = {
   missing: 'Não creditado',
   mismatch: 'Incorrecto',
-  duplicated: 'Período duplicado',
+  duplicated: 'Período repetido',
 };
 /** Sombra interior e não `border-l` — ver a nota em STATE_STRIPE, no state-options. */
 const TYPE_STRIPE: Record<CaseType, string> = {
@@ -126,9 +126,17 @@ const OPEN_SLA_STATES: readonly SlaState[] = ['overdue', 'due-soon', 'on-track']
     } @else {
       <app-data-table [scrollAnchor]="scrollAnchor()">
         <ng-container toolbar>
-          <!-- Que casos a lista mostra: em aberto (a fila de trabalho, por
-               defeito), regularizados (o histórico) ou todos. Primeiro na barra,
-               porque decide o que os filtros ao lado filtram. -->
+          <!-- Primeiro o tipo de divergência: é por aí que o operador escolhe o
+               trabalho, e é o que manda na leitura do resto da barra. -->
+          <app-case-type-filter
+            [counts]="typeCounts()"
+            [selected]="selectedTypes()"
+            (changed)="selectedTypes.set($event)"
+          />
+
+          <!-- Depois que casos a lista mostra: em aberto (a fila de trabalho, por
+               defeito), regularizados (o histórico) ou todos. Decide o que o
+               tratamento e o prazo, ao lado, têm para filtrar. -->
           <app-case-view-select
             [value]="view()"
             [counts]="viewCounts()"
@@ -142,15 +150,7 @@ const OPEN_SLA_STATES: readonly SlaState[] = ['overdue', 'due-soon', 'on-track']
               [selected]="selectedStatuses()"
               (changed)="selectedStatuses.set($event)"
             />
-          }
 
-          <app-case-type-filter
-            [counts]="typeCounts()"
-            [selected]="selectedTypes()"
-            (changed)="selectedTypes.set($event)"
-          />
-
-          @if (view() !== 'resolved') {
             <app-sla-filter
               [states]="slaOptions()"
               [counts]="slaCounts()"
@@ -185,7 +185,7 @@ const OPEN_SLA_STATES: readonly SlaState[] = ['overdue', 'due-soon', 'on-track']
 
         <!-- As mesmas colunas e o mesmo desenho de linha do «Todos os Fechos»:
              identidade, período, os dois totais, a diferença e a etiqueta da
-             divergência — e, a seguir, o que só um caso tem: prazo, fase e
+             divergência — e, a seguir, o que só um caso tem: prazo, tratamento e
              e-Ticket. Cada célula com uma leitura principal e, no máximo, uma
              nota por baixo. -->
         <table [class]="t.table + ' min-w-5xl'">
@@ -199,7 +199,7 @@ const OPEN_SLA_STATES: readonly SlaState[] = ['overdue', 'due-soon', 'on-track']
               <th scope="col" [class]="t.thLeft">Divergência</th>
               <th scope="col" [class]="t.thLeft">Prazo</th>
               <th scope="col" [class]="t.thLeft">
-                {{ view() === 'resolved' ? 'Regularizado em' : 'Fase' }}
+                {{ view() === 'resolved' ? 'Regularizado em' : 'Tratamento' }}
               </th>
               <th scope="col" [class]="t.thLast">e-Ticket</th>
             </tr>
@@ -209,7 +209,7 @@ const OPEN_SLA_STATES: readonly SlaState[] = ['overdue', 'due-soon', 'on-track']
             @for (item of visible(); track item.id) {
               @let resolved = item.status === 'resolved';
               @let duplicated = item.type === 'duplicated';
-              <!-- Período duplicado com o mesmo fundo âmbar do «Todos os Fechos». -->
+              <!-- Período repetido com o mesmo fundo âmbar do «Todos os Fechos». -->
               <tr
                 (click)="opened.set(toDetail(item))"
                 [class]="t.row + ' ' + (duplicated ? t.tone.attention : t.tone.neutral)"
@@ -226,7 +226,7 @@ const OPEN_SLA_STATES: readonly SlaState[] = ['overdue', 'due-soon', 'on-track']
                 <td [class]="t.tdMuted">
                   <span class="inline-flex items-center gap-1.5">
                     {{ item.period }}
-                    <!-- Como no «Todos os Fechos»: num período duplicado, os dois
+                    <!-- Como no «Todos os Fechos»: num período repetido, os dois
                          números ao lado do período. De que lado duplica fica na
                          caixa, que a pastilha já é o resumo. -->
                     @if (duplicated) {
@@ -397,7 +397,7 @@ export class PendingCasesTableComponent {
   readonly settings = input.required<SlaSettings>();
   /** Onde o scroll da página assenta antes de a lista correr — a barra de separadores. */
   readonly scrollAnchor = input<HTMLElement | undefined>(undefined);
-  /** Casos de períodos duplicados que se conciliam com crédito igual — ver a faixa em cima. */
+  /** Casos de períodos repetidos que se conciliam com crédito igual — ver a faixa em cima. */
   readonly reconcilableIds = input<ReadonlySet<string>>(new Set());
   readonly updated = output<CasePatch>();
   readonly reconciled = output<CaseMatches>();
@@ -574,19 +574,19 @@ export class PendingCasesTableComponent {
   protected dot = (item: PendingCase) => TYPE_DOT[item.type];
   protected typeLabel = (item: PendingCase) => TYPE_LABEL[item.type];
 
-  /** Na caixa da pastilha: os mesmos números por extenso, e de que lado duplicam. */
+  /** Na caixa da pastilha: os mesmos números por extenso, e de que lado repetem. */
   protected duplicationNote(item: PendingCase): string {
     const closings = `${this.n(item.simoClosingsCount)} ${item.simoClosingsCount === 1 ? 'fecho' : 'fechos'} na SIMO`;
     const movements = `${this.n(item.bankaMovementsCount)} ${item.bankaMovementsCount === 1 ? 'movimento' : 'movimentos'} no Banka`;
     const side = duplicationSideOf(item.simoClosingsCount, item.bankaMovementsCount);
     return side
-      ? `${closings}, ${movements} — duplicado em ${DUPLICATION_SIDE_LABEL[side]}.`
+      ? `${closings}, ${movements} — repetido em ${DUPLICATION_SIDE_LABEL[side]}.`
       : `${closings}, ${movements}.`;
   }
 
   /**
    * Banka menos SIMO, como no "Todos os Fechos". Não creditado é o valor SIMO
-   * inteiro em falta. Duplicado não tem diferença: com um dos lados a somar
+   * inteiro em falta. Repetido não tem diferença: com um dos lados a somar
    * vários fechos, a conta não confere nada — mesma regra da outra tabela.
    */
   protected difference(item: PendingCase): number | null {
@@ -597,7 +597,7 @@ export class PendingCasesTableComponent {
 
   protected diffTitle(item: PendingCase): string | null {
     return item.type === 'duplicated'
-      ? 'Sem diferença num período duplicado: um dos lados soma vários fechos.'
+      ? 'Sem diferença num período repetido: um dos lados soma vários fechos.'
       : null;
   }
 

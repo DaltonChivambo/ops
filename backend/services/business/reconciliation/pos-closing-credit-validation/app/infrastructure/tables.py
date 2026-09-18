@@ -88,6 +88,12 @@ class Execution(Base):
     # Snapshot denormalizado do `ClosingSummary` — mutado quando um caso muda de
     # estado (ver `service._refresh_case_counters`), não só à criação.
     summary: Mapped[dict[str, Any]] = mapped_column(JSONB)
+    # O operador mandou contar as linhas repetidas do export da SIMO como fechos
+    # verdadeiros. Vive na execução e não nas definições nem no ecrã: manda nos
+    # estados gravados, nos casos e no relatório, e tem de ser igual para todos.
+    count_simo_duplicates: Mapped[bool] = mapped_column(
+        "countSimoDuplicates", sa.Boolean, default=False, server_default=sa.false()
+    )
 
 
 class ClosingDetail(Base):
@@ -126,6 +132,13 @@ class ClosingDetail(Base):
     closing_type: Mapped[ClosingType] = mapped_column("closingType", ClosingTypeEnum)
     validation: Mapped[Validation] = mapped_column(ValidationEnum)
     difference: Mapped[Decimal | None] = mapped_column(Money, nullable=True)
+    # Linha duplicada no export da SIMO — conta, fica marcada (ver `domain.models`).
+    simo_duplicate: Mapped[bool] = mapped_column(
+        "simoDuplicate", sa.Boolean, default=False, server_default=sa.false()
+    )
+    has_simo_duplicate: Mapped[bool] = mapped_column(
+        "hasSimoDuplicate", sa.Boolean, default=False, server_default=sa.false()
+    )
 
 
 class CreditMovement(Base):

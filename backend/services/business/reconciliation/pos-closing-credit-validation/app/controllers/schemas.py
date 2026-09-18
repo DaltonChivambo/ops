@@ -91,6 +91,8 @@ class ClosingDetailOut(Schema):
     # isso `from_row` recebe-os à parte. `1, 1` por omissão: só interessam
     # quando `validation` é `duplicated`, e desfazem aí a ambiguidade entre
     # duplicação do lado SIMO, do lado Banka, ou de ambos.
+    # Linha duplicada no export da SIMO: conta, e o ecrã marca-a.
+    simo_duplicate: bool
     simo_closings_count: int
     banka_movements_count: int
 
@@ -120,6 +122,7 @@ class ClosingDetailOut(Schema):
             closing_type=CLOSING_TYPE_LABELS[row.closing_type],
             validation=row.validation,
             difference=float(row.difference) if row.difference is not None else None,
+            simo_duplicate=bool(row.simo_duplicate),
             simo_closings_count=simo_closings_count,
             banka_movements_count=banka_movements_count,
         )
@@ -266,7 +269,7 @@ class KeyBreakdownOut(Schema):
     movements: list[CreditMovementOut]
     case: PendingCaseOut | None
     # Os pares já guardados, e os que se podem fazer só pelo valor — ver
-    # `domain/matching.py`. O ecrã só os usa nas chaves de períodos duplicados.
+    # `domain/matching.py`. O ecrã só os usa nas chaves de períodos repetidos.
     matches: list[ClosingMatchOut]
     suggested_matches: list[ClosingMatchOut]
 
@@ -298,6 +301,8 @@ class DetailCountsOut(Schema):
     """Contagens dos chips — sobre toda a execução, não sobre a página."""
 
     all: int
+    # Linhas dos fechos com duplicado na SIMO — o número do filtro, não um estado.
+    simo_duplicates: int
     match: int
     mismatch: int
     missing: int
@@ -378,6 +383,18 @@ class ClosingMatchIn(BaseModel):
 
     closing_id: str
     movement_id: str
+
+
+class SimoDuplicatesIn(BaseModel):
+    """A decisão do operador sobre as linhas repetidas do export da SIMO.
+
+    `counted` a `true` é «estas linhas são fechos verdadeiros, o Banka é que não
+    os creditou» — e a execução revalida-se com elas dentro.
+    """
+
+    model_config = ConfigDict(alias_generator=to_camel, populate_by_name=True, extra="ignore")
+
+    counted: bool
 
 
 class CaseReconciliationIn(BaseModel):
