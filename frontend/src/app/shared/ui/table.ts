@@ -42,8 +42,14 @@ export const TABLE_CLASS = 'w-full border-collapse text-sm';
 /** Colado ao topo da caixa. O fundo vai nas células, nunca aqui — ver o data-table. */
 export const THEAD_CLASS = 'sticky top-0 z-10';
 
-/** `bg-gray-50` nas células e não no `<thead>`: é a célula que pinta o fundo de forma fiável. */
-const TH = 'bg-gray-50 py-2.5 text-2xs font-bold tracking-wider uppercase';
+/**
+ * Fundo e risca vão na CÉLULA, nunca no `<thead>` nem na `<tr>`: com
+ * `border-collapse`, o que é pintado pela tabela não acompanha um cabeçalho
+ * colado, e vê-se a tremer ao rolar. Daí a risca ser um `box-shadow` e não uma
+ * `border`.
+ */
+const TH =
+  'bg-gray-50 shadow-[inset_0_-1px_0_var(--color-gray-100)] py-2.5 text-2xs font-bold tracking-wider uppercase';
 /** A primeira e a última coluna têm o recuo do cartão; as do meio, `px-3`. */
 const EDGE_FIRST = 'pr-3 pl-5';
 const EDGE_LAST = 'pr-5 pl-3';
@@ -52,8 +58,8 @@ const CELL_Y = 'py-3.5';
 export const TABLE = {
   table: TABLE_CLASS,
   thead: THEAD_CLASS,
-  /** Só border-b: com border-y ficava encostada à risca da barra de filtros. */
-  headRow: 'border-b border-gray-100 text-gray-400',
+  /** A risca do fundo vem das células — ver `TH`. */
+  headRow: 'text-gray-400',
 
   thFirst: `${TH} ${EDGE_FIRST} text-left`,
   /** A coluna das caixas de selecção, quando a tabela as tem — vem antes da primeira. */
