@@ -2,14 +2,16 @@ import { computed, inject, Injectable, signal } from '@angular/core';
 import { Router } from '@angular/router';
 
 import { environment } from '../../../environments/environment';
+import { ALL_AREAS } from '../navigation';
 import { DEV_PRINCIPAL } from './dev-session';
 import { IdentityApi, type PrincipalDto } from './identity-api.service';
 import { TokenStore } from './token.store';
 
 /**
- * Vem do `GET /api/identity/me`, e não do token: as áreas são atribuídas pelo
- * backend por configuração, e lê-las aqui obrigaria a publicar o SPA sempre que
- * alguém mudasse de unidade orgânica.
+ * Vem do `GET /api/identity/me`, e não do token: o SPA guarda o token mas não
+ * o abre, e as áreas são o que o backend junta dos papéis do realm com a
+ * configuração. Lê-las aqui obrigaria a publicar o SPA a cada mudança de
+ * acesso.
  */
 export interface Principal {
   readonly sub: string;
@@ -90,9 +92,13 @@ export class SessionStore {
     return this.renewal;
   }
 
-  /** Protege a interface, não a verdade — a verdade é a guarda do servidor. */
+  /**
+   * Protege a interface, não a verdade — a verdade é a guarda do servidor, que
+   * decide isto da mesma maneira (`Principal.has_area`).
+   */
   hasArea(area: string): boolean {
-    return this.areas().includes(area);
+    const areas = this.areas();
+    return areas.includes(ALL_AREAS) || areas.includes(area);
   }
 
   async logout(): Promise<void> {

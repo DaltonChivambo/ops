@@ -11,8 +11,7 @@ export const routes: Routes = [
     // pressupõem sessão, e não há nada a mostrar à volta de quem ainda não
     // entrou.
     path: 'login',
-    loadComponent: () =>
-      import('./features/session/login-page').then((m) => m.LoginPageComponent),
+    loadComponent: () => import('./features/session/login-page').then((m) => m.LoginPageComponent),
   },
 
   {

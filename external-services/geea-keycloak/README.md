@@ -32,6 +32,25 @@ pip install -r requirements.txt
 uvicorn app.main:app --reload --port 8100
 ```
 
+## Utilizadores
+
+Dois, com a mesma password (`mude-me-em-producao`), porque com um só nunca se
+vê o que o MozaOps faz a quem não é da área:
+
+| Utilizador | Quem é | Unidade (GEEA) | Papéis no `qa-mozaops` | O que abre |
+|---|---|---|---|---|
+| `m001926` | Dalton Chivambo, Director | `2350` — Departamento de Apoio Operacional | `all-areas` | tudo |
+| `m002000` | John Doe, Técnico | `3230` — Canais e Serviços de Integração | `channels` | só Canais |
+
+As claims do `m001926` são as que o QAS devolve mesmo; o `m002000` é inventado
+e existe para haver alguém com menos acesso. Os papéis do cliente são o que
+decide as áreas do MozaOps — cada papel tem o nome da área que abre, e o
+`all-areas` abre-as todas, incluindo as que ainda não existem. A tabela vive em
+`app/main.py` (`USERS`), e é aí que se acrescenta gente.
+
+Na barra lateral, o `m001926` vê Canais, Pagamentos e Fraudes; o `m002000` vê
+só Canais, e as outras nem aparecem.
+
 ## Endpoints
 
 ### `GET /geea/idmUtils/SSOLogin`
@@ -40,7 +59,7 @@ Query params: `realm`, `username`, `password`, `clientId`, `clientSecret`,
 `clientIpAdress` (opcional).
 
 ```
-GET /geea/idmUtils/SSOLogin?realm=QAS&username=m002000&password=mude-me-em-producao&clientId=qa-workflow-ui&clientSecret=mude-me-em-producao&clientIpAdress=127.0.0.1
+GET /geea/idmUtils/SSOLogin?realm=QAS&username=m001926&password=mude-me-em-producao&clientId=qa-mozaops&clientSecret=mude-me-em-producao&clientIpAdress=127.0.0.1
 ```
 
 Resposta (forma real replicada — `accessToken`/`idToken` com as claims
@@ -70,8 +89,8 @@ decodificadas, `output` com os JWT já assinados a usar como Bearer):
 Os JWT em `output.accessToken`/`output.refreshToken` são assinados em
 **RS256**, como o GEEA real, com um par RSA gerado ao arranque. Quem valida
 vai buscar a chave pública ao JWKS — não há segredo partilhado. As claims do
-utilizador (`name`, `email`, `department`, etc.) vêm de variáveis
-`GEEA_MOCK_*`, com valores por omissão em `.env.example`.
+utilizador (`name`, `email`, `department`, papéis) vêm da tabela `USERS`, em
+`app/main.py`.
 
 ### `GET /departamentos`
 
@@ -97,7 +116,7 @@ Sem autenticação — só para healthcheck.
 ## Exemplo completo
 
 ```bash
-TOKEN=$(curl -s "http://localhost:8100/geea/idmUtils/SSOLogin?realm=QAS&username=m002000&password=mude-me-em-producao&clientId=qa-workflow-ui&clientSecret=mude-me-em-producao&clientIpAdress=127.0.0.1" \
+TOKEN=$(curl -s "http://localhost:8100/geea/idmUtils/SSOLogin?realm=QAS&username=m001926&password=mude-me-em-producao&clientId=qa-mozaops&clientSecret=mude-me-em-producao&clientIpAdress=127.0.0.1" \
   | jq -r .output.accessToken)
 
 curl -s http://localhost:8100/departamentos \
@@ -121,7 +140,8 @@ Token.
   leu uma vez serve para sempre.
 - Os dados de `/departamentos` vêm de `data/departamentos.json`; para
   atualizar a lista basta editar esse ficheiro.
-- O perfil de utilizador nas claims (`name`, `email`, `department`,
-  `function`, etc.) é fixo por configuração — não varia por `username`
-  submetido, exceto `preferred_username`, que ecoa o que foi enviado no
-  login.
+- O perfil nas claims (`name`, `email`, `department`, `function`, papéis) vem
+  da tabela `USERS` em `app/main.py`, por `username`. Um `username` que não
+  esteja lá leva 401, com a mesma mensagem de uma password errada.
+- O token de renovação não leva `preferred_username` — o Keycloak real também
+  não lho põe — por isso quem renova é identificado pelo `sub`.

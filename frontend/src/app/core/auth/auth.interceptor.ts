@@ -30,8 +30,7 @@ export const authInterceptor: HttpInterceptorFn = (request, next) => {
     return next(request);
   }
 
-  const send = (token: string | null) =>
-    next(token ? withBearer(request, token) : request);
+  const send = (token: string | null) => next(token ? withBearer(request, token) : request);
 
   return send(tokens.accessToken()).pipe(
     catchError((error: unknown) => {

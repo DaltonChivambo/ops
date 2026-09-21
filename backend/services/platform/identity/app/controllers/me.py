@@ -1,9 +1,10 @@
 """Quem sou eu — a fonte de verdade das áreas, para o SPA.
 
-O frontend não pode decidir isto sozinho: as áreas do MozaOps não estão no
-token do GEEA, são decididas por nós. Esta rota é o que faz com que abrir uma
-área a mais uma unidade seja mudar configuração do backend, e não publicar um
-SPA novo.
+O frontend não pode decidir isto sozinho: o SPA guarda o token, não o abre, e
+as áreas não são uma claim que se copie — saem dos papéis do cliente no realm
+somados ao mapa de unidades, e quem os junta é o backend. Esta rota é o que faz
+com que dar acesso a mais alguém seja mexer no realm ou na configuração, e não
+publicar um SPA novo.
 """
 
 from fastapi import APIRouter

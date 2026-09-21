@@ -15,9 +15,12 @@ import {
   LucideChevronDown,
   LucideChevronRight,
   LucideChevronsLeft,
+  LucideLandmark,
   LucideLayoutGrid,
   LucideMonitorSmartphone,
   LucideShieldAlert,
+  LucideSmartphoneNfc,
+  LucideStore,
   LucideX,
 } from '@lucide/angular';
 
@@ -27,7 +30,14 @@ import { ChannelFlyoutComponent } from './channel-flyout';
 import { UserMenuComponent } from './user-menu';
 
 /** Um dos ícones que a barra sabe desenhar. O `@switch` traduz para o componente. */
-type NavIcon = 'layout-grid' | 'monitor-smartphone' | 'banknote' | 'shield-alert';
+type NavIcon =
+  | 'layout-grid'
+  | 'monitor-smartphone'
+  | 'banknote'
+  | 'shield-alert'
+  | 'smartphone-nfc'
+  | 'landmark'
+  | 'store';
 
 interface NavChild {
   readonly id: string;
@@ -36,52 +46,101 @@ interface NavChild {
   readonly route?: string;
   /** Canais abrem o painel lateral de funcionalidades em vez de navegar já. */
   readonly channel?: boolean;
+  /** Só é preciso quando a opção sobe à barra encolhida (`PROMOTE_UNDER`):
+      lá não há rótulo, e o ícone do grupo repetido não distinguia nada. */
+  readonly icon?: NavIcon;
 }
 
 interface NavItem {
   readonly id: string;
   readonly label: string;
   readonly icon: NavIcon;
+  /**
+   * A área que abre este grupo; ausente = transversal, como o Dashboard.
+   * Esconder não é controlo de acesso — isso é a guarda de rota e o backend.
+   */
+  readonly area?: AreaId;
   readonly route?: string;
   readonly children?: readonly NavChild[];
+  /** Herdado da opção que subiu à barra: abre o painel de funcionalidades do
+      canal, como abriria de dentro do grupo. */
+  readonly channel?: boolean;
 }
 
+/**
+ * O rótulo é o do Departamento, e agrupa áreas distintas: «Meios de Pag. e
+ * Canais» tem Canais, Pagamentos e Fraudes, que são três áreas e não uma. Por
+ * isso a área está em cada grupo e não aqui — quem só é de Canais vê a secção
+ * com Canais lá dentro, e mais nada.
+ */
 interface NavSection {
   readonly id: string;
   readonly label?: string;
-  /**
-   * A área que abre a secção; `null` = transversal. Esconder não é controlo de
-   * acesso — isso é a guarda de rota e o backend.
-   */
-  readonly area: AreaId | null;
   readonly items: readonly NavItem[];
+}
+
+/**
+ * Até quantas opções um grupo sobe à barra encolhida em vez de abrir painel.
+ *
+ * Encolhida, a barra não tem onde mostrar a sublista, e um grupo com duas ou
+ * três opções obrigava a um clique e a um painel ao lado para chegar ao que
+ * cabia ali mesmo. Abaixo deste número as opções ficam soltas, cada uma com o
+ * seu ícone; a partir dele o grupo mantém o painel, que é o que evita uma
+ * coluna de ícones sem fim.
+ */
+const PROMOTE_UNDER = 5;
+
+/**
+ * O que este grupo mostra na barra encolhida: as opções dele, ou ele próprio.
+ *
+ * Só sobem as opções que levam a algum lado. As que ainda não têm página
+ * («Cartões», «Cheques») dentro do grupo lêem-se como o que falta construir;
+ * soltas na barra seriam ícones que não fazem nada, sem sequer o rótulo ao
+ * lado a explicá-lo.
+ */
+function promoted(item: NavItem): readonly NavItem[] {
+  const children = item.children ?? [];
+  const leadsSomewhere = (child: NavChild) => Boolean(child.route ?? child.channel);
+
+  if (!children.length || children.length >= PROMOTE_UNDER || !children.every(leadsSomewhere)) {
+    return [item];
+  }
+
+  return children.map((child) => ({
+    id: child.id,
+    label: child.label,
+    icon: child.icon ?? item.icon,
+    area: item.area,
+    route: child.route,
+    channel: child.channel,
+  }));
 }
 
 const SECTIONS: readonly NavSection[] = [
   {
     id: 'general',
-    area: null,
     items: [{ id: 'dashboard', label: 'Dashboard', icon: 'layout-grid', route: '/dashboard' }],
   },
   {
     id: 'payments-and-channels',
     label: 'Meios de Pag. e Canais',
-    area: 'channels',
     items: [
       {
         id: 'channels',
         label: 'Canais',
         icon: 'monitor-smartphone',
+        area: 'channels',
         children: [
-          { id: 'pos', label: 'POS', route: '/pos', channel: true },
-          { id: 'atm', label: 'ATM', route: '/atm', channel: true },
-          { id: 'kiosks', label: 'Quiosques', route: '/kiosks', channel: true },
+          { id: 'pos', label: 'POS', route: '/pos', channel: true, icon: 'smartphone-nfc' },
+          { id: 'atm', label: 'ATM', route: '/atm', channel: true, icon: 'landmark' },
+          { id: 'kiosks', label: 'Quiosques', route: '/kiosks', channel: true, icon: 'store' },
         ],
       },
       {
         id: 'payments',
         label: 'Pagamentos',
         icon: 'banknote',
+        area: 'payment-methods',
         children: [
           { id: 'payroll', label: 'Proc. de Salários' },
           { id: 'cards', label: 'Cartões' },
@@ -93,6 +152,7 @@ const SECTIONS: readonly NavSection[] = [
         id: 'fraud-monitoring',
         label: 'Fraudes',
         icon: 'shield-alert',
+        area: 'fraud-monitoring',
       },
     ],
   },
@@ -109,9 +169,12 @@ const SECTIONS: readonly NavSection[] = [
     LucideChevronDown,
     LucideChevronRight,
     LucideChevronsLeft,
+    LucideLandmark,
     LucideLayoutGrid,
     LucideMonitorSmartphone,
     LucideShieldAlert,
+    LucideSmartphoneNfc,
+    LucideStore,
     LucideX,
     UserMenuComponent,
   ],
@@ -348,6 +411,15 @@ const SECTIONS: readonly NavSection[] = [
               @case ('shield-alert') {
                 <svg lucideShieldAlert [size]="20" [strokeWidth]="1.8"></svg>
               }
+              @case ('smartphone-nfc') {
+                <svg lucideSmartphoneNfc [size]="20" [strokeWidth]="1.8"></svg>
+              }
+              @case ('landmark') {
+                <svg lucideLandmark [size]="20" [strokeWidth]="1.8"></svg>
+              }
+              @case ('store') {
+                <svg lucideStore [size]="20" [strokeWidth]="1.8"></svg>
+              }
             }
           </span>
 
@@ -441,10 +513,23 @@ export class SidebarComponent {
   readonly collapsed = model(false);
   readonly open = model(false);
 
-  /** Só as secções que esta pessoa abre. Sem área nenhuma, sobra o «Geral». */
-  protected readonly sections = computed(() =>
-    SECTIONS.filter((section) => section.area === null || this.session.hasArea(section.area)),
-  );
+  /**
+   * Só o que esta pessoa abre: dentro de cada secção ficam os grupos da área
+   * dela, e uma secção que fique sem nenhum não aparece. Sem área nenhuma,
+   * sobra o «Geral».
+   *
+   * Encolhida, os grupos pequenos desaparecem e as opções deles ficam à vista
+   * — ver `PROMOTE_UNDER`.
+   */
+  protected readonly sections = computed(() => {
+    const collapsed = this.collapsed();
+    return SECTIONS.map((section) => ({
+      ...section,
+      items: section.items
+        .filter((item) => !item.area || this.session.hasArea(item.area))
+        .flatMap((item) => (collapsed ? promoted(item) : [item])),
+    })).filter((section) => section.items.length > 0);
+  });
 
   /** Canais aberto por omissão: é o único grupo com páginas construídas. */
   protected readonly expandedIds = signal<ReadonlySet<string>>(new Set(['channels']));
@@ -511,6 +596,13 @@ export class SidebarComponent {
   }
 
   protected onItemClick(item: NavItem): void {
+    // Um canal que subiu à barra encolhida abre o painel de funcionalidades,
+    // como abriria de dentro do grupo. Sem grupo por trás, não há «voltar».
+    if (item.channel) {
+      this.flyoutChannelParentId.set(null);
+      this.flyoutChannelId.update((current) => (current === item.id ? null : item.id));
+      return;
+    }
     if (item.children) {
       this.toggleGroup(item.id);
       return;

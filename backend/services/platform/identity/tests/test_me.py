@@ -2,7 +2,7 @@
 
 import time
 
-from tests.conftest import make_token
+from tests.conftest import AZP, make_token
 
 
 class TestWithValidToken:
@@ -23,6 +23,28 @@ class TestWithValidToken:
         response = client.get("/identity/me", headers={"Authorization": f"Bearer {token}"})
         assert response.status_code == 200
         assert response.json()["areas"] == []
+
+    def test_client_roles_open_their_areas(self, client):
+        """O realm provisiona, e a unidade deixa de ser precisa.
+
+        É o caso de quem está registado no departamento inteiro: sem isto,
+        entrava e não via nada.
+        """
+        token = make_token(
+            preferred_username="m009999",
+            departmentCode="2350",
+            resource_access={AZP: {"roles": ["channels"]}},
+        )
+
+        response = client.get("/identity/me", headers={"Authorization": f"Bearer {token}"})
+        assert response.json()["areas"] == ["channels"]
+
+    def test_the_all_areas_role_travels_as_is(self, client):
+        """O SPA é que o reconhece, por isso não se expande aqui."""
+        token = make_token(resource_access={AZP: {"roles": ["all-areas"]}})
+
+        response = client.get("/identity/me", headers={"Authorization": f"Bearer {token}"})
+        assert response.json()["areas"] == ["all-areas", "channels"]
 
     def test_job_function_does_not_change_access(self, client):
         """Um técnico da mesma unidade vê exactamente o que o director vê."""

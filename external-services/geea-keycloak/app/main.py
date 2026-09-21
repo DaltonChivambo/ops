@@ -12,6 +12,7 @@ import json
 import os
 import time
 import uuid
+from dataclasses import dataclass
 from pathlib import Path
 
 import jwt
@@ -21,10 +22,11 @@ from fastapi import FastAPI, Form, Header, HTTPException
 DATA_FILE = Path(__file__).resolve().parent.parent / "data" / "departamentos.json"
 
 # ─── Credenciais aceites pelo login ──────────────────────────────────────
+# Os utilizadores estão mais abaixo, em `USERS`. A password é uma só para
+# todos: é um mock, e ter uma por pessoa só daria mais coisas para decorar.
 GEEA_REALM = os.environ.get("GEEA_KEYCLOAK_REALM", "QAS")
-GEEA_USERNAME = os.environ.get("GEEA_KEYCLOAK_USERNAME", "m002000")
 GEEA_PASSWORD = os.environ.get("GEEA_KEYCLOAK_PASSWORD", "mude-me-em-producao")
-GEEA_CLIENT_ID = os.environ.get("GEEA_KEYCLOAK_CLIENT_ID", "qa-workflow-ui")
+GEEA_CLIENT_ID = os.environ.get("GEEA_KEYCLOAK_CLIENT_ID", "qa-mozaops")
 GEEA_CLIENT_SECRET = os.environ.get("GEEA_KEYCLOAK_CLIENT_SECRET", "mude-me-em-producao")
 
 TOKEN_TTL_SECONDS = int(os.environ.get("GEEA_KEYCLOAK_TOKEN_TTL", "18000"))
@@ -36,34 +38,98 @@ TOKEN_TTL_SECONDS = int(os.environ.get("GEEA_KEYCLOAK_TOKEN_TTL", "18000"))
 ISS_HOST = os.environ.get("GEEA_KEYCLOAK_ISS_HOST", "geea-keycloak:8000")
 ALLOWED_ORIGIN = os.environ.get("GEEA_KEYCLOAK_ALLOWED_ORIGIN", "http://svdcpapq51:8085")
 
-# ─── Perfil do utilizador de mock — devolvido nas claims do token ────────
-# Valores por omissão tal como no exemplo real fornecido; ajusta por env se
-# precisares de simular outra pessoa/departamento.
-MOCK_SUB = os.environ.get("GEEA_MOCK_SUB", "6961d9f6-5529-457b-93cb-db82230a00cb")
-MOCK_NAME = os.environ.get("GEEA_MOCK_NAME", "Dalton Chivambo Chivambo")
-MOCK_GIVEN_NAME = os.environ.get("GEEA_MOCK_GIVEN_NAME", "Dalton Chivambo")
-MOCK_FAMILY_NAME = os.environ.get("GEEA_MOCK_FAMILY_NAME", "Chivambo")
-MOCK_EMAIL = os.environ.get("GEEA_MOCK_EMAIL", "dalton.chivambo@mozabanco.co.mz")
-MOCK_FUNCTION = os.environ.get("GEEA_MOCK_FUNCTION", "Director")
-MOCK_DEPARTMENT_CODE = os.environ.get("GEEA_MOCK_DEPARTMENT_CODE", "3230")
-MOCK_DEPARTMENT = os.environ.get("GEEA_MOCK_DEPARTMENT", "Canais e Serviços de Integração")
-MOCK_WORKSTATION = os.environ.get("GEEA_MOCK_WORKSTATION", "WSEDE47W")
-MOCK_EMPLOYEE_ID = os.environ.get("GEEA_MOCK_EMPLOYEE_ID", "1926")
-MOCK_TELEPHONE = os.environ.get("GEEA_MOCK_TELEPHONE", "714068")
-MOCK_SCOPE = os.environ.get("GEEA_MOCK_SCOPE", "manage-clients AD email profile")
+MOCK_SCOPE = os.environ.get("GEEA_MOCK_SCOPE", "AD email profile")
+# Os papéis do sistema de workflow do banco. São iguais para toda a gente e não
+# abrem nada no MozaOps — estão aqui porque vêm no token real.
 MOCK_REALM_ROLES = [
     "search_processes",
     "idm_menu",
+    "channels",
     "manage_function",
     "manage_organicUnit",
     "offline_access",
     "work_queue",
     "process_parent",
-    "manage_aml_entities",
     "kie-server",
     "manage_employee",
 ]
 MOCK_ACCOUNT_ROLES = ["manage-account", "manage-account-links", "view-profile"]
+
+
+# ─── Utilizadores ────────────────────────────────────────────────────────
+@dataclass(frozen=True)
+class MockUser:
+    """Uma pessoa do directório, com as claims que o token dela leva.
+
+    `roles` são os papéis do cliente `qa-mozaops`, e é de lá que o MozaOps tira
+    as áreas: cada papel tem o nome da área que abre, e o `all-areas` abre-as
+    todas. Mudar esta lista é mudar o que a pessoa vê. Ver
+    `mozaops_libs/auth/areas.py`.
+    """
+
+    username: str
+    sub: str
+    name: str
+    given_name: str
+    family_name: str
+    email: str
+    function: str
+    department_code: str
+    department: str
+    workstation: str
+    employee_id: str
+    telephone: str
+    roles: list[str]
+
+
+# Dois, e não um: com um utilizador só nunca se vê o que o MozaOps faz a quem
+# não é da área — que é metade do comportamento que há para testar.
+#
+# O `m001926` é real: as claims são as que o QAS devolve. O `m002000` é
+# inventado, e existe para haver alguém com menos acesso do que outro.
+USERS: dict[str, MockUser] = {
+    user.username: user
+    for user in (
+        MockUser(
+            username="m001926",
+            sub="6961d9f6-5529-457b-93cb-db82230a00cb",
+            name="Dalton Chivambo Chivambo",
+            given_name="Dalton Chivambo",
+            family_name="Chivambo",
+            email="dalton.chivambo@mozabanco.co.mz",
+            function="Director",
+            department_code="2350",
+            department="Departamento de Apoio Operacional",
+            workstation="WSEDE47W",
+            employee_id="1926",
+            telephone="714068",
+            # Um papel só, e não a lista das áreas: `all-areas` abre o sistema
+            # inteiro, incluindo o que ainda não foi construído — é o acesso
+            # total, e não a soma do que hoje existe.
+            roles=["all-areas"],
+        ),
+        MockUser(
+            username="m002000",
+            sub="4b2f7a10-9c3d-4e58-8f61-0d7a5c2e9b34",
+            name="John Doe",
+            given_name="John Doe",
+            family_name="Doe",
+            email="john.doe@mozabanco.co.mz",
+            function="Técnico",
+            department_code="3230",
+            department="Canais e Serviços de Integração",
+            workstation="WSEDE12A",
+            employee_id="2000",
+            telephone="714099",
+            # Só canais: é o que separa este do outro.
+            roles=["channels"],
+        ),
+    )
+}
+
+# O token de renovação não leva `preferred_username` — o Keycloak real também
+# não lho põe — por isso quem volta é identificado pelo `sub`.
+USERS_BY_SUB = {user.sub: user for user in USERS.values()}
 
 app = FastAPI(title="GEEA_KEYCLOAK")
 
@@ -99,7 +165,7 @@ def _issuer(realm: str) -> str:
 
 
 def _access_claims(
-    realm: str, client_id: str, username: str, jti: str, session_state: str, iat: int, exp: int
+    realm: str, client_id: str, user: MockUser, jti: str, session_state: str, iat: int, exp: int
 ) -> dict:
     return {
         "jti": jti,
@@ -108,7 +174,7 @@ def _access_claims(
         "iat": iat,
         "iss": _issuer(realm),
         "aud": "account",
-        "sub": MOCK_SUB,
+        "sub": user.sub,
         "typ": "Bearer",
         "azp": client_id,
         "nonce": None,
@@ -116,16 +182,16 @@ def _access_claims(
         "session_state": session_state,
         "at_hash": None,
         "c_hash": None,
-        "name": MOCK_NAME,
-        "given_name": MOCK_GIVEN_NAME,
-        "family_name": MOCK_FAMILY_NAME,
+        "name": user.name,
+        "given_name": user.given_name,
+        "family_name": user.family_name,
         "middle_name": None,
         "nickname": None,
-        "preferred_username": username,
+        "preferred_username": user.username,
         "profile": None,
         "picture": None,
         "website": None,
-        "email": MOCK_EMAIL,
+        "email": user.email,
         "email_verified": False,
         "gender": None,
         "birthdate": None,
@@ -141,21 +207,24 @@ def _access_claims(
         "trusted-certs": None,
         "allowed-origins": [ALLOWED_ORIGIN],
         "realm_access": {"roles": MOCK_REALM_ROLES, "verify_caller": None},
-        "resource_access": {"account": {"roles": MOCK_ACCOUNT_ROLES, "verify_caller": None}},
+        "resource_access": {
+            client_id: {"roles": user.roles, "verify_caller": None},
+            "account": {"roles": MOCK_ACCOUNT_ROLES, "verify_caller": None},
+        },
         "authorization": None,
         "cnf": None,
         "scope": MOCK_SCOPE,
-        "function": MOCK_FUNCTION,
-        "departmentCode": MOCK_DEPARTMENT_CODE,
-        "workstation": MOCK_WORKSTATION,
-        "Employee ID": MOCK_EMPLOYEE_ID,
-        "telephone": MOCK_TELEPHONE,
-        "department": MOCK_DEPARTMENT,
+        "function": user.function,
+        "departmentCode": user.department_code,
+        "workstation": user.workstation,
+        "Employee ID": user.employee_id,
+        "telephone": user.telephone,
+        "department": user.department,
     }
 
 
 def _refresh_claims(
-    realm: str, client_id: str, jti: str, session_state: str, iat: int, exp: int
+    realm: str, client_id: str, user: MockUser, jti: str, session_state: str, iat: int, exp: int
 ) -> dict:
     issuer = _issuer(realm)
     return {
@@ -165,13 +234,16 @@ def _refresh_claims(
         "iat": iat,
         "iss": issuer,
         "aud": issuer,
-        "sub": MOCK_SUB,
+        "sub": user.sub,
         "typ": "Refresh",
         "azp": client_id,
         "auth_time": 0,
         "session_state": session_state,
         "realm_access": {"roles": MOCK_REALM_ROLES, "verify_caller": None},
-        "resource_access": {"account": {"roles": MOCK_ACCOUNT_ROLES, "verify_caller": None}},
+        "resource_access": {
+            client_id: {"roles": user.roles, "verify_caller": None},
+            "account": {"roles": MOCK_ACCOUNT_ROLES, "verify_caller": None},
+        },
         "scope": MOCK_SCOPE,
     }
 
@@ -185,13 +257,16 @@ def sso_login(
     clientSecret: str,
     clientIpAdress: str | None = None,
 ) -> dict:
+    user = USERS.get(username)
     if (
         realm != GEEA_REALM
-        or username != GEEA_USERNAME
+        or user is None
         or password != GEEA_PASSWORD
         or clientId != GEEA_CLIENT_ID
         or clientSecret != GEEA_CLIENT_SECRET
     ):
+        # Uma mensagem só: dizer «esse utilizador não existe» contaria a quem
+        # tenta adivinhar contas quais é que existem. O real também não conta.
         raise HTTPException(status_code=401, detail="Credenciais inválidas")
 
     jti = str(uuid.uuid4())
@@ -199,10 +274,10 @@ def sso_login(
     iat = int(time.time())
     exp = iat + TOKEN_TTL_SECONDS
 
-    access_claims = _access_claims(realm, clientId, username, jti, session_state, iat, exp)
+    access_claims = _access_claims(realm, clientId, user, jti, session_state, iat, exp)
     id_claims = dict(access_claims)
     refresh_claims = _refresh_claims(
-        realm, clientId, str(uuid.uuid4()), session_state, iat, exp
+        realm, clientId, user, str(uuid.uuid4()), session_state, iat, exp
     )
 
     headers = {"kid": KID}
@@ -261,17 +336,20 @@ def token(
     if claims.get("typ") != "Refresh":
         raise HTTPException(status_code=400, detail="invalid_grant")
 
+    user = USERS_BY_SUB.get(str(claims.get("sub") or ""))
+    if user is None:
+        raise HTTPException(status_code=400, detail="invalid_grant")
+
     iat = int(time.time())
     exp = iat + TOKEN_TTL_SECONDS
     session_state = str(claims.get("session_state") or uuid.uuid4())
-    username = str(claims.get("preferred_username") or GEEA_USERNAME)
 
     headers = {"kid": KID}
     access_claims = _access_claims(
-        realm, client_id, username, str(uuid.uuid4()), session_state, iat, exp
+        realm, client_id, user, str(uuid.uuid4()), session_state, iat, exp
     )
     refresh_claims = _refresh_claims(
-        realm, client_id, str(uuid.uuid4()), session_state, iat, exp
+        realm, client_id, user, str(uuid.uuid4()), session_state, iat, exp
     )
 
     return {

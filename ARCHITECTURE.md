@@ -210,6 +210,31 @@ Três regras que sustentam o resto:
    a uma, e quem for da área faz tudo o que ela faz. O mapa unidade-do-GEEA → área está em
    `AUTH_AREAS`.
 
+**Quem provisiona o acesso é o realm.** Os tokens do QAS trazem, em
+`resource_access["qa-mozaops"].roles`, os papéis que o cliente do MozaOps tem para aquela
+pessoa — `channels`, `payment-methods`, `fraud-monitoring` — e cada papel tem o **nome da
+área** que abre. É essa a fonte principal: dar acesso a alguém é um pedido ao IAM, no sítio
+onde o banco já trata de tudo o resto, e não uma variável de ambiente a mudar e um serviço a
+reiniciar. O nome do papel e o id da área são a mesma cadeia de caracteres — mudar um sem o
+outro tira o acesso a quem o tinha.
+
+O `all-areas` é a excepção: abre o MozaOps inteiro, incluindo o que ainda não foi construído,
+e existe para quem tem de ver tudo sem voltar ao realm a cada automação nova. Quem o tem entra
+em qualquer sítio, por isso dá-se com o mesmo critério com que se dá a chave toda. Vai no
+`/me` como vem, e o SPA reconhece-o para não esconder nada — expandi-lo no backend obrigaria o
+servidor a conhecer o catálogo do frontend.
+
+O `AUTH_AREAS` (unidade orgânica) e o `AUTH_AREA_USERS` (pessoa a pessoa) ficam como rede por
+baixo, e **somam-se** aos papéis: servem as unidades que o realm ainda não provisionou, e quem
+está registado numa unidade mas trabalha noutra — o caso de quem trata dos fechos e aparece no
+GEEA com o código do departamento inteiro (`2350`). Tirar acesso a alguém é tirá-lo nos dois
+sítios.
+
+Só contam os papéis do **nosso** cliente. Os de `realm_access` são do sistema de workflow do
+banco e não dizem nada sobre o MozaOps, mesmo quando têm um nome parecido; e os de outro
+cliente são os acessos dessa pessoa noutra aplicação. Do token verificam-se sempre a
+assinatura, o `iss` e o `azp` — `qa-mozaops`, o cliente com que estamos registados no realm.
+
 **Vocabulário, porque é onde isto se confunde:** no nosso código `area` é a área do MozaOps —
 uma unidade orgânica real, não um departamento inteiro. «Meios de Pagamentos e Canais» é o
 Departamento de Apoio Operacional visto por fora; lá dentro há várias áreas distintas

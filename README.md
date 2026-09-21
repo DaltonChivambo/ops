@@ -84,6 +84,11 @@ cd frontend && npm install && npm start   # http://localhost:4200
 | Jaeger | http://jaeger.mozaops.localhost |
 | Painel do Traefik | http://127.0.0.1:8080 |
 
+Para entrar, o mock do GEEA tem dois utilizadores, ambos com a password
+`mude-me-em-producao`: `m001926` (Dalton Chivambo, abre todas as áreas) e
+`m002000` (John Doe, só Canais). Quem é quem está em
+[`external-services/geea-keycloak/README.md`](external-services/geea-keycloak/README.md).
+
 ```bash
 make            # lista os comandos
 make test       # testes do backend

@@ -1,7 +1,7 @@
 import { ChangeDetectionStrategy, Component, inject, input } from '@angular/core';
 
 import { SessionStore } from '../core/auth/session.store';
-import { areaLabel } from '../core/navigation';
+import { areaLabels } from '../core/navigation';
 import { AVATAR_CLASS } from '../shared/ui/avatar';
 
 @Component({
@@ -50,8 +50,6 @@ export class HeaderComponent {
   readonly subtitle = input<string>('');
 
   areaLabels(): string {
-    const areas = this.session.areas();
-    if (areas.length === 0) return 'Sem área atribuída';
-    return areas.map((area) => areaLabel(area) ?? area).join(' · ');
+    return areaLabels(this.session.areas());
   }
 }

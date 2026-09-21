@@ -24,9 +24,11 @@ class PrincipalResponse(Schema):
     """Quem entrou, e o que é que isso lhe abre.
 
     `areas` são as do catálogo do MozaOps — as mesmas que a barra lateral do
-    SPA mostra. `department`/`departmentCode` são a unidade orgânica tal como o
-    GEEA a nomeia, e vão para o ecrã de «sem acesso»: quem lá cair precisa de
-    dizer à coordenação em que unidade está registado.
+    SPA mostra — e podem trazer `all-areas`, que vale por todas e é o que o SPA
+    reconhece para não esconder nada. `department`/`departmentCode` são a
+    unidade orgânica tal como o GEEA a nomeia, e vão para o ecrã de «sem
+    acesso»: quem lá cair precisa de dizer à coordenação em que unidade está
+    registado.
     """
 
     subject: str

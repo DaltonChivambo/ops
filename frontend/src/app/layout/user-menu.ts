@@ -15,7 +15,7 @@ import {
 } from '@lucide/angular';
 
 import { SessionStore } from '../core/auth/session.store';
-import { areaLabel } from '../core/navigation';
+import { areaLabels } from '../core/navigation';
 import { AVATAR_CLASS } from '../shared/ui/avatar';
 
 /** Entradas por construir: à vista e desactivadas, em vez de clicáveis e sem efeito. */
@@ -136,11 +136,7 @@ export class UserMenuComponent {
 
   protected readonly name = computed(() => this.session.principal()?.name ?? 'Sem sessão');
 
-  protected readonly areaLabels = computed(() => {
-    const areas = this.session.areas();
-    if (areas.length === 0) return 'Sem área atribuída';
-    return areas.map((area) => areaLabel(area) ?? area).join(' · ');
-  });
+  protected readonly areaLabels = computed(() => areaLabels(this.session.areas()));
 
   protected logout(): void {
     this.open.set(false);

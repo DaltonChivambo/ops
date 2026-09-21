@@ -148,6 +148,48 @@ class TestPrincipal:
         assert principal.employee_id == "1926"
         assert principal.areas == {"payments-and-channels"}
 
+    async def test_all_areas_role_opens_everything(self, issuer):
+        from mozaops_libs.auth import ALL_AREAS
+        from mozaops_libs.auth.areas import AreaMapping
+        from mozaops_libs.auth.fastapi import principal_from_claims
+
+        token = issuer.token(resource_access={AZP: {"roles": [ALL_AREAS]}})
+        principal = principal_from_claims(await build(issuer).verify(token), AreaMapping())
+
+        assert principal.has_area("channels")
+        assert principal.has_area("uma-area-que-ainda-nao-existe")
+
+    async def test_without_the_area_nothing_opens(self, issuer):
+        from mozaops_libs.auth.areas import AreaMapping
+        from mozaops_libs.auth.fastapi import principal_from_claims
+
+        token = issuer.token(resource_access={AZP: {"roles": ["channels"]}})
+        principal = principal_from_claims(await build(issuer).verify(token), AreaMapping())
+
+        assert principal.has_area("channels")
+        assert not principal.has_area("fraud-monitoring")
+
+
+class TestDisplayName:
+    """O nome como se mostra — a regra está em `fastapi.display_name`."""
+
+    def test_repeated_surname_is_collapsed(self):
+        from mozaops_libs.auth.fastapi import display_name
+
+        assert display_name({"name": "Dalton Chivambo Chivambo"}) == "Dalton Chivambo"
+
+    def test_full_name_is_kept(self):
+        from mozaops_libs.auth.fastapi import display_name
+
+        assert display_name({"name": "John Doe"}) == "John Doe"
+
+    def test_falls_back_when_the_directory_has_no_name(self):
+        from mozaops_libs.auth.fastapi import display_name
+
+        assert display_name({"given_name": "Ana", "preferred_username": "m004410"}) == "Ana"
+        assert display_name({"preferred_username": "m004410"}) == "m004410"
+        assert display_name({}) == ""
+
 
 def test_test_key_pair_is_generated_not_read_from_disk():
     """Nenhuma chave privada entra no repositório, nem para testes."""

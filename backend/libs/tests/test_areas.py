@@ -35,9 +35,61 @@ class TestByUnit:
 
         assert technician == director == {"payments-and-channels"}
 
-    def test_geea_roles_do_not_count(self):
-        """`manage_employee` é do sistema deles, e não abre nada aqui."""
-        given = claims(realm_access={"roles": ["manage_employee", "mozaops_supervisor"]})
+    def test_geea_realm_roles_do_not_count(self):
+        """Os papéis do realm são do sistema deles, mesmo com nome de área.
+
+        Só contam os do nosso cliente, em `resource_access` — ver
+        `TestByClientRoles`.
+        """
+        given = claims(realm_access={"roles": ["manage_employee", "payments-and-channels"]})
+        assert map_areas(given, MAPPING) == frozenset()
+
+
+class TestByClientRoles:
+    def test_role_of_our_client_opens_the_area(self):
+        """O realm QAS é quem provisiona: o nome do papel é o id da área."""
+        given = claims(
+            azp="qa-mozaops",
+            resource_access={
+                "qa-mozaops": {"roles": ["payments-and-channels", "fraud-monitoring"]},
+                "account": {"roles": ["view-profile"]},
+            },
+        )
+        assert map_areas(given, MAPPING) == {"payments-and-channels", "fraud-monitoring"}
+
+    def test_roles_of_another_client_do_not_count(self):
+        """Os acessos que alguém tem noutra aplicação do banco não são nossos."""
+        given = claims(
+            azp="qa-mozaops",
+            resource_access={"qa-workflow-ui": {"roles": ["payments-and-channels"]}},
+        )
+        assert map_areas(given, MAPPING) == frozenset()
+
+    def test_roles_add_to_the_unit(self):
+        given = claims(
+            azp="qa-mozaops",
+            departmentCode="2350",
+            resource_access={"qa-mozaops": {"roles": ["cartoes"]}},
+        )
+        assert map_areas(given, MAPPING) == {"payments-and-channels", "cartoes"}
+
+    @pytest.mark.parametrize(
+        "resource_access",
+        [
+            None,
+            {},
+            "não é um objecto",
+            {"qa-mozaops": {}},
+            {"qa-mozaops": {"roles": "payments-and-channels"}},
+            {"qa-mozaops": {"roles": [None, 7]}},
+        ],
+    )
+    def test_malformed_resource_access_opens_nothing(self, resource_access):
+        given = claims(azp="qa-mozaops", resource_access=resource_access)
+        assert map_areas(given, MAPPING) == frozenset()
+
+    def test_without_azp_there_is_no_client_to_read(self):
+        given = claims(resource_access={"qa-mozaops": {"roles": ["payments-and-channels"]}})
         assert map_areas(given, MAPPING) == frozenset()
 
 

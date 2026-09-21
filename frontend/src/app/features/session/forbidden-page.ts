@@ -2,7 +2,7 @@ import { ChangeDetectionStrategy, Component, computed, inject } from '@angular/c
 import { LucideLifeBuoy, LucideShieldAlert } from '@lucide/angular';
 
 import { SessionStore } from '../../core/auth/session.store';
-import { areaLabel } from '../../core/navigation';
+import { areaLabels } from '../../core/navigation';
 import { HeaderComponent } from '../../layout/header';
 
 /**
@@ -21,7 +21,9 @@ import { HeaderComponent } from '../../layout/header';
     <app-header heading="Sem acesso" />
 
     <div class="grid grow place-items-center p-6">
-      <div class="w-full max-w-sm rounded-2xl border border-alert-100 bg-white p-8 text-center shadow-sm">
+      <div
+        class="w-full max-w-sm rounded-2xl border border-alert-100 bg-white p-8 text-center shadow-sm"
+      >
         <span
           class="grid size-14 place-items-center rounded-full bg-alert-50 text-alert-600 mx-auto"
         >
@@ -43,7 +45,9 @@ import { HeaderComponent } from '../../layout/header';
           <svg lucideLifeBuoy [size]="15" [strokeWidth]="1.9" class="shrink-0 text-moza-400"></svg>
           <p class="text-xs text-moza-400">
             Para suporte, contacte
-            <a href="mailto:dalton.chivambo@mozabanco.co.mz" class="font-medium text-moza-600 hover:underline"
+            <a
+              href="mailto:dalton.chivambo@mozabanco.co.mz"
+              class="font-medium text-moza-600 hover:underline"
               >dalton.chivambo&#64;mozabanco.co.mz</a
             >
           </p>
@@ -59,6 +63,6 @@ export class ForbiddenPageComponent {
       quem der o apoio do que não dizer nada. */
   protected readonly areas = computed(() => {
     const areas = this.session.areas();
-    return areas.length ? areas.map((area) => areaLabel(area) ?? area).join(' · ') : 'nenhuma';
+    return areas.length ? areaLabels(areas) : 'nenhuma';
   });
 }

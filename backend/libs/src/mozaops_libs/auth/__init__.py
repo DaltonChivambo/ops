@@ -6,7 +6,13 @@ porque autenticação diferente entre dois serviços da mesma aplicação não �
 diferença de estilo: é a porta que fica aberta no serviço que ficou para trás.
 """
 
-from mozaops_libs.auth.areas import AreaMapping, map_areas, parse_area_map, parse_set
+from mozaops_libs.auth.areas import (
+    ALL_AREAS,
+    AreaMapping,
+    map_areas,
+    parse_area_map,
+    parse_set,
+)
 from mozaops_libs.auth.errors import (
     AuthError,
     ForbiddenError,
@@ -18,6 +24,7 @@ from mozaops_libs.auth.principal import Principal
 from mozaops_libs.auth.verifier import TokenVerifier
 
 __all__ = [
+    "ALL_AREAS",
     "AreaMapping",
     "Auth",
     "AuthError",

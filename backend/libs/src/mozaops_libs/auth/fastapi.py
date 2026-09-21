@@ -41,16 +41,26 @@ _STATUS_BY_ERROR: tuple[tuple[type[AuthError], int, str], ...] = (
 )
 
 
+def display_name(claims: dict[str, Any]) -> str:
+    """O nome como se mostra a alguém, a partir do que o GEEA registou.
+
+    O directório repete o apelido no `name` de quem tem mais do que um nome
+    próprio — «Dalton Chivambo Chivambo», quando o apelido é «Chivambo» — e é
+    essa repetição que se corta, e só ela. Ficar pelo `given_name` cortava
+    também o apelido de quem não tem a repetição, e mostrava «John» a John Doe.
+    """
+    name = " ".join(str(claims.get("name") or "").split())
+    if name:
+        parts = name.split(" ")
+        return " ".join(parts[:-1]) if len(parts) > 2 and parts[-1] == parts[-2] else name
+    return str(claims.get("given_name") or claims.get("preferred_username") or "")
+
+
 def principal_from_claims(claims: dict[str, Any], mapping: AreaMapping) -> Principal:
     return Principal(
         subject=str(claims.get("sub") or ""),
         username=str(claims.get("preferred_username") or ""),
-        # `given_name` e não `name`: o GEEA duplica o apelido no `name`
-        # («Dalton Chivambo Chivambo», quando o apelido já é «Chivambo») — é
-        # como o directório guarda o registo, não como se mostra a alguém.
-        name=str(
-            claims.get("given_name") or claims.get("name") or claims.get("preferred_username") or ""
-        ),
+        name=display_name(claims),
         email=str(claims.get("email") or ""),
         areas=map_areas(claims, mapping),
         department_code=str(claims.get("departmentCode") or ""),

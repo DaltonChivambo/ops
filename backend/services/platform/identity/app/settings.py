@@ -24,13 +24,16 @@ class Settings(BaseSettings):
     auth_jwks_url: str = "http://geea-keycloak:8000/auth/realms/QAS/protocol/openid-connect/certs"
     #: Clientes cujos tokens aceitamos. Um token legítimo do GEEA emitido para
     #: outra aplicação do banco não serve para entrar aqui.
-    auth_allowed_azp: str = "qa-workflow-ui"
+    auth_allowed_azp: str = "qa-mozaops"
 
     # ─── Mapa de áreas ───────────────────────────────────────────────────
+    # A fonte principal das áreas são os papéis do cliente no token, e esses
+    # não se configuram: vêm do realm. Estas duas são a rede por baixo, para
+    # quem o realm ainda não provisionou — ver `mozaops_libs/auth/areas.py`.
+    #
     #: `area:unidade,unidade;area:unidade`. A área é a do catálogo do MozaOps
     #: (a mesma da barra lateral do SPA); as unidades são os códigos que o GEEA
-    #: manda em `departmentCode`. Sem entrada aqui, ninguém entra em lado
-    #: nenhum — é de propósito, ver `mozaops_libs/auth/areas.py`.
+    #: manda em `departmentCode`.
     auth_areas: str = "channels:3230"
     #: `area:username,username`. O acréscimo para quem está registado noutra
     #: unidade mas trabalha nesta. Vazio é o estado normal.
@@ -44,7 +47,7 @@ class Settings(BaseSettings):
     # outro serviço, que só não é assinalado por não ter a palavra no nome.
     geea_token_url: str = "http://geea-keycloak:8000/auth/realms/QAS/protocol/openid-connect/token"  # noqa: S105
     geea_realm: str = "QAS"
-    geea_client_id: str = "qa-workflow-ui"
+    geea_client_id: str = "qa-mozaops"
     geea_client_secret: str = "mude-me-em-producao"  # noqa: S105
 
     # ─── Sessão ──────────────────────────────────────────────────────────

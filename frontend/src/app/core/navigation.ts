@@ -15,13 +15,15 @@
  * reais e distintas no organigrama: `CANAIS E SERVIÇOS DE INTEGRAÇÃO`
  * (código GEEA 3230) é uma, `SERVIÇO DE MEIOS DE PAGAMENTO` (2442) é outra.
  * `channels` é a área de quem trata do POS/ATM/Quiosques — a única com
- * automação construída, por isso a única que existe aqui. O rótulo do
- * departamento é só agrupamento visual (`sidebar.ts`); o acesso é à área.
+ * automação construída, mas não a única que existe: o realm atribui também
+ * `payment-methods` e `fraud-monitoring`, e a barra lateral já mostra as
+ * secções delas. O rótulo do departamento é só agrupamento visual
+ * (`sidebar.ts`); o acesso é à área.
  *
  * O GEEA chama `department` à unidade onde a pessoa está registada, mas o que
  * lá vem tanto é um departamento como uma área ou um serviço.
  */
-export type AreaId = 'channels';
+export type AreaId = 'channels' | 'payment-methods' | 'fraud-monitoring';
 
 export interface Area {
   readonly id: AreaId;
@@ -29,11 +31,21 @@ export interface Area {
 }
 
 /**
- * Só o que já tem automação construída (mesma regra do módulo/funcionalidade).
- * «Clientes e Contas» entra aqui — e ganha `features/customers-and-accounts/`
- * com conteúdo — quando tiver a primeira.
+ * As áreas de acesso, tenham automação construída ou não: o que a barra
+ * lateral mostra a alguém depende de as ter, e esconder uma secção inteira a
+ * quem não é da área é o ponto.
  */
-export const AREAS: readonly Area[] = [{ id: 'channels', label: 'Canais' }];
+export const AREAS: readonly Area[] = [
+  { id: 'channels', label: 'Canais' },
+  { id: 'payment-methods', label: 'Meios de Pagamento' },
+  { id: 'fraud-monitoring', label: 'Fraudes' },
+];
+
+/**
+ * O papel que abre tudo. Vem do backend na lista de áreas como se fosse mais
+ * uma — é `mozaops_libs/auth/areas.py` quem o define, e aqui só se reconhece.
+ */
+export const ALL_AREAS = 'all-areas';
 
 export type FeatureId = 'closing-credit-validation';
 export type ModuleId = 'dashboard' | 'pos' | 'atm' | 'kiosks';
@@ -127,4 +139,11 @@ export function modulesOfSection(section: string): readonly NavModule[] {
 
 export function areaLabel(id: string): string | undefined {
   return AREAS.find((area) => area.id === id)?.label;
+}
+
+/** O que o cabeçalho e o menu mostram por baixo do nome. */
+export function areaLabels(areas: readonly string[]): string {
+  if (areas.includes(ALL_AREAS)) return 'Acesso total';
+  if (areas.length === 0) return 'Sem área atribuída';
+  return areas.map((area) => areaLabel(area) ?? area).join(' · ');
 }

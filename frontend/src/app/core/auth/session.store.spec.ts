@@ -53,7 +53,10 @@ describe('SessionStore', () => {
   beforeEach(() => {
     api = new FakeIdentityApi();
     TestBed.configureTestingModule({
-      providers: [provideRouter([{ path: 'login', children: [] }]), { provide: IdentityApi, useValue: api }],
+      providers: [
+        provideRouter([{ path: 'login', children: [] }]),
+        { provide: IdentityApi, useValue: api },
+      ],
     });
     store = TestBed.inject(SessionStore);
     tokens = TestBed.inject(TokenStore);
@@ -111,6 +114,15 @@ describe('SessionStore', () => {
       await store.signIn('m001926', 'senha');
 
       expect(store.areas()).toEqual(['channels', 'ainda-nao-existe']);
+    });
+
+    it('o papel que abre tudo abre o que o catálogo nem conhece', async () => {
+      api.loginResult = session({ areas: ['all-areas'] });
+      await store.signIn('m001926', 'senha');
+
+      expect(store.hasArea('channels')).toBe(true);
+      expect(store.hasArea('fraud-monitoring')).toBe(true);
+      expect(store.hasArea('ainda-nao-existe')).toBe(true);
     });
 
     it('sem áreas, não abre nenhuma — defesa, já que o backend nunca chega a devolver isto', async () => {
