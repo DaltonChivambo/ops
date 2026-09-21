@@ -19,6 +19,10 @@ class Settings(BaseSettings):
     auth_issuer: str = "http://geea-keycloak:8000/auth/realms/QAS"
     auth_jwks_url: str = "http://geea-keycloak:8000/auth/realms/QAS/protocol/openid-connect/certs"
     auth_allowed_azp: str = "qa-mozaops"
+    #: O cliente cujos papéis concedem acesso ao MozaOps. Ler os papéis daqui, e
+    #: não do `azp` do token, é o que permite admitir mais clientes sem lhes
+    #: delegar a atribuição dos nossos acessos.
+    auth_client_id: str = "qa-mozaops"
 
     # ─── Mapa de áreas ───────────────────────────────────────────────────
     # Rede por baixo dos papéis do realm, que são a fonte principal e não se

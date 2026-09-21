@@ -33,6 +33,10 @@ class Settings(BaseSettings):
     auth_issuer: str = "http://geea-keycloak:8000/auth/realms/QAS"
     auth_jwks_url: str = "http://geea-keycloak:8000/auth/realms/QAS/protocol/openid-connect/certs"
     auth_allowed_azp: str = "qa-mozaops"
+    #: O cliente cujos papéis concedem acesso. Ler daqui, e não do `azp` do
+    #: token, é o que permite admitir mais clientes sem lhes delegar a
+    #: atribuição dos nossos acessos.
+    auth_client_id: str = "qa-mozaops"
 
     auth_areas: str = "channels:3230"
     auth_area_users: str = ""
@@ -42,6 +46,11 @@ class Settings(BaseSettings):
     #: configuração de autenticação entre os dois serviços, e é o que o router
     #: exige a quem bate à porta.
     auth_service_area: str = "channels"
+
+    #: O id **desta** automação, tal como o `service.yaml` a nomeia. É o que os
+    #: papéis `service:<id>:<read|write>` do realm referem, para dar acesso a
+    #: esta automação sem dar a área inteira.
+    auth_service_id: str = "pos-closing-credit-validation"
 
     def area_mapping(self) -> AreaMapping:
         return AreaMapping(

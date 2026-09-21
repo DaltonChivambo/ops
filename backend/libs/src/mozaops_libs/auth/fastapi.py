@@ -1,15 +1,13 @@
 """A ponte para o FastAPI: dependências de rota e tradução de erros.
 
 É o único ficheiro da lib que sabe o que é HTTP. As camadas de baixo
-(`verifier`, `areas`, `principal`) não importam nada daqui, e por isso
+(`verifier`, `areas`, `access`, `principal`) não importam nada daqui, e por isso
 testam-se sem cliente nem aplicação.
 
 **O envelope é contrato.** O `HTTPException` do FastAPI responde
 `{"detail": ...}`, e o `error.interceptor.ts` do SPA não sabe ler essa forma —
-cai na mensagem genérica de «erro inesperado». As respostas de autenticação
-saem no mesmo `{"error": {"code", "message"}}` que os erros de domínio de cada
-serviço, por isso é que aqui se registam handlers em vez de se levantar
-`HTTPException`.
+cai na mensagem genérica de «erro inesperado». Daí registarem-se handlers em vez
+de se levantar `HTTPException`.
 """
 
 from collections.abc import Awaitable, Callable
@@ -19,6 +17,7 @@ from fastapi import Depends, FastAPI, Request
 from fastapi.responses import JSONResponse
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 
+from mozaops_libs.auth.access import AccessLevel, client_roles, parse_service_access
 from mozaops_libs.auth.areas import AreaMapping, map_areas
 from mozaops_libs.auth.errors import (
     AuthError,
@@ -56,13 +55,15 @@ def display_name(claims: dict[str, Any]) -> str:
     return str(claims.get("given_name") or claims.get("preferred_username") or "")
 
 
-def principal_from_claims(claims: dict[str, Any], mapping: AreaMapping) -> Principal:
+def principal_from_claims(claims: dict[str, Any], mapping: AreaMapping, client: str) -> Principal:
+    roles = client_roles(claims, client)
     return Principal(
         subject=str(claims.get("sub") or ""),
         username=str(claims.get("preferred_username") or ""),
         name=display_name(claims),
         email=str(claims.get("email") or ""),
-        areas=map_areas(claims, mapping),
+        areas=map_areas(claims, mapping, roles),
+        service_access=parse_service_access(roles),
         department_code=str(claims.get("departmentCode") or ""),
         department=str(claims.get("department") or ""),
         function=str(claims.get("function") or ""),
@@ -72,41 +73,44 @@ def principal_from_claims(claims: dict[str, Any], mapping: AreaMapping) -> Princ
 
 
 class Auth:
-    """Construída uma vez, no arranque do serviço, a partir da configuração.
+    """Construída uma vez, no arranque do serviço, a partir da configuração."""
 
-    Expõe dependências já ligadas ao verificador e ao mapa de áreas — os
-    controladores pedem `Depends(auth.principal)` e não conhecem nem um nem
-    outro.
-    """
-
-    def __init__(self, verifier: TokenVerifier, mapping: AreaMapping):
+    def __init__(self, verifier: TokenVerifier, mapping: AreaMapping, client: str):
         self._verifier = verifier
         self._mapping = mapping
+        self._client = client
 
     async def principal(
         self,
+        request: Request,
         credentials: HTTPAuthorizationCredentials | None = Depends(_bearer),
     ) -> Principal:
         if credentials is None or not credentials.credentials:
             raise UnauthenticatedError
 
         claims = await self._verifier.verify(credentials.credentials)
-        return principal_from_claims(claims, self._mapping)
+        principal = principal_from_claims(claims, self._mapping, self._client)
+        # O middleware de auditoria corre fora da rota e não tem como pedir
+        # dependências; é por aqui que lhe chega quem está do outro lado.
+        request.state.principal = principal
+        return principal
 
-    def require_area(self, area: str) -> Callable[..., Awaitable[Principal]]:
-        """Dependência que exige acesso a uma área do MozaOps.
+    def require_access(self, service: str, area: str) -> Callable[..., Awaitable[Principal]]:
+        """Dependência que exige acesso a um microserviço.
 
-        Uma automação pertence a uma área e o serviço que a serve declara qual
-        é — não há aqui uma lista de rotas por permissão, porque dentro da área
-        toda a gente faz o mesmo.
+        Quem é da área passa como sempre passou. Quem não é passa se lhe tiverem
+        concedido este serviço com nível suficiente — e o nível sai do método,
+        não de uma lista de rotas que alguém teria de manter.
 
-        Devolver o `Principal` em vez de `None` deixa a mesma dependência
-        servir de guarda e de fonte de quem está a pedir — a rota não precisa
-        de o pedir duas vezes.
+        Devolver o `Principal` em vez de `None` deixa a mesma dependência servir
+        de guarda e de fonte de quem está a pedir.
         """
 
-        async def guard(principal: Principal = Depends(self.principal)) -> Principal:
-            if not principal.has_area(area):
+        async def guard(
+            request: Request, principal: Principal = Depends(self.principal)
+        ) -> Principal:
+            required = AccessLevel.required_for(request.method)
+            if not principal.is_allowed(service, area, required):
                 raise ForbiddenError
             return principal
 
@@ -120,8 +124,8 @@ def register_error_handlers(app: FastAPI) -> None:
     async def handle_auth_error(_request: Request, error: Exception) -> JSONResponse:
         for error_type, status, code in _STATUS_BY_ERROR:
             if isinstance(error, error_type):
-                # O `WWW-Authenticate` no 401 é o que a norma manda, e o que
-                # diz a um cliente que o caminho é renovar a sessão.
+                # O `WWW-Authenticate` no 401 é o que a norma manda, e o que diz
+                # a um cliente que o caminho é renovar a sessão.
                 headers = {"WWW-Authenticate": "Bearer"} if status == 401 else None
                 return JSONResponse(
                     status_code=status,

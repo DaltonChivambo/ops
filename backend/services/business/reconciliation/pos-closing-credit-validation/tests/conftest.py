@@ -392,6 +392,7 @@ AREA_MEMBER = Principal(
     name="Operador de teste",
     email="operador.teste@mozabanco.co.mz",
     areas=frozenset({"channels"}),
+    service_access={},
     department_code="3230",
     department="Canais e Serviços de Integração",
     function="Director",

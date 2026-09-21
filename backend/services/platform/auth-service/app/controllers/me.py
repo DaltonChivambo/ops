@@ -21,6 +21,9 @@ async def me(principal: CurrentPrincipal) -> PrincipalResponse:
         name=principal.name,
         email=principal.email,
         areas=sorted(principal.areas),
+        service_access={
+            service: level.name.lower() for service, level in principal.service_access.items()
+        },
         department_code=principal.department_code,
         department=principal.department,
         function=principal.function,

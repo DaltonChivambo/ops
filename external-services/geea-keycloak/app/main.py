@@ -124,6 +124,23 @@ USERS: dict[str, MockUser] = {
             # Só canais: é o que separa este do outro.
             roles=["channels"],
         ),
+        MockUser(
+            username="api-validacao-dsti",
+            sub="9c1a4e73-2b60-4d18-9a2f-1e7c3b5d8046",
+            name="Validação DSTI",
+            given_name="Validação DSTI",
+            family_name="DSTI",
+            email="",
+            function="",
+            department_code="",
+            department="",
+            workstation="",
+            employee_id="",
+            telephone="",
+            # Sem área nenhuma, e um microserviço só: é assim que entra um
+            # programa, ou alguém que consulta uma automação sem lhe mexer.
+            roles=["service:pos-closing-credit-validation:read"],
+        ),
     )
 }
 

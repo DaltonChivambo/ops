@@ -13,8 +13,11 @@ from fastapi.testclient import TestClient
 from app.controllers.dependencies import get_case_service, get_validation_service
 from app.infrastructure.auth import auth
 from app.main import app
-from mozaops_libs.auth import Principal
+from app.settings import settings
+from mozaops_libs.auth import AccessLevel, Principal
 from tests.conftest import CASE_ID, EXECUTION_ID, FakeService
+
+SERVICE = settings.auth_service_id
 
 #: Autentica-se no GEEA, mas está registado noutra unidade orgânica: entra na
 #: plataforma e não chega a esta automação.
@@ -24,6 +27,7 @@ OTHER_AREA_MEMBER = Principal(
     name="Auditor de teste",
     email="auditor.teste@mozabanco.co.mz",
     areas=frozenset(),
+    service_access={},
     department_code="1330",
     department="Área de Auditoria Interna",
     function="Técnico",
@@ -38,6 +42,7 @@ AREA_TECHNICIAN = Principal(
     name="Técnico de teste",
     email="tecnico.teste@mozabanco.co.mz",
     areas=frozenset({"channels"}),
+    service_access={},
     department_code="3230",
     department="Canais e Serviços de Integração",
     function="Técnico",
@@ -49,6 +54,22 @@ READ_ROUTES = (
     ("get", f"/pos/validacao-credito-fecho/execucoes/{EXECUTION_ID}/detalhes"),
     ("get", f"/pos/validacao-credito-fecho/execucoes/{EXECUTION_ID}/relatorio"),
 )
+
+
+def consumer(service: str, level: AccessLevel) -> Principal:
+    """Quem entra pela concessão do microserviço, e não por área nenhuma."""
+    return Principal(
+        subject="s",
+        username="api-validacao-dsti",
+        name="Validação DSTI",
+        email="",
+        areas=frozenset(),
+        service_access={service: level},
+        department_code="",
+        department="",
+        function="",
+        employee_id="",
+    )
 
 
 @pytest.fixture
@@ -89,19 +110,22 @@ class TestWithoutToken:
         assert anonymous.get("/health").status_code == 200
 
 
-class TestByArea:
+@pytest.fixture
+def as_user(service: FakeService) -> Any:
     """Substitui-se só quem está do outro lado; a guarda corre a sério."""
 
-    @pytest.fixture
-    def as_user(self, service: FakeService) -> Any:
-        def sign_in(principal: Principal) -> TestClient:
-            app.dependency_overrides[get_validation_service] = lambda: service
-            app.dependency_overrides[get_case_service] = lambda: service
-            app.dependency_overrides[auth.principal] = lambda: principal
-            return TestClient(app)
+    def sign_in(principal: Principal) -> TestClient:
+        app.dependency_overrides[get_validation_service] = lambda: service
+        app.dependency_overrides[get_case_service] = lambda: service
+        app.dependency_overrides[auth.principal] = lambda: principal
+        return TestClient(app)
 
-        yield sign_in
-        app.dependency_overrides.clear()
+    yield sign_in
+    app.dependency_overrides.clear()
+
+
+class TestByArea:
+    """Quem é da área faz tudo o que a automação faz."""
 
     @pytest.fixture
     def outsider(self, as_user: Any) -> Any:
@@ -144,3 +168,49 @@ class TestByArea:
                 f"/pos/validacao-credito-fecho/casos/{CASE_ID}", json={"status": "resolved"}
             )
         assert response.status_code == 200
+
+
+class TestByServiceAccess:
+    """A concessão fina: um microserviço, com leitura ou com escrita."""
+
+    @pytest.mark.parametrize(("method", "path"), READ_ROUTES)
+    def test_read_grant_reads(self, as_user, method, path):
+        with as_user(consumer(SERVICE, AccessLevel.READ)) as http_client:
+            response = getattr(http_client, method)(path)
+
+        assert response.status_code == 200
+
+    def test_read_grant_cannot_run_validations(self, as_user, files):
+        with as_user(consumer(SERVICE, AccessLevel.READ)) as http_client:
+            response = http_client.post("/pos/validacao-credito-fecho/execucoes", files=files)
+
+        assert response.status_code == 403
+        assert response.json()["error"]["code"] == "forbidden"
+
+    def test_read_grant_cannot_resolve_cases(self, as_user):
+        with as_user(consumer(SERVICE, AccessLevel.READ)) as http_client:
+            response = http_client.patch(
+                f"/pos/validacao-credito-fecho/casos/{CASE_ID}", json={"status": "resolved"}
+            )
+
+        assert response.status_code == 403
+
+    def test_write_grant_runs_validations(self, as_user, files):
+        with as_user(consumer(SERVICE, AccessLevel.WRITE)) as http_client:
+            response = http_client.post("/pos/validacao-credito-fecho/execucoes", files=files)
+
+        assert response.status_code == 201
+
+    def test_write_grant_also_reads(self, as_user):
+        with as_user(consumer(SERVICE, AccessLevel.WRITE)) as http_client:
+            response = http_client.get("/pos/validacao-credito-fecho/execucoes/ultima")
+
+        assert response.status_code == 200
+
+    @pytest.mark.parametrize(("method", "path"), READ_ROUTES)
+    def test_grant_on_another_service_opens_nothing(self, as_user, method, path):
+        """É o que faz a concessão ser por microserviço, e não pela plataforma."""
+        with as_user(consumer("outra-automacao", AccessLevel.WRITE)) as http_client:
+            response = getattr(http_client, method)(path)
+
+        assert response.status_code == 403

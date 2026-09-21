@@ -70,16 +70,12 @@ CaseServiceDep = Annotated[CaseService, Depends(get_case_service)]
 SettingsServiceDep = Annotated[SettingsService, Depends(get_settings_service)]
 
 # ─── Quem está do outro lado ─────────────────────────────────────────────────
-# Uma guarda só, no router inteiro (`controllers/router.py`), e não rota a
-# rota: assim uma rota acrescentada amanhã nasce fechada, em vez de ficar
-# aberta até alguém se lembrar.
-#
-# É uma só porque dentro da área não há graus — quem entra, faz tudo o que a
-# automação faz. O dia em que voltar a haver um acto reservado a alguém, é
-# aqui que nasce a segunda.
+# Uma guarda só, no router inteiro (`controllers/router.py`), e não rota a rota:
+# assim uma rota acrescentada amanhã nasce fechada, em vez de ficar aberta até
+# alguém se lembrar.
 #
 # Devolve o `Principal`, o que deixa a mesma dependência servir de guarda e de
 # resposta a «quem está a pedir isto» — sem a rota o pedir duas vezes.
-require_area = auth.require_area(settings.auth_service_area)
+require_access = auth.require_access(settings.auth_service_id, settings.auth_service_area)
 
 CurrentUser = Annotated[Principal, Depends(auth.principal)]

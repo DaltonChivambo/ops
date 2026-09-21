@@ -28,7 +28,14 @@ de unidade.
 
 Uma nota de vocabulário: a claim do GEEA chama-se `departmentCode`, mas o que lá
 vem é a unidade orgânica — que tanto é um departamento como uma área ou um
-serviço. **Área** é a nossa unidade de acesso, e não há papéis dentro dela.
+serviço. **Área** é a nossa unidade de acesso grossa, e não há papéis dentro
+dela: quem a tem faz tudo o que as automações dela fazem.
+
+Ao lado da área há a concessão fina, uma automação de cada vez —
+`service:<id>:read` ou `:write` — para quem precisa de uma só, ou de consultar
+sem mexer. O `/me` devolve as duas, e o nível vem como `read` ou `write` em
+`serviceAccess`. Serve tanto uma pessoa como um programa de outro departamento:
+nada aqui os distingue, porque o que muda é só o que lhes foi concedido.
 
 **O token de acesso vai no corpo; o de renovação vai em cookie `HttpOnly`.**
 O SPA guarda o de acesso em memória e envia-o no cabeçalho `Authorization`, que
@@ -60,9 +67,14 @@ evitar assim que a equipa de IAM registar o MozaOps como aplicação no realm
 Ver `app/settings.py` — é a lista completa do que o serviço lê. As variáveis
 `AUTH_*` são partilhadas com os outros serviços e vêm do mesmo `${...}` no
 `docker-compose.yml`: dois serviços a mapear áreas de maneira diferente seria
-uma porta aberta no que ficasse para trás. A excepção é o `AUTH_SERVICE_AREA`,
-que só a automação declara — é a área a que **ela** pertence, e este serviço não
-pertence a nenhuma.
+uma porta aberta no que ficasse para trás. As excepções são o
+`AUTH_SERVICE_AREA` e o `AUTH_SERVICE_ID`, que só as automações declaram — são a
+área a que **elas** pertencem e o id por que são concedidas; este serviço não
+tem nem uma nem outro.
+
+O `AUTH_CLIENT_ID` diz de que cliente do realm se lêem os papéis. Não é o `azp`
+do token: admitir mais um cliente no `AUTH_ALLOWED_AZP` passa a ser admitir um
+cliente, e não delegar-lhe a atribuição dos nossos acessos.
 
 ## Testes
 

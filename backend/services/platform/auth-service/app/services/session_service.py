@@ -51,11 +51,13 @@ class SessionService:
         geea: GeeaClient,
         verifier: TokenVerifier,
         mapping: AreaMapping,
+        client: str,
         limiter: AttemptLimiter,
     ):
         self._geea = geea
         self._verifier = verifier
         self._mapping = mapping
+        self._client = client
         self._limiter = limiter
 
     async def login(self, username: str, password: str, client_ip: str) -> Session:
@@ -77,12 +79,12 @@ class SessionService:
         except AuthError as exc:
             raise InvalidCredentialsError from exc
 
-        principal = build_principal(claims, self._mapping)
+        principal = build_principal(claims, self._mapping, self._client)
 
-        # Sem área nenhuma não se emite sessão, e a mensagem é a mesma das
+        # Sem acesso nenhum não se emite sessão, e a mensagem é a mesma das
         # credenciais inválidas: distinguir «autenticou mas não tem acesso»
         # confirmaria a quem tenta adivinhar contas que esta existe.
-        if not principal.areas:
+        if not principal.areas and not principal.service_access:
             raise InvalidCredentialsError
 
         return Session(

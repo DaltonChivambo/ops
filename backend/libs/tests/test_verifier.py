@@ -141,6 +141,7 @@ class TestPrincipal:
         principal = principal_from_claims(
             claims,
             AreaMapping(by_unit={"payments-and-channels": frozenset({"2350"})}),
+            AZP,
         )
 
         assert principal.username == "m001926"
@@ -154,7 +155,7 @@ class TestPrincipal:
         from mozaops_libs.auth.fastapi import principal_from_claims
 
         token = issuer.token(resource_access={AZP: {"roles": [ALL_AREAS]}})
-        principal = principal_from_claims(await build(issuer).verify(token), AreaMapping())
+        principal = principal_from_claims(await build(issuer).verify(token), AreaMapping(), AZP)
 
         assert principal.has_area("channels")
         assert principal.has_area("uma-area-que-ainda-nao-existe")
@@ -164,7 +165,7 @@ class TestPrincipal:
         from mozaops_libs.auth.fastapi import principal_from_claims
 
         token = issuer.token(resource_access={AZP: {"roles": ["channels"]}})
-        principal = principal_from_claims(await build(issuer).verify(token), AreaMapping())
+        principal = principal_from_claims(await build(issuer).verify(token), AreaMapping(), AZP)
 
         assert principal.has_area("channels")
         assert not principal.has_area("fraud-monitoring")

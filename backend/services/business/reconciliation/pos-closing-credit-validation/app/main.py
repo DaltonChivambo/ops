@@ -15,6 +15,7 @@ from fastapi import FastAPI
 from app.controllers import error_handlers
 from app.controllers.router import router
 from app.settings import configure_logging
+from mozaops_libs.auth import register_audit
 
 configure_logging()
 
@@ -22,6 +23,7 @@ app = FastAPI(title="MozaOps — pos-closing-credit-validation")
 
 app.include_router(router)
 error_handlers.register(app)
+register_audit(app)
 
 
 @app.get("/health")

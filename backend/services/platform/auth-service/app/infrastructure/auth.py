@@ -16,4 +16,4 @@ verifier = TokenVerifier(
     allowed_azp=parse_set(settings.auth_allowed_azp),
 )
 
-auth = Auth(verifier, area_mapping)
+auth = Auth(verifier, area_mapping, settings.auth_client_id)

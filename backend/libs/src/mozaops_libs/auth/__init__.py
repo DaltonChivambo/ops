@@ -1,10 +1,16 @@
-"""Autenticação partilhada: validar tokens do GEEA e decidir áreas.
+"""Autenticação partilhada: validar tokens do GEEA e decidir acessos.
 
 Está em `libs/` porque tem dois consumidores — o `platform/auth-service` e o
 `pos-closing-credit-validation` — e autenticação diferente entre dois serviços
 da mesma aplicação é a porta que fica aberta no que ficou para trás.
 """
 
+from mozaops_libs.auth.access import (
+    SERVICE_ROLE_PREFIX,
+    AccessLevel,
+    client_roles,
+    parse_service_access,
+)
 from mozaops_libs.auth.areas import (
     ALL_AREAS,
     AreaMapping,
@@ -12,6 +18,7 @@ from mozaops_libs.auth.areas import (
     parse_area_map,
     parse_set,
 )
+from mozaops_libs.auth.audit import register_audit
 from mozaops_libs.auth.errors import (
     AuthError,
     ForbiddenError,
@@ -24,6 +31,8 @@ from mozaops_libs.auth.verifier import TokenVerifier
 
 __all__ = [
     "ALL_AREAS",
+    "SERVICE_ROLE_PREFIX",
+    "AccessLevel",
     "AreaMapping",
     "Auth",
     "AuthError",
@@ -32,9 +41,12 @@ __all__ = [
     "Principal",
     "TokenVerifier",
     "UnauthenticatedError",
+    "client_roles",
     "map_areas",
     "parse_area_map",
+    "parse_service_access",
     "parse_set",
     "principal_from_claims",
+    "register_audit",
     "register_error_handlers",
 ]

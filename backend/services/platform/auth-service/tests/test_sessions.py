@@ -4,6 +4,7 @@ import logging
 
 from app.controllers.sessions import REFRESH_COOKIE
 from app.settings import Settings, settings
+from tests.conftest import CLIENT
 
 
 class TestLogin:
@@ -108,6 +109,26 @@ class TestWithoutArea:
                 "message": "Credenciais inválidas. Verifique o utilizador e a password.",
             }
         }
+
+    def test_service_access_alone_is_enough_to_get_in(self, client, geea):
+        """Quem tem uma automação concedida entra, mesmo sem área nenhuma.
+
+        É por aqui que entra um programa que integra connosco, ou alguém que
+        consulta uma automação sem lhe mexer.
+        """
+        geea.valid["api-validacao-dsti"] = "senha-certa"
+        geea.claims_by_user["api-validacao-dsti"] = {
+            "departmentCode": "",
+            "resource_access": {CLIENT: {"roles": ["service:pos-fechos:read"]}},
+        }
+
+        response = client.post(
+            "/auth-service/sessions",
+            json={"username": "api-validacao-dsti", "password": "senha-certa"},
+        )
+
+        assert response.status_code == 200
+        assert response.json()["principal"]["areas"] == []
 
     def test_login_without_area_leaves_no_cookie(self, client, geea):
         geea.valid["m009999"] = "senha-certa"

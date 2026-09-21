@@ -2,7 +2,7 @@
 
 import time
 
-from tests.conftest import AZP, make_token
+from tests.conftest import CLIENT, make_token
 
 
 class TestWithValidToken:
@@ -35,15 +35,26 @@ class TestWithValidToken:
         token = make_token(
             preferred_username="m009999",
             departmentCode="2350",
-            resource_access={AZP: {"roles": ["channels"]}},
+            resource_access={CLIENT: {"roles": ["channels"]}},
         )
 
         response = client.get("/auth-service/me", headers={"Authorization": f"Bearer {token}"})
         assert response.json()["areas"] == ["channels"]
 
+    def test_service_access_travels_as_read_or_write(self, client):
+        """O SPA precisa de saber o nível, não só que há concessão."""
+        token = make_token(
+            departmentCode="",
+            resource_access={CLIENT: {"roles": ["service:pos-fechos:write"]}},
+        )
+
+        response = client.get("/auth-service/me", headers={"Authorization": f"Bearer {token}"})
+
+        assert response.json()["serviceAccess"] == {"pos-fechos": "write"}
+
     def test_the_all_areas_role_travels_as_is(self, client):
         """O SPA é que o reconhece, por isso não se expande aqui."""
-        token = make_token(resource_access={AZP: {"roles": ["all-areas"]}})
+        token = make_token(resource_access={CLIENT: {"roles": ["all-areas"]}})
 
         response = client.get("/auth-service/me", headers={"Authorization": f"Bearer {token}"})
         assert response.json()["areas"] == ["all-areas", "channels"]

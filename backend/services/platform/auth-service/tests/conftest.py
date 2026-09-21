@@ -30,6 +30,9 @@ from mozaops_libs.auth import AreaMapping, TokenVerifier
 
 ISSUER = "http://geea-teste/auth/realms/QAS"
 AZP = "mozaops-web"
+#: Deliberadamente diferente do `AZP`: os papéis lêem-se daqui, e não de
+#: quem pediu o token.
+CLIENT = "qa-mozaops"
 KID = "chave-de-teste"
 
 _private_key = rsa.generate_private_key(public_exponent=65537, key_size=2048)
@@ -145,8 +148,9 @@ def client(geea: FakeGeea, mapping: AreaMapping) -> TestClient:
 
     auth_module.auth._verifier = verifier
     auth_module.auth._mapping = mapping
+    auth_module.auth._client = CLIENT
 
-    service = SessionService(geea, verifier, mapping, AttemptLimiter(per_minute=10))
+    service = SessionService(geea, verifier, mapping, CLIENT, AttemptLimiter(per_minute=10))
     app.dependency_overrides[get_session_service] = lambda: service
 
     with TestClient(app) as test_client:

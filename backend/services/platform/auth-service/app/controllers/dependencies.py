@@ -24,7 +24,7 @@ _geea = GeeaClient(
 
 
 def get_session_service() -> SessionService:
-    return SessionService(_geea, verifier, area_mapping, _limiter)
+    return SessionService(_geea, verifier, area_mapping, settings.auth_client_id, _limiter)
 
 
 SessionServiceDep = Annotated[SessionService, Depends(get_session_service)]

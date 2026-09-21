@@ -66,11 +66,13 @@ services:
       AUTH_ISSUER: ${AUTH_ISSUER}
       AUTH_JWKS_URL: ${AUTH_JWKS_URL}
       AUTH_ALLOWED_AZP: ${AUTH_ALLOWED_AZP}
+      AUTH_CLIENT_ID: ${AUTH_CLIENT_ID:-qa-mozaops}
       AUTH_AREAS: ${AUTH_AREAS:-channels:3230}
       AUTH_AREA_USERS: ${AUTH_AREA_USERS:-}
-      # A única que difere do `auth-service`: a área a que ESTA automação pertence,
-      # e que o router exige a quem lhe bate à porta.
+      # As únicas que diferem do `auth-service`: a área a que ESTA automação
+      # pertence, e o id dela. O router exige uma ou a concessão do outro.
       AUTH_SERVICE_AREA: ${AUTH_SERVICE_AREA:-channels}
+      AUTH_SERVICE_ID: ${AUTH_SERVICE_ID:-pos-closing-credit-validation}
     networks: [mozaops]
     depends_on:
       postgres:
@@ -105,6 +107,7 @@ services:
       AUTH_ISSUER: ${AUTH_ISSUER}
       AUTH_JWKS_URL: ${AUTH_JWKS_URL}
       AUTH_ALLOWED_AZP: ${AUTH_ALLOWED_AZP}
+      AUTH_CLIENT_ID: ${AUTH_CLIENT_ID:-qa-mozaops}
       AUTH_AREAS: ${AUTH_AREAS:-channels:3230}
       AUTH_AREA_USERS: ${AUTH_AREA_USERS:-}
       GEEA_SSOLOGIN_URL: ${GEEA_SSOLOGIN_URL}

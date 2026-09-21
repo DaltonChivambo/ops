@@ -232,8 +232,30 @@ sítios.
 
 Só contam os papéis do **nosso** cliente. Os de `realm_access` são do sistema de workflow do
 banco e não dizem nada sobre o MozaOps, mesmo quando têm um nome parecido; e os de outro
-cliente são os acessos dessa pessoa noutra aplicação. Do token verificam-se sempre a
-assinatura, o `iss` e o `azp` — `qa-mozaops`, o cliente com que estamos registados no realm.
+cliente são os acessos dessa pessoa noutra aplicação. O cliente de onde se lêem os papéis é
+o `AUTH_CLIENT_ID`, e **não o `azp` do token**: quem pede o token deixa de ser quem nos diz o
+que pode fazer, e admitir mais um cliente na lista de `AUTH_ALLOWED_AZP` passa a ser admitir
+um cliente — e não delegar-lhe a atribuição dos nossos acessos. É isso que deixa a porta
+aberta para os programas se autenticarem por segredo de cliente sem redesenhar nada. Do token
+verificam-se sempre a assinatura, o `iss` e o `azp`.
+
+**Acesso a uma automação só, sem dar a área inteira.** A área é grossa: quem a tem faz tudo o
+que as automações dela fazem. Ao lado dela há a concessão fina, no papel
+`service:<id-do-serviço>:read` ou `:write`, onde o id é o `AUTH_SERVICE_ID` que o serviço
+declara. Serve dois casos com o mesmo acto: um programa de outro departamento que integre
+connosco, e uma pessoa que precise de consultar uma automação sem lhe mexer.
+
+**Nada no código distingue pessoa de programa.** Os dois autenticam-se pelo
+`/api/auth-service/sessions` e recebem os acessos pela mesma via; o que varia é o que lhes foi
+concedido. Uma distinção que nunca fosse testada seria peso morto — e amarraria a autorização
+à forma como o token foi obtido, que é justamente o que muda no dia em que os programas
+passarem a usar contas de serviço.
+
+O nível exigido sai do **método HTTP**: `GET`/`HEAD` pedem `read`, o resto pede `write`. Não há
+lista de rotas a manter, e uma rota nova que mute nasce a exigir escrita sem ninguém a marcar.
+As duas vias somam-se — quem é da área passa como sempre passou, e a concessão só decide para
+quem não a tem. Consequência a assumir: **para dar a alguém só leitura, essa pessoa não pode
+ter a área**, senão a área ganha.
 
 **Vocabulário, porque é onde isto se confunde:** no nosso código `area` é a área do MozaOps —
 uma unidade orgânica real, não um departamento inteiro. «Meios de Pagamentos e Canais» é o

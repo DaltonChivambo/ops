@@ -39,6 +39,10 @@ def _body(session: Session) -> SessionResponse:
             name=session.principal.name,
             email=session.principal.email,
             areas=sorted(session.principal.areas),
+            service_access={
+                service: level.name.lower()
+                for service, level in session.principal.service_access.items()
+            },
             department_code=session.principal.department_code,
             department=session.principal.department,
             function=session.principal.function,
