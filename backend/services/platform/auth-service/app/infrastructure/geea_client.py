@@ -1,17 +1,11 @@
 """O único ficheiro que conhece o contrato do `SSOLogin` do GEEA.
 
-Está isolado de propósito. O `SSOLogin` é uma API legada que leva as
-credenciais na query string de um `GET`; no dia em que a equipa de IAM
-registar o MozaOps como aplicação, o login passa a ser um reencaminhamento
-para o ecrã do banco e **este ficheiro desaparece inteiro** — o resto do
-serviço, que só lida com o JWT que sai daqui, não dá por isso.
+Isolado de propósito: o `SSOLogin` é legado e leva as credenciais na query
+string de um `GET`. No dia em que o login passar a reencaminhamento, este
+ficheiro desaparece inteiro e o resto do serviço não dá por isso.
 
-Duas cautelas que não são detalhe:
-
-- O `httpx` regista o URL de cada pedido, e este URL leva a password. O
-  silenciamento está em `settings.configure_logging`, e é lá que está a razão.
-- Nada nesta camada guarda a password: entra como argumento, sai no pedido, e
-  o objecto que a carregava morre com a função.
+Por isso o `httpx` está silenciado em `settings.configure_logging`: o URL que
+ele registaria leva a password.
 """
 
 import logging
@@ -21,7 +15,7 @@ import httpx
 
 from app.domain.errors import GeeaUnavailableError, InvalidCredentialsError
 
-logger = logging.getLogger("identity")
+logger = logging.getLogger("auth-service")
 
 
 class GeeaClient:

@@ -5,8 +5,8 @@ export const environment = {
   /** Nunca. Está aqui escrito para que a ausência não passe por descuido. */
   authDisabled: false,
 
-  /** Sessões e papéis. Ver `backend/services/platform/identity`. */
-  identityApiBase: '/api/identity',
+  /** Sessões e papéis. Ver `backend/services/platform/auth-service`. */
+  authApiBase: '/api/auth-service',
 
   /**
    * O mesmo caminho que em desenvolvimento, e tem de ser: é o que o router do

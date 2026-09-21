@@ -315,7 +315,7 @@ def token(
     """A rota normal do OIDC, para renovar.
 
     O `SSOLogin` devolve um `refreshToken` mas não tem por onde o trocar — quem
-    o aceita é o realm, aqui. Como o serviço `identity` do MozaOps renova por
+    o aceita é o realm, aqui. Como o serviço `auth-service` do MozaOps renova por
     esta rota, sem ela o mock não conseguia exercitar metade do ciclo de vida
     de uma sessão.
 

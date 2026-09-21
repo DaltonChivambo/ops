@@ -9,7 +9,7 @@ import {
 } from '@angular/router';
 
 import { canOpenModule } from './area.guard';
-import { IdentityApi, type SessionDto } from './identity-api.service';
+import { AuthApi, type SessionDto } from './auth-api.service';
 import { SessionStore } from './session.store';
 
 function session(areas: readonly string[]): SessionDto {
@@ -45,7 +45,7 @@ describe('canOpenModule', () => {
   beforeEach(() => {
     api = { login: () => Promise.resolve(session(['channels'])) };
     TestBed.configureTestingModule({
-      providers: [provideRouter([]), { provide: IdentityApi, useValue: api }],
+      providers: [provideRouter([]), { provide: AuthApi, useValue: api }],
     });
     injector = TestBed.inject(Injector);
   });

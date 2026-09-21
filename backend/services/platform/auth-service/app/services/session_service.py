@@ -22,10 +22,8 @@ class Session:
 class AttemptLimiter:
     """Janela deslizante por utilizador, em memória.
 
-    Em memória chega: são poucas réplicas e o objectivo não é contabilidade,
-    é tirar o valor a quem tenta adivinhar passwords em série. Uma contagem
-    partilhada exigiria estado externo que este serviço não tem — e valia
-    menos do que a limitação que o próprio AD já impõe ao fim de N falhas.
+    Em memória chega: o objectivo é tirar o valor a quem tenta adivinhar
+    passwords em série, e o bloqueio a sério é o que o AD já impõe.
     """
 
     def __init__(self, per_minute: int):
@@ -72,9 +70,8 @@ class SessionService:
     async def _session_from(self, output: dict[str, Any]) -> Session:
         access_token = str(output.get("accessToken") or "")
 
-        # O GEEA devolve as claims já descodificadas ao lado do token. Não se
-        # usam: um objecto JSON não está assinado, e aceitá-lo seria acreditar
-        # em quem no-lo mandou. Valida-se o JWT como se valida qualquer outro.
+        # O GEEA manda as claims descodificadas ao lado do token, e não se usam:
+        # um objecto JSON não está assinado. Valida-se o JWT como qualquer outro.
         try:
             claims = await self._verifier.verify(access_token)
         except AuthError as exc:
@@ -82,12 +79,9 @@ class SessionService:
 
         principal = build_principal(claims, self._mapping)
 
-        # Sem área nenhuma, esta conta não abre nada no MozaOps — nem o
-        # Dashboard. Não se emite sessão para ela: a mesma mensagem de
-        # credenciais inválidas, e nada mais. Distinguir «autenticou mas não
-        # tem acesso» de «não autenticou» confirmaria, a quem tenta adivinhar
-        # contas, que esta existe — e um token que nada abre não vale a pena
-        # emitir de qualquer forma, porque toda a automação o recusaria.
+        # Sem área nenhuma não se emite sessão, e a mensagem é a mesma das
+        # credenciais inválidas: distinguir «autenticou mas não tem acesso»
+        # confirmaria a quem tenta adivinhar contas que esta existe.
         if not principal.areas:
             raise InvalidCredentialsError
 

@@ -60,7 +60,7 @@ services:
       # resolveria para string vazia, e uma string vazia num campo inteiro faz o
       # serviço rebentar no arranque em vez de usar o default do `settings.py`.
       MAX_UPLOAD_MB: ${MAX_UPLOAD_MB:-64}
-      # As mesmas variáveis, e o mesmo valor, que o `identity` recebe — dois
+      # As mesmas variáveis, e o mesmo valor, que o `auth-service` recebe — dois
       # serviços a mapear áreas de maneira diferente seria uma porta aberta no
       # que ficasse para trás. Ver `app/settings.py` de cada um.
       AUTH_ISSUER: ${AUTH_ISSUER}
@@ -68,7 +68,7 @@ services:
       AUTH_ALLOWED_AZP: ${AUTH_ALLOWED_AZP}
       AUTH_AREAS: ${AUTH_AREAS:-channels:3230}
       AUTH_AREA_USERS: ${AUTH_AREA_USERS:-}
-      # A única que difere do `identity`: a área a que ESTA automação pertence,
+      # A única que difere do `auth-service`: a área a que ESTA automação pertence,
       # e que o router exige a quem lhe bate à porta.
       AUTH_SERVICE_AREA: ${AUTH_SERVICE_AREA:-channels}
     networks: [mozaops]
@@ -91,14 +91,14 @@ services:
   # Sessões e áreas. É quem fala com o GEEA — nenhum outro serviço o faz — e
   # quem diz ao SPA quem está do outro lado. Sem base de dados: a identidade
   # vem do GEEA a cada login e as áreas saem destas variáveis.
-  identity:
+  auth-service:
     build:
       context: ./backend
       args:
         CATEGORY: platform
-        SERVICE: identity
-    image: mozaops-identity
-    container_name: mozaops-identity
+        SERVICE: auth-service
+    image: mozaops-auth-service
+    container_name: mozaops-auth-service
     restart: unless-stopped
     environment:
       LOG_LEVEL: ${LOG_LEVEL}
@@ -115,17 +115,17 @@ services:
       # `false` só enquanto o Traefik servir em claro. Ver a secção de
       # segurança no README do serviço.
       SESSION_COOKIE_SECURE: ${SESSION_COOKIE_SECURE:-true}
-      SESSION_COOKIE_PATH: ${SESSION_COOKIE_PATH:-/api/identity}
+      SESSION_COOKIE_PATH: ${SESSION_COOKIE_PATH:-/api/auth-service}
       LOGIN_ATTEMPTS_PER_MINUTE: ${LOGIN_ATTEMPTS_PER_MINUTE:-10}
     networks: [mozaops]
     labels:
       - traefik.enable=true
-      - traefik.http.routers.identity.rule=Host(`${DOMAIN}`) && PathPrefix(`/api/identity`)
-      - traefik.http.routers.identity.entrypoints=web
+      - traefik.http.routers.auth-service.rule=Host(`${DOMAIN}`) && PathPrefix(`/api/auth-service`)
+      - traefik.http.routers.auth-service.entrypoints=web
       # O mesmo middleware do outro serviço: o `/api` é a fronteira da API e
       # não parte do caminho que o serviço monta.
-      - traefik.http.routers.identity.middlewares=api-strip
-      - traefik.http.services.identity.loadbalancer.server.port=8000
+      - traefik.http.routers.auth-service.middlewares=api-strip
+      - traefik.http.services.auth-service.loadbalancer.server.port=8000
 
   # ─── Base de dados ────────────────────────────────────────────────────────
   # Um servidor, uma base e um role por serviço, com as ligações cruzadas

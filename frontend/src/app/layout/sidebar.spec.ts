@@ -1,7 +1,7 @@
 import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
 
-import { IdentityApi, type SessionDto } from '../core/auth/identity-api.service';
+import { AuthApi, type SessionDto } from '../core/auth/auth-api.service';
 import { SessionStore } from '../core/auth/session.store';
 import { SidebarComponent } from './sidebar';
 
@@ -39,7 +39,7 @@ async function sidebarNavFor(
   TestBed.configureTestingModule({
     providers: [
       provideRouter([]),
-      { provide: IdentityApi, useValue: { login: () => Promise.resolve(session(areas)) } },
+      { provide: AuthApi, useValue: { login: () => Promise.resolve(session(areas)) } },
     ],
   });
 

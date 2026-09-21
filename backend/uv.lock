@@ -9,7 +9,7 @@ resolution-markers = [
 [manifest]
 members = [
     "mozaops-backend",
-    "mozaops-identity",
+    "mozaops-auth-service",
     "mozaops-libs",
     "mozaops-pos-closing-credit-validation",
 ]
@@ -699,9 +699,9 @@ version = "0.0.0"
 source = { virtual = "." }
 
 [[package]]
-name = "mozaops-identity"
+name = "mozaops-auth-service"
 version = "0.0.0"
-source = { editable = "services/platform/identity" }
+source = { editable = "services/platform/auth-service" }
 dependencies = [
     { name = "fastapi" },
     { name = "gunicorn" },

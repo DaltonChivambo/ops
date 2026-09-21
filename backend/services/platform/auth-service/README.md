@@ -1,4 +1,4 @@
-# identity
+# auth-service
 
 Quem entra na aplicação, e o que pode fazer lá dentro.
 
@@ -11,10 +11,10 @@ utilizadores, sem sessão em memória.
 
 | | |
 |---|---|
-| `POST /api/identity/sessions` | Login. Credenciais **no corpo**; devolve o token de acesso e põe o de renovação num cookie `HttpOnly` |
-| `POST /api/identity/sessions/refresh` | Renova a partir do cookie |
-| `DELETE /api/identity/sessions` | Termina a sessão deste lado |
-| `GET /api/identity/me` | Quem sou eu, já com as áreas do MozaOps |
+| `POST /api/auth-service/sessions` | Login. Credenciais **no corpo**; devolve o token de acesso e põe o de renovação num cookie `HttpOnly` |
+| `POST /api/auth-service/sessions/refresh` | Renova a partir do cookie |
+| `DELETE /api/auth-service/sessions` | Termina a sessão deste lado |
+| `GET /api/auth-service/me` | Quem sou eu, já com as áreas do MozaOps |
 
 ## As duas decisões que explicam o resto
 
@@ -33,7 +33,7 @@ serviço. **Área** é a nossa unidade de acesso, e não há papéis dentro dela
 **O token de acesso vai no corpo; o de renovação vai em cookie `HttpOnly`.**
 O SPA guarda o de acesso em memória e envia-o no cabeçalho `Authorization`, que
 é como os outros serviços o esperam. O de renovação nunca fica ao alcance de
-JavaScript, com `Path` limitado a `/api/identity` — o que faz com que um XSS na
+JavaScript, com `Path` limitado a `/api/auth-service` — o que faz com que um XSS na
 página não dê a ninguém uma sessão renovável.
 
 ## A ressalva do `SSOLogin`
@@ -67,5 +67,5 @@ pertence a nenhuma.
 ## Testes
 
 ```bash
-make test SERVICE=identity CATEGORY=platform
+make test SERVICE=auth-service CATEGORY=platform
 ```

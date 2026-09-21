@@ -1,5 +1,5 @@
 [project]
-name = "mozaops-identity"
+name = "mozaops-auth-service"
 version = "0.0.0"
 description = "Sessões e papéis: faz o login contra o GEEA e diz à aplicação quem está do outro lado."
 requires-python = ">=3.12"

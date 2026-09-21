@@ -50,7 +50,7 @@ else fail "Docker inacessível — falta 'sudo usermod -aG docker \$USER' e volt
 # ─── Containers ─────────────────────────────────────────────────────────────
 echo
 echo "Containers"
-for service in traefik postgres identity otel-collector jaeger; do
+for service in traefik postgres auth-service otel-collector jaeger; do
   state=$(docker compose ps --format '{{.State}}' "$service" 2>/dev/null | head -1)
   [[ "$state" == "running" ]] && ok "$service" || fail "$service (estado: ${state:-ausente})"
 done
@@ -74,7 +74,7 @@ cross=$(docker compose exec -T postgres psql -U "${POSTGRES_USER:-postgres}" -tA
 # ─── Identidade ─────────────────────────────────────────────────────────────
 # O MozaOps não tem servidor de identidade próprio (ADR 0009): autentica contra
 # o GEEA e valida os tokens dele localmente. O que se verifica aqui é a cadeia
-# inteira — o mock emite, o `identity` troca credenciais por sessão, e a
+# inteira — o mock emite, o `auth-service` troca credenciais por sessão, e a
 # automação recusa quem não traz token.
 echo
 echo "Identidade"
@@ -86,14 +86,14 @@ else
   fail "o mock do GEEA não responde — 'docker compose -f external-services/geea-keycloak/docker-compose.yml up -d'"
 fi
 
-# Login de ponta a ponta, pela porta pública: browser → Traefik → identity → GEEA.
-sessao=$(curl -fsS --max-time 10 -X POST   -H 'Content-Type: application/json'   -d "{\"username\":\"${GEEA_USER}\",\"password\":\"${GEEA_PASS}\"}"   "http://${DOMAIN}/api/identity/sessions" 2>/dev/null)
+# Login de ponta a ponta, pela porta pública: browser → Traefik → auth-service → GEEA.
+sessao=$(curl -fsS --max-time 10 -X POST   -H 'Content-Type: application/json'   -d "{\"username\":\"${GEEA_USER}\",\"password\":\"${GEEA_PASS}\"}"   "http://${DOMAIN}/api/auth-service/sessions" 2>/dev/null)
 
 if grep -q '"accessToken"' <<<"$sessao"; then
   ok "o login devolve sessão (credenciais → GEEA → token)"
   grep -q '"areas"' <<<"$sessao"     && ok "a sessão traz as áreas do MozaOps (ADR 0010)"     || fail "a sessão não traz 'areas' — o mapa AUTH_AREAS não foi lido"
 else
-  fail "o login em http://${DOMAIN}/api/identity/sessions não devolveu sessão"
+  fail "o login em http://${DOMAIN}/api/auth-service/sessions não devolveu sessão"
 fi
 
 # A porta fechada é metade do trabalho; provar que está fechada é a outra.

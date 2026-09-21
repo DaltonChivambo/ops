@@ -7,7 +7,7 @@
 /**
  * A **área** é a unidade de acesso do MozaOps: quem é dela abre as automações
  * dela, e quem não é nem as vê. Os ids são os mesmos que o backend usa no
- * `AUTH_AREAS` e que o `/api/identity/me` devolve — mudá-los aqui sem os mudar
+ * `AUTH_AREAS` e que o `/api/auth-service/me` devolve — mudá-los aqui sem os mudar
  * lá tira o acesso a toda a gente.
  *
  * **Não é o departamento.** «Meios de Pagamentos e Canais», o rótulo que a

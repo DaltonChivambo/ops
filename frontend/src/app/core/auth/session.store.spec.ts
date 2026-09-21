@@ -1,7 +1,7 @@
 import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
 
-import { IdentityApi, type PrincipalDto, type SessionDto } from './identity-api.service';
+import { AuthApi, type PrincipalDto, type SessionDto } from './auth-api.service';
 import { SessionStore } from './session.store';
 import { TokenStore } from './token.store';
 
@@ -20,7 +20,7 @@ function session(overrides: Partial<PrincipalDto> = {}, token = 'token-1'): Sess
   return { accessToken: token, expiresIn: 18000, principal: { ...PRINCIPAL, ...overrides } };
 }
 
-class FakeIdentityApi {
+class FakeAuthApi {
   loginResult: SessionDto | Error = session();
   refreshResult: SessionDto | Error = session();
   refreshes = 0;
@@ -46,16 +46,16 @@ function unwrap(value: SessionDto | Error): SessionDto {
 }
 
 describe('SessionStore', () => {
-  let api: FakeIdentityApi;
+  let api: FakeAuthApi;
   let store: SessionStore;
   let tokens: TokenStore;
 
   beforeEach(() => {
-    api = new FakeIdentityApi();
+    api = new FakeAuthApi();
     TestBed.configureTestingModule({
       providers: [
         provideRouter([{ path: 'login', children: [] }]),
-        { provide: IdentityApi, useValue: api },
+        { provide: AuthApi, useValue: api },
       ],
     });
     store = TestBed.inject(SessionStore);

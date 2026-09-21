@@ -18,8 +18,8 @@ export const environment = {
    */
   authDisabled: false,
 
-  /** Sessões e papéis. Ver `backend/services/platform/identity`. */
-  identityApiBase: '/api/identity',
+  /** Sessões e papéis. Ver `backend/services/platform/auth-service`. */
+  authApiBase: '/api/auth-service',
 
   /**
    * Caminho base da automação de fechos.

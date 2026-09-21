@@ -19,7 +19,7 @@ Se estiveres nesta pasta, sai primeiro: `cd ..`.
 
 ```bash
 cp .env.example .env     # ajustar as senhas
-make up                  # traefik, postgres, identity, otel, jaeger e os serviços
+make up                  # traefik, postgres, auth-service, otel, jaeger e os serviços
 make migrate             # alembic upgrade head
 
 # Em desenvolvimento o GEEA é simulado, e sobe à parte — não é um serviço nosso:
@@ -59,7 +59,7 @@ docker compose run --rm pos-closing-credit-validation alembic upgrade head
 | Docs (OpenAPI) | http://localhost:8001/docs |
 | Health | http://localhost:8001/health |
 
-Sem o `identity` nem o GEEA mock, as rotas protegidas por sessão devolvem 401 —
+Sem o `auth-service` nem o GEEA mock, as rotas protegidas por sessão devolvem 401 —
 serve para ver o serviço a responder, não para testar o fluxo com autenticação.
 Para isso, ou para o correr por completo com testes e lint, ver o
 [README do serviço](services/business/reconciliation/pos-closing-credit-validation/README.md)
@@ -69,7 +69,7 @@ e a secção [«Correr»](#correr) acima.
 
 | Serviço | Categoria | Rotas | Porta (dev) |
 |---|---|---|---|
-| [`platform/identity`](services/platform/identity/README.md) | `platform` | `/api/identity` | 8002 |
+| [`platform/auth-service`](services/platform/auth-service/README.md) | `platform` | `/api/auth-service` | 8002 |
 | [`business/reconciliation/pos-closing-credit-validation`](services/business/reconciliation/pos-closing-credit-validation/README.md) | `business/reconciliation` | `/api/pos/validacao-credito-fecho` | 8001 |
 
 Cada linha aponta para o README do serviço — o que faz, como se organiza, e como

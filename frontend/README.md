@@ -101,7 +101,7 @@ lá: `/api` é a fronteira da API, não parte do caminho do serviço.
 ## Autenticação e acesso
 
 As credenciais são as do banco — as mesmas do Windows. Quem autentica é o GEEA;
-o SPA fala só com o serviço `identity`, que lhe devolve um token de acesso e
+o SPA fala só com o serviço `auth-service`, que lhe devolve um token de acesso e
 põe o de renovação num cookie `HttpOnly`.
 
 | Onde | O que faz |
@@ -113,7 +113,7 @@ põe o de renovação num cookie `HttpOnly`.
 
 **O acesso é por área, não por papel.** Quem é da área faz tudo o que a
 automação faz. As áreas de
-cada pessoa vêm do backend (`GET /api/identity/me`), e não do token: abrir uma
+cada pessoa vêm do backend (`GET /api/auth-service/me`), e não do token: abrir uma
 área a mais uma unidade orgânica é mudar configuração do backend, não publicar
 um SPA novo.
 

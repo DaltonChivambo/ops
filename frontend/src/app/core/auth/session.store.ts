@@ -4,11 +4,11 @@ import { Router } from '@angular/router';
 import { environment } from '../../../environments/environment';
 import { ALL_AREAS } from '../navigation';
 import { DEV_PRINCIPAL } from './dev-session';
-import { IdentityApi, type PrincipalDto } from './identity-api.service';
+import { AuthApi, type PrincipalDto } from './auth-api.service';
 import { TokenStore } from './token.store';
 
 /**
- * Vem do `GET /api/identity/me`, e não do token: o SPA guarda o token mas não
+ * Vem do `GET /api/auth-service/me`, e não do token: o SPA guarda o token mas não
  * o abre, e as áreas são o que o backend junta dos papéis do realm com a
  * configuração. Lê-las aqui obrigaria a publicar o SPA a cada mudança de
  * acesso.
@@ -28,7 +28,7 @@ export interface Principal {
 
 @Injectable({ providedIn: 'root' })
 export class SessionStore {
-  private readonly api = inject(IdentityApi);
+  private readonly api = inject(AuthApi);
   private readonly tokens = inject(TokenStore);
   private readonly router = inject(Router);
 

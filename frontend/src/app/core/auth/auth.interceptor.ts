@@ -50,5 +50,5 @@ function withBearer(request: HttpRequest<unknown>, token: string): HttpRequest<u
 }
 
 function isSessionRoute(url: string): boolean {
-  return url.includes(`${environment.identityApiBase}/sessions`);
+  return url.includes(`${environment.authApiBase}/sessions`);
 }

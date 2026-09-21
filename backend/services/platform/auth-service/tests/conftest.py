@@ -16,10 +16,10 @@ import pytest
 
 # Antes de qualquer import de `app.*`: as settings são lidas na importação.
 #
-# Em produção o browser vê `/api/identity/...` — o `/api` é cortado pelo
+# Em produção o browser vê `/api/auth-service/...` — o `/api` é cortado pelo
 # Traefik antes de o pedido chegar aqui — e é esse o caminho do cookie. O
-# cliente de teste fala com o serviço sem proxy à frente, e vê `/identity/...`,
-# por isso um cookie limitado a `/api/identity` nunca lhe seria devolvido. O
+# cliente de teste fala com o serviço sem proxy à frente, e vê `/auth-service/...`,
+# por isso um cookie limitado a `/api/auth-service` nunca lhe seria devolvido. O
 # caminho por omissão é verificado à parte, em `test_sessions.py`.
 os.environ.setdefault("SESSION_COOKIE_PATH", "/")
 os.environ.setdefault("SESSION_COOKIE_SECURE", "false")

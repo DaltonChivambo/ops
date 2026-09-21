@@ -5,7 +5,7 @@ import { firstValueFrom } from 'rxjs';
 import { environment } from '../../../environments/environment';
 
 /**
- * O que o serviço `identity` devolve.
+ * O que o serviço `auth-service` devolve.
  *
  * `areas` são as do catálogo do MozaOps — as mesmas ids que o `navigation.ts`
  * conhece. `department`, `departmentCode` e `function` são as claims do GEEA
@@ -42,9 +42,9 @@ export interface SessionDto {
  * renovação viaja sozinho.
  */
 @Injectable({ providedIn: 'root' })
-export class IdentityApi {
+export class AuthApi {
   private readonly http = inject(HttpClient);
-  private readonly base = environment.identityApiBase;
+  private readonly base = environment.authApiBase;
 
   login(username: string, password: string): Promise<SessionDto> {
     return firstValueFrom(

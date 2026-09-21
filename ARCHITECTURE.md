@@ -21,7 +21,7 @@ flowchart LR
 
     TR -- "/" --> FE["mozaops-web<br/>(nginx)"]
     TR -- "/api/pos/validacao-credito-fecho<br/>(stripprefix /api)" --> CR["pos-closing-credit-validation<br/>FastAPI"]
-    TR -- "/api/identity<br/>(stripprefix /api)" --> ID["identity<br/>FastAPI"]
+    TR -- "/api/auth-service<br/>(stripprefix /api)" --> ID["auth-service<br/>FastAPI"]
 
     ID -- "SSOLogin · JWKS" --> GE["GEEA<br/>(Keycloak do banco)"]
     CR -. "JWKS" .-> GE
@@ -63,7 +63,7 @@ automação serve mais do que um.
 | Serviço | Responsabilidade | Estado |
 |---|---|---|
 | `business/reconciliation/pos-closing-credit-validation` | Validação de crédito de valores de fecho do POS: parse dos ficheiros, reconciliação, persistência e relatório | **construído** |
-| `platform/identity` | Sessões e áreas: fala com o GEEA, devolve token e cookie de renovação, e diz ao SPA quem está do outro lado | **construído** |
+| `platform/auth-service` | Sessões e áreas: fala com o GEEA, devolve token e cookie de renovação, e diz ao SPA quem está do outro lado | **construído** |
 | `cases` | Gestão dos casos de divergência, quando deixar de ser suficiente vivê-los dentro da reconciliação | por fazer |
 
 `pos-closing-credit-validation` é específico do POS, de propósito — não «a mesma automação
@@ -118,7 +118,7 @@ camelCase. A ponte é o nome explícito na coluna (`mapped_column("posId", …)`
 schema (`alias_generator=to_camel`) — nenhum dos dois contratos se dobra ao outro.
 
 **`libs/` só tem o que tem dois consumidores.** Hoje é o `mozaops_libs/auth`: validar tokens
-do GEEA e decidir áreas, partilhado pelo `identity` e pela automação. Autenticação diferente
+do GEEA e decidir áreas, partilhado pelo `auth-service` e pela automação. Autenticação diferente
 entre dois serviços da mesma aplicação não é diferença de estilo — é a porta que fica aberta
 no que ficou para trás. Nunca tabelas, nunca regra de negócio.
 
@@ -136,7 +136,7 @@ ops/
 │   ├── Dockerfile             um para todos os serviços, via --build-arg SERVICE
 │   ├── libs/                  mozaops_libs — auth: tokens do GEEA e mapa de áreas
 │   └── services/
-│       ├── platform/identity/
+│       ├── platform/auth-service/
 │       └── business/reconciliation/pos-closing-credit-validation/
 ├── external-services/
 │   └── geea-keycloak/         mock do GEEA para desenvolvimento (NÃO é serviço nosso)
@@ -184,11 +184,11 @@ gerir: as credenciais são as do Windows.
 ```mermaid
 sequenceDiagram
     participant B as Browser (SPA)
-    participant I as identity
+    participant I as auth-service
     participant G as GEEA
     participant A as automação
 
-    B->>I: POST /api/identity/sessions (credenciais no corpo)
+    B->>I: POST /api/auth-service/sessions (credenciais no corpo)
     I->>G: SSOLogin
     G-->>I: accessToken + refreshToken (JWT assinado)
     I-->>B: accessToken no corpo · refresh em cookie HttpOnly
@@ -199,7 +199,7 @@ sequenceDiagram
 
 Três regras que sustentam o resto:
 
-1. **Emitir é do GEEA; validar é de cada serviço.** Só o `identity` fala com o GEEA; todos os
+1. **Emitir é do GEEA; validar é de cada serviço.** Só o `auth-service` fala com o GEEA; todos os
    outros verificam a assinatura localmente pelo JWKS em cache. Uma queda do GEEA impede
    logins novos, não o trabalho de quem já entrou.
 2. **O token de acesso vive em memória no browser**, nunca em `localStorage` — aí, um XSS
@@ -253,7 +253,7 @@ nosso.
 
 Registado aqui para não passar por esquecimento:
 
-- **Login por reencaminhamento.** O SPA recolhe a password e o `identity` entrega-a ao
+- **Login por reencaminhamento.** O SPA recolhe a password e o `auth-service` entrega-a ao
   `SSOLogin` — é o contrato que o GEEA expõe hoje. O fluxo `authorization_code`, em que o
   MozaOps nunca vê a password, espera pelo registo do `redirect_uri` no realm QAS.
 - **Tracing.** O Traefik exporta para o collector; os serviços ainda não instrumentam.
@@ -307,7 +307,7 @@ os dois lados da reconciliação.
 
 ```bash
 cp .env.example .env     # ajustar as senhas
-make up                  # traefik, postgres, identity, otel, jaeger e os serviços
+make up                  # traefik, postgres, auth-service, otel, jaeger e os serviços
 # o GEEA simulado sobe à parte — não é um serviço nosso:
 docker compose -f external-services/geea-keycloak/docker-compose.yml up -d
 make migrate             # alembic upgrade head

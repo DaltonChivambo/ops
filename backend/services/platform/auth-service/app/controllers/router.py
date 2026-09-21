@@ -9,6 +9,6 @@ from fastapi import APIRouter
 
 from app.controllers import me, sessions
 
-router = APIRouter(prefix="/identity")
+router = APIRouter(prefix="/auth-service")
 router.include_router(sessions.router)
 router.include_router(me.router)

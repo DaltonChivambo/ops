@@ -1,0 +1,27 @@
+# Contrato do serviço, legível por máquina. Alimenta o OWNERS.md.
+#
+# `platform` é a categoria de quem não é um processo de negócio: ninguém pede
+# «sessões», mas todos os serviços precisam delas.
+name: auth-service
+category: platform
+context: Sessões e áreas — autenticação contra o GEEA
+
+port: 8000
+dev_port: 8002
+
+# Sem `area`: é este serviço que diz quais são as de cada pessoa, e toda a
+# gente que se autentica lhe chega.
+routes: [/api/auth-service]
+
+# ─── Quem responde por isto ──────────────────────────────────────────────────
+owner: Dalton Chivambo
+developed_by: [Dalton Chivambo]
+requirements_by: [Dalton Chivambo]
+
+# ─── Infraestrutura ──────────────────────────────────────────────────────────
+# Sem base de dados: não guarda nada. A identidade vem do GEEA a cada login e
+# os papéis vêm do realm. Ganha base no dia em que o mapa passar a ser editado
+# pelo próprio DOP.
+database: null
+role: null
+env_prefix: AUTH

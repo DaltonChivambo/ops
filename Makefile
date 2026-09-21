@@ -10,8 +10,8 @@ COMPOSE := docker compose
 # tem uma subcategoria a mais, por isso os caminhos não têm todos a mesma
 # profundidade). Estava aqui um serviço fixo, e com o segundo isso deixava
 # metade do backend por testar sem o dizer. Para correr só um:
-# `make test SERVICES=platform/identity`.
-SERVICES := business/reconciliation/pos-closing-credit-validation platform/identity
+# `make test SERVICES=platform/auth-service`.
+SERVICES := business/reconciliation/pos-closing-credit-validation platform/auth-service
 
 .PHONY: help up down restart logs status verify-m0 psql clean migrate test lint test-image
 
@@ -48,7 +48,7 @@ test: test-image  ## Testes do backend (estágio `test` da imagem — a de execu
 	@# o Git Bash do Windows traduz o caminho do `-w` e o container recebe algo
 	@# como `C:/Program Files/Git/app/libs`.
 	@echo "── mozaops-libs ──────────────────────────────────────────"
-	@docker run --rm mozaops-identity:test sh -c "cd /app/libs && pytest -q"
+	@docker run --rm mozaops-auth-service:test sh -c "cd /app/libs && pytest -q"
 
 lint: test-image  ## ruff (regras e formato) e mypy --strict, sobre o backend todo
 	@# Uma passagem por serviço, e não uma só: a imagem de cada um traz o seu

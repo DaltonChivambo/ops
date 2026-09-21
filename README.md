@@ -23,7 +23,7 @@ Compose.
 
 | | |
 |---|---|
-| [`platform/identity`](backend/services/platform/identity/README.md) | construído — sessões contra o GEEA, com as rotas das automações fechadas |
+| [`platform/auth-service`](backend/services/platform/auth-service/README.md) | construído — sessões contra o GEEA, com as rotas das automações fechadas |
 | Autenticação | ligada: credenciais do domínio, acesso por área |
 | CI | por fazer |
 | [`business/reconciliation/pos-closing-credit-validation`](backend/services/business/reconciliation/pos-closing-credit-validation/README.md) (POS) | construído — parse, reconciliação, persistência e relatório |
@@ -45,7 +45,7 @@ Tudo a partir desta pasta (a raiz do repo — onde está este ficheiro, o
 
 ```bash
 cp .env.example .env     # ajustar as senhas
-make up                  # traefik, postgres, identity, otel, jaeger e os serviços
+make up                  # traefik, postgres, auth-service, otel, jaeger e os serviços
 make migrate             # alembic upgrade head
 
 # Em desenvolvimento o GEEA é simulado, e sobe à parte — não é um serviço nosso:
@@ -59,7 +59,7 @@ PowerShell nativo, sem `make`, o equivalente é:
 
 ```powershell
 Copy-Item .env.example .env      # ajustar as senhas
-docker compose up -d --build     # traefik, postgres, identity, otel, jaeger e os serviços
+docker compose up -d --build     # traefik, postgres, auth-service, otel, jaeger e os serviços
 docker compose run --rm pos-closing-credit-validation alembic upgrade head
 docker compose -f external-services/geea-keycloak/docker-compose.yml up -d
 ```

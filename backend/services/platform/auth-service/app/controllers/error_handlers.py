@@ -20,7 +20,7 @@ from app.domain.errors import (
 )
 from mozaops_libs.auth import register_error_handlers
 
-logger = logging.getLogger("identity")
+logger = logging.getLogger("auth-service")
 
 # Percorrido pela MRO da excepção, do mais específico para o mais geral.
 STATUS_BY_ERROR: tuple[tuple[type[DomainError], int, str], ...] = (

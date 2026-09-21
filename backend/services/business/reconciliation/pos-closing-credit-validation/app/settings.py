@@ -27,7 +27,7 @@ class Settings(BaseSettings):
     log_level: str = "INFO"
 
     # ─── Autenticação ────────────────────────────────────────────────────
-    # Estas são as MESMAS variáveis que o `platform/identity` declara, e no
+    # Estas são as MESMAS variáveis que o `platform/auth-service` declara, e no
     # compose recebem o mesmo `${...}`. Dois serviços a mapear áreas de
     # maneira diferente seria uma porta aberta no que ficasse para trás.
     auth_issuer: str = "http://geea-keycloak:8000/auth/realms/QAS"
