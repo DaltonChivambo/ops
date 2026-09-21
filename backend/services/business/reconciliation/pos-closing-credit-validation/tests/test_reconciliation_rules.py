@@ -262,6 +262,22 @@ def test_same_line_twice_credited_twice_is_two_real_closings() -> None:
     assert [d.validation for d in r.details] == [Validation.DUPLICATED, Validation.DUPLICATED]
 
 
+def test_extra_whitespace_does_not_hide_a_repeated_line() -> None:
+    """Sujidade do ficheiro não pode virar um segundo fecho da chave."""
+    a = closing(total="100.00", ops=3)
+    b = closing(total="100.00", ops=3)
+    # Escritos assim e não com os caracteres lá dentro: um espaço a mais e um
+    # não-quebrável são invisíveis no código, e o teste parecia comparar iguais.
+    nbsp = "\u00a0"
+    a.row = ("200001", "MERCADO ABC", "101")
+    b.row = ("200001", f"MERCADO{nbsp} ABC", "101")
+
+    r = reconcile(pos(), [a, b], {"200001101": credit("100.00")})
+
+    assert r.summary.duplicates_discarded == 1
+    assert [d.validation for d in r.details] == [Validation.MATCH, Validation.MATCH]
+
+
 def test_lines_differing_in_any_file_column_are_not_repeated() -> None:
     """Iguais nos campos do fecho, mas diferentes noutra coluna do ficheiro: não é cópia."""
     a = closing(total="100.00", ops=3)

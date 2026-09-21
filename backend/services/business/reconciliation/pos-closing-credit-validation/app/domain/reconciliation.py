@@ -209,9 +209,17 @@ def _split_simo_duplicates(
 
 
 def _identity(closing: SimoClosing) -> tuple[object, ...]:
-    """O que faz de duas linhas a mesma — a linha em bruto, ou os campos do fecho."""
+    """O que faz de duas linhas a mesma — a linha em bruto, ou os campos do fecho.
+
+    Os espaços de cada célula colapsam antes de comparar. O `cell_text` já apara
+    as pontas, mas um espaço a mais no meio — ou um espaço não-quebrável, que os
+    portais web deixam cair no texto — dava duas identidades diferentes, e a
+    linha repetida passava a um segundo fecho da chave. Não somava mal, porque
+    uma chave com dois fechos vai para análise manual, mas mandava o operador
+    conciliar à mão o que era só sujidade do ficheiro.
+    """
     if closing.row:
-        return closing.row
+        return tuple(" ".join(cell.split()) for cell in closing.row)
     return (
         closing.pos_id,
         closing.period,
