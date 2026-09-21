@@ -131,8 +131,12 @@ HEALTHCHECK --interval=10s --timeout=3s --retries=5 --start-period=10s \
 # dependências, e duas imagens divergiriam sem ninguém dar por isso:
 #
 #   command: ["python", "-m", "app.worker"]
+# `--no-control-socket`: o socket de gestão ia para `$HOME/.gunicorn`, que o
+# `app` não pode criar, e cada arranque registava um erro. Ninguém corre o
+# `gunicornc` contra isto.
 CMD ["gunicorn", "app.main:app", \
      "--worker-class", "uvicorn.workers.UvicornWorker", \
+     "--no-control-socket", \
      "--workers", "2", \
      "--bind", "0.0.0.0:8000", \
      "--access-logfile", "-", \
