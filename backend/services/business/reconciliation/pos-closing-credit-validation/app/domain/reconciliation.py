@@ -105,7 +105,7 @@ def reconcile(
     # nem entram na soma da chave, que é o mesmo fecho.
     details += _simo_duplicate_details(closings, details, simo_duplicates)
     summary.duplicates_discarded = len(simo_duplicates)
-    # Os dois lados das linhas repetidas, para o apuramento as poder contar se o
+    # Os dois lados dos fechos repetidos, para o apuramento os poder contar se o
     # operador o mandar. Ficam calculados sempre: é informação dos ficheiros,
     # não uma decisão.
     summary.simo_amount_duplicate_rows = sum(
@@ -134,19 +134,19 @@ def _duplicate_rows_credit(
     duplicates: list[SimoClosing],
     credits: dict[str, BankaCredit],
 ) -> Decimal:
-    """O crédito do Banka que corresponde às linhas repetidas da SIMO.
+    """O crédito do Banka que corresponde aos fechos repetidos da SIMO.
 
-    Uma linha repetida é cópia de um fecho que o Banka creditou. O crédito que
-    lhe corresponde é, portanto, o dela própria — limitado pelo que a chave tem
+    Um fecho repetido é cópia de um fecho que o Banka creditou. O crédito que
+    lhe corresponde é, portanto, o dele próprio — limitado pelo que a chave tem
     mesmo creditado: numa chave sem crédito nenhum não há correspondência que
-    mostrar, e a linha repetida fica em diferença.
+    mostrar, e o fecho repetido fica em diferença.
 
     **Este crédito já está contado na linha do estado da chave.** Mostrá-lo aqui
     outra vez é deliberado: a SIMO também conta a linha duas vezes, e é assim
     que os dois lados ficam simétricos e a diferença do total passa a ser a
     verdadeira da execução, em vez de uma criada pelo ficheiro vir com linhas a
     dobrar. Em contrapartida, a soma da coluna do Banka deixa de ser o dinheiro
-    que o banco pagou — é por isso que contar as repetidas é uma decisão do
+    que o banco pagou — é por isso que contar os repetidos é uma decisão do
     operador e não o comportamento normal.
     """
     by_key: dict[str, Decimal] = {}
@@ -164,7 +164,7 @@ def _duplicate_rows_credit(
 def _split_simo_duplicates(
     closings: list[SimoClosing], credits: dict[str, BankaCredit]
 ) -> tuple[list[SimoClosing], list[SimoClosing]]:
-    """Separa as linhas repetidas do export da SIMO dos fechos verdadeiros.
+    """Separa os fechos repetidos do export da SIMO dos fechos verdadeiros.
 
     O export do Portal repete às vezes uma linha inteira. Somada duas vezes,
     inflaciona a chave e cria uma divergência falsa do valor exacto do fecho
@@ -178,7 +178,7 @@ def _split_simo_duplicates(
        (fechos que não vêm de um ficheiro), vale POS, período, data, nº de
        operações e total.
     2. **O Banka não a creditou tantas vezes.** Se a chave tem tantos créditos
-       daquele valor como linhas repetidas, são fechos verdadeiros com o mesmo
+       daquele valor como fechos repetidos, são fechos verdadeiros com o mesmo
        valor — ficam todos, e a chave vai a períodos repetidos, para conciliar.
 
     Das linhas iguais ficam tantas quantas o Banka creditou (pelo menos uma); as
@@ -524,11 +524,11 @@ _BANKA_FIELD = {
 
 @dataclass(frozen=True, slots=True)
 class KeyTally:
-    """Uma chave COM linhas repetidas, tal como está gravada.
+    """Uma chave COM fechos repetidos, tal como está gravada.
 
-    A validação é a que as próprias linhas repetidas levam — que é a da chave
-    delas — e vem de lá como está, sem se revalidar nada. `simo` e `banka` são
-    os totais da chave sem elas; `repeated` e `repeated_amount`, o que elas são.
+    A validação é a que os próprios fechos repetidos levam — que é a da chave
+    deles — e vem de lá como está, sem se revalidar nada. `simo` e `banka` são
+    os totais da chave sem eles; `repeated` e `repeated_amount`, o que eles são.
     """
 
     validation: Validation
@@ -540,7 +540,7 @@ class KeyTally:
 
 @dataclass(frozen=True, slots=True)
 class _Weight:
-    """Quanto uma chave pesa no apuramento, com ou sem as linhas repetidas."""
+    """Quanto uma chave pesa no apuramento, com ou sem os fechos repetidos."""
 
     closings: int
     simo: Decimal
@@ -551,9 +551,9 @@ class _Weight:
 def _weight(key: KeyTally, include_repeated: bool) -> _Weight:
     extra = key.repeated_amount if include_repeated else Decimal(0)
     simo = key.simo + extra
-    # Do lado do Banka entra o crédito que corresponde às linhas repetidas: o
-    # mesmo valor delas, limitado ao que a chave tem creditado. Numa chave não
-    # creditada não há correspondência, e a repetida engrossa o que falta.
+    # Do lado do Banka entra o crédito que corresponde aos fechos repetidos: o
+    # mesmo valor deles, limitado ao que a chave tem creditado. Numa chave não
+    # creditada não há correspondência, e o repetido engrossa o que falta.
     banka = key.banka + min(extra, key.banka)
     # O Banka nunca passa a SIMO numa chave de períodos repetidos — ver a nota
     # em `compute_summary`.
@@ -577,9 +577,9 @@ def _weight(key: KeyTally, include_repeated: bool) -> _Weight:
 def with_simo_duplicates(
     summary: dict[str, Any], keys: Iterable[KeyTally], counted: bool
 ) -> dict[str, Any]:
-    """O `summary` com as linhas repetidas da SIMO dentro, ou fora, do apuramento.
+    """O `summary` com os fechos repetidos da SIMO dentro, ou fora, do apuramento.
 
-    Uma linha repetida não é um fecho novo e por isso **não tem estado próprio**:
+    Um fecho repetido não é um fecho novo e por isso **não tem estado próprio**:
     o estado dela é o da chave. Mandada contar, conta aí — em «crédito confere»
     se a chave confere, em «creditado incorrectamente» se não confere, e assim
     por diante. Não há linha à parte, porque não há estado à parte.
@@ -589,7 +589,7 @@ def with_simo_duplicates(
     divergência que não existe.
 
     Aplica-se a DIFERENÇA entre o antes e o depois, chave a chave, e só nas
-    chaves que têm linhas repetidas. Nada mais no documento se toca — nem o que
+    chaves que têm fechos repetidos. Nada mais no documento se toca — nem o que
     as conciliações já lá acertaram, nem os estados, nem os casos.
     """
     updated = dict(summary)

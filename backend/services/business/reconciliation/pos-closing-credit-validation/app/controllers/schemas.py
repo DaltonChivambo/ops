@@ -91,8 +91,11 @@ class ClosingDetailOut(Schema):
     # isso `from_row` recebe-os à parte. `1, 1` por omissão: só interessam
     # quando `validation` é `duplicated`, e desfazem aí a ambiguidade entre
     # duplicação do lado SIMO, do lado Banka, ou de ambos.
-    # Linha duplicada no export da SIMO: conta, e o ecrã marca-a.
+    # Fecho repetido da SIMO: conta, e o ecrã marca-a. `has_simo_duplicate` é a
+    # outra ponta do par — o fecho original, que não é repetição de ninguém mas
+    # tem cópias. Quem abre um fecho tem de saber de que lado do par está.
     simo_duplicate: bool
+    has_simo_duplicate: bool
     simo_closings_count: int
     banka_movements_count: int
 
@@ -123,6 +126,7 @@ class ClosingDetailOut(Schema):
             validation=row.validation,
             difference=float(row.difference) if row.difference is not None else None,
             simo_duplicate=bool(row.simo_duplicate),
+            has_simo_duplicate=bool(row.has_simo_duplicate),
             simo_closings_count=simo_closings_count,
             banka_movements_count=banka_movements_count,
         )
@@ -386,7 +390,7 @@ class ClosingMatchIn(BaseModel):
 
 
 class SimoDuplicatesIn(BaseModel):
-    """A decisão do operador sobre as linhas repetidas do export da SIMO.
+    """A decisão do operador sobre os fechos repetidos do export da SIMO.
 
     `counted` a `true` é «estas linhas são fechos verdadeiros, o Banka é que não
     os creditou» — e a execução revalida-se com elas dentro.

@@ -74,7 +74,7 @@ export class ReconciliationApi {
     if (query.page !== undefined) params = params.set('page', query.page);
     if (query.perPage !== undefined) params = params.set('perPage', query.perPage);
     if (query.q) params = params.set('q', query.q);
-    if (query.simoDuplicates) params = params.set('simoDuplicates', true);
+    if (query.repeated && query.repeated !== 'all') params = params.set('repeated', query.repeated);
 
     const validation = serializeValidations(query.validation);
     if (validation !== null) params = params.set('validation', validation);
@@ -121,7 +121,7 @@ export class ReconciliationApi {
   }
 
   /**
-   * Manda contar, ou não, o dinheiro das linhas repetidas da SIMO no apuramento.
+   * Manda contar, ou não, o dinheiro dos fechos repetidos da SIMO no apuramento.
    *
    * Não mexe em estados nem em casos — só nos montantes. Volta a execução
    * inteira porque é ela que o ecrã tem em mão.

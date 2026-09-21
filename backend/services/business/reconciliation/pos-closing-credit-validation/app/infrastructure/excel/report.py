@@ -237,9 +237,9 @@ def _add_summary_sheet(
         total_simo += simo
         total_banka += banka
     total_row = first_row + len(validation_rows)
-    # As linhas repetidas da SIMO numa linha própria, antes do total, só com a
-    # contagem: elas não têm estado próprio, e quando o operador as manda contar
-    # o dinheiro delas já está na linha do estado da chave (ver
+    # Os fechos repetidos da SIMO numa linha própria, antes do total, só com a
+    # contagem: eles não têm estado próprio, e quando o operador os manda contar
+    # o dinheiro deles já está na linha do estado da chave (ver
     # `domain.reconciliation.with_simo_duplicates`). Repeti-lo aqui somava duas
     # vezes o mesmo.
     simo_duplicates = int(summary.get("duplicatesDiscarded", 0))
@@ -248,7 +248,7 @@ def _add_summary_sheet(
             sheet,
             total_row,
             [
-                "Linhas repetidas na SIMO",
+                "Fechos repetidos na SIMO",
                 simo_duplicates,
                 NOT_APPLICABLE,
                 NOT_APPLICABLE,
@@ -330,7 +330,7 @@ def _add_summary_sheet(
     banka_repeated = int(summary.get("bankaDuplicatesDiscarded", 0))
     lines = [
         ("Fechos no ficheiro da SIMO", processed),
-        ("Dos quais linhas repetidas", simo_repeated),
+        ("Dos quais repetidos", simo_repeated),
         ("Movimentos repetidos no Banka, contados uma vez", banka_repeated),
     ]
     for offset, (label, value) in enumerate(lines, start=1):

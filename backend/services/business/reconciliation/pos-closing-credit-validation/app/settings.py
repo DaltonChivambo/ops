@@ -32,7 +32,7 @@ class Settings(BaseSettings):
     # maneira diferente seria uma porta aberta no que ficasse para trás.
     auth_issuer: str = "http://geea-keycloak:8000/auth/realms/QAS"
     auth_jwks_url: str = "http://geea-keycloak:8000/auth/realms/QAS/protocol/openid-connect/certs"
-    auth_allowed_azp: str = "qa-workflow-ui"
+    auth_allowed_azp: str = "qa-mozaops"
 
     auth_areas: str = "channels:3230"
     auth_area_users: str = ""

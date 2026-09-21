@@ -46,7 +46,7 @@ STATE_TONES = {
     "duplicated": ("FFFFFBEB", "FFB45309"),
     "zero": ("FFF3F4F6", "FF6B7280"),
     "resolved": ("FFECFDF5", "FF047857"),
-    # Linha repetida no export: o vermelho claro dos duplicados.
+    # Fecho repetido no export: o vermelho claro dos duplicados.
     "repeated": ("FFFEE2E2", "FFB91C1C"),
 }
 

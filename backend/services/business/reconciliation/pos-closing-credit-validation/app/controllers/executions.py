@@ -23,7 +23,7 @@ from app.controllers.schemas import (
     ValidationResultOut,
 )
 from app.domain.errors import InvalidInputError, UploadTooLargeError
-from app.domain.vocabulary import SLOT_LABELS, UploadSlot
+from app.domain.vocabulary import SLOT_LABELS, RepeatedClosings, UploadSlot
 from app.pagination import parse_page
 from app.settings import settings
 
@@ -110,7 +110,7 @@ async def set_simo_duplicates(
     body: SimoDuplicatesIn,
     service: ValidationServiceDep,
 ) -> ValidationResultOut:
-    """Conta, ou deixa de contar, as linhas repetidas do export da SIMO.
+    """Conta, ou deixa de contar, os fechos repetidos do export da SIMO.
 
     PUT e não POST: mandar o mesmo valor duas vezes deixa tudo como mandá-lo uma.
     Devolve a execução inteira porque muda tudo o que o ecrã mostra — os
@@ -130,12 +130,13 @@ async def list_details(
     per_page: int | None = Query(default=None, alias="perPage"),
     validation: str | None = Query(default=None),
     q: str | None = Query(default=None),
-    # Só os fechos com linha duplicada na SIMO — à parte do `validation`: não é um estado.
-    simo_duplicates: bool = Query(default=False, alias="simoDuplicates"),
+    # Os fechos repetidos na SIMO à parte do `validation`: não são um estado, são
+    # uma marca que se cruza com todos eles. `all` à mistura, `only` ou `without`.
+    repeated: RepeatedClosings = Query(default=RepeatedClosings.ALL),
 ) -> DetailsPageOut:
     await service.get_execution(execution_id)  # 404 se não existir
     parsed_page = parse_page(page, per_page)
-    result = await service.list_details(execution_id, parsed_page, validation, q, simo_duplicates)
+    result = await service.list_details(execution_id, parsed_page, validation, q, repeated)
     return DetailsPageOut(
         items=[
             ClosingDetailOut.from_row(detail, *result.key_counts.get(detail.key, (1, 1)))

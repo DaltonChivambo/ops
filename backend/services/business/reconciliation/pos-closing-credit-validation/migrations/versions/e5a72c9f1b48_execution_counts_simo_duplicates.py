@@ -4,11 +4,11 @@ Revision ID: e5a72c9f1b48
 Revises: a4d9e2b7c315
 Create Date: 2026-09-18 00:00:00.000000
 
-O operador passa a poder mandar contar o dinheiro das linhas repetidas do export
+O operador passa a poder mandar contar o dinheiro dos fechos repetidos do export
 da SIMO na reconciliação de montantes. A decisão é da execução inteira e fica
 aqui, porque o relatório sai com ela — não é preferência de quem olha.
 
-Não mexe em estados nem em casos: uma linha repetida no ficheiro não é um fecho
+Não mexe em estados nem em casos: um fecho repetido no ficheiro não é um fecho
 novo. As execuções já gravadas ficam a `false`, que é como foram apuradas, e
 recebem o montante dessas linhas, que até agora ninguém somava.
 """
@@ -31,7 +31,7 @@ def upgrade() -> None:
     )
     # O `summary` é JSONB e o SPA lê-o tal como está: sem estas chaves, o botão
     # aparecia desligado nas execuções antigas por ausência e não por decisão, e
-    # o montante das linhas repetidas ficava por somar.
+    # o montante dos fechos repetidos ficava por somar.
     op.execute(
         """
         UPDATE execution AS e
@@ -41,7 +41,7 @@ def upgrade() -> None:
             'bankaAmountDuplicateRows', COALESCE(repeated.banka, 0)
         )
         FROM (
-            -- Por chave: o que as linhas repetidas somam, e o crédito que lhes
+            -- Por chave: o que os fechos repetidos somam, e o crédito que lhes
             -- corresponde — o delas próprias, limitado ao que a chave tem mesmo
             -- creditado. Ver `_duplicate_rows_credit` no domínio.
             SELECT ex.id,

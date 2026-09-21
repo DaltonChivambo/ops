@@ -60,8 +60,10 @@ export interface ClosingDetail {
   simoClosingsCount: number;
   /** Movimentos Banka nesta chave. >1 é duplicação do lado Banka; 1 fora de `duplicated`. */
   bankaMovementsCount: number;
-  /** Linha duplicada no ficheiro da SIMO: conta, com a validação da original, e fica marcada. */
+  /** Fecho repetido da SIMO: conta, com a validação da original, e fica marcada. */
   simoDuplicate: boolean;
+  /** A outra ponta do par: o fecho original, que tem cópias mas não é cópia de ninguém. */
+  hasSimoDuplicate: boolean;
 }
 
 /** Um movimento de crédito do Banka atribuído a uma chave — a parcela do total. */
@@ -159,6 +161,9 @@ export interface CaseMatches {
   readonly matches: readonly ClosingMatch[];
 }
 
+/** O que a lista faz aos fechos repetidos na SIMO. Espelha o enum do servidor. */
+export type RepeatedClosings = 'all' | 'only' | 'without';
+
 /** Indicadores do dashboard operacional (PDD §4.2.1). */
 export interface ClosingSummary {
   processed: number;
@@ -174,10 +179,10 @@ export interface ClosingSummary {
   zeroClosings: number;
   /** Fechos em chaves com >1 fecho (período repetido/colidido); análise manual. */
   duplicatedPeriods: number;
-  /** Linhas repetidas no ficheiro da SIMO. Contam como fechos e ficam marcadas;
+  /** Fechos repetidos no ficheiro da SIMO. Contam como fechos e ficam marcadas;
    *  nunca mexem no estado da chave, que continua a ser um fecho só. */
   duplicatesDiscarded: number;
-  /** O que essas linhas somam do lado da SIMO. Entra no apuramento só quando
+  /** O que esses fechos somam do lado da SIMO. Entra no apuramento só quando
    *  `countSimoDuplicates`. Ausente nas execuções antigas. */
   simoAmountDuplicateRows?: number;
   /** O crédito do Banka que corresponde a essas linhas — o mesmo que pagou o
@@ -219,7 +224,7 @@ export interface ValidationResult {
 
 export interface DetailCounts {
   all: number;
-  /** Linhas dos fechos com duplicado na SIMO — o número do filtro, não um estado. */
+  /** Os fechos repetidos na SIMO — só as cópias, e não o par. Não é um estado. */
   simoDuplicates: number;
   match: number;
   mismatch: number;
@@ -243,8 +248,9 @@ export interface DetailsQuery {
   /** Classes a mostrar. `null`/ausente = todas; lista vazia = nenhuma. */
   validation?: Validation[] | null;
   q?: string;
-  /** Só os fechos com linha duplicada na SIMO (a original e as cópias). */
-  simoDuplicates?: boolean;
+  /** O que fazer aos fechos repetidos na SIMO: vê-los à mistura, só a eles, ou
+   *  trabalhar a lista sem eles. Não é um estado — cruza-se com todos. */
+  repeated?: RepeatedClosings;
 }
 
 /** Fases grosseiras: o upload e a execução são um único round-trip HTTP. */

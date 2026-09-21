@@ -146,12 +146,12 @@ class ClosingSummary:
     # chave): não se somam, ficam fora do match/mismatch e vão para análise
     # manual individual.
     duplicated_periods: int = 0
-    # Linhas repetidas no export da SIMO: entram em `processed`, numa linha
+    # Fechos repetidos no export da SIMO: entram em `processed`, numa linha
     # própria, e NUNCA nos estados nem na taxa — o estado é o da linha original,
     # que continua a ser um fecho só. O que a decisão do operador muda é apenas
     # se o dinheiro delas entra na reconciliação de montantes.
     duplicates_discarded: int = 0
-    # O que essas linhas somam do lado da SIMO. Fica sempre calculado; entra no
+    # O que esses fechos somam do lado da SIMO. Fica sempre calculado; entra no
     # apuramento só quando `count_simo_duplicates`.
     simo_amount_duplicate_rows: Decimal = Decimal(0)
     # E o crédito do Banka que lhes corresponde — ver `_duplicate_rows_credit`.

@@ -179,7 +179,7 @@ export class PosClosingCreditValidationPageComponent {
   protected readonly description = computed(() => this.feature()?.description ?? '');
 
   protected readonly result = signal<ValidationResult | null>(null);
-  /** A decisão sobre as linhas repetidas da SIMO está a ser gravada. */
+  /** A decisão sobre os fechos repetidos da SIMO está a ser gravada. */
   protected readonly revalidating = signal(false);
   protected readonly loading = signal(true);
   protected readonly processing = signal(false);
@@ -296,10 +296,10 @@ export class PosClosingCreditValidationPageComponent {
   }
 
   /**
-   * Manda contar, ou não, o dinheiro das linhas repetidas da SIMO no apuramento.
+   * Manda contar, ou não, o dinheiro dos fechos repetidos da SIMO no apuramento.
    *
    * Só mexe nos montantes: os estados, os casos e a taxa ficam onde estavam —
-   * uma linha repetida no ficheiro não é um fecho novo. Por isso também não há
+   * um fecho repetido no ficheiro não é um fecho novo. Por isso também não há
    * tabela de fechos a recarregar.
    */
   protected async setSimoDuplicates(counted: boolean): Promise<void> {
@@ -311,9 +311,9 @@ export class PosClosingCreditValidationPageComponent {
       const updated = await this.api.setSimoDuplicates(current.executionId, counted);
       this.result.set(updated);
       this.success.set({
-        title: counted ? 'Linhas repetidas a contar' : 'Linhas repetidas fora',
+        title: counted ? 'Fechos repetidos considerados' : 'Fechos repetidos fora',
         detail: counted
-          ? 'O montante delas entra na reconciliação e no relatório.'
+          ? 'O montante deles entra no apuramento e no relatório.'
           : 'O apuramento voltou a somar cada fecho uma vez.',
       });
     } catch (problem) {
@@ -509,7 +509,7 @@ function executionToast({ reportName, summary }: ValidationResult): Toast {
       ...(simoRepeated > 0
         ? [
             {
-              label: 'Linhas repetidas na SIMO',
+              label: 'Fechos repetidos na SIMO',
               value: count(simoRepeated),
             },
           ]

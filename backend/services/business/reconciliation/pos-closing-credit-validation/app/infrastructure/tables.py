@@ -88,7 +88,7 @@ class Execution(Base):
     # Snapshot denormalizado do `ClosingSummary` — mutado quando um caso muda de
     # estado (ver `service._refresh_case_counters`), não só à criação.
     summary: Mapped[dict[str, Any]] = mapped_column(JSONB)
-    # O operador mandou contar as linhas repetidas do export da SIMO como fechos
+    # O operador mandou contar os fechos repetidos do export da SIMO como fechos
     # verdadeiros. Vive na execução e não nas definições nem no ecrã: manda nos
     # estados gravados, nos casos e no relatório, e tem de ser igual para todos.
     count_simo_duplicates: Mapped[bool] = mapped_column(

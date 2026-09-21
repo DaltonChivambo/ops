@@ -40,6 +40,19 @@ class Validation(StrEnum):
     DUPLICATED = "duplicated"
 
 
+class RepeatedClosings(StrEnum):
+    """O que a lista de fechos faz aos fechos repetidos na SIMO.
+
+    Não é um estado — é uma marca que se cruza com todos eles —, por isso não
+    entra na `Validation`. O operador ou os vê à mistura, ou só a eles, ou
+    trabalha a lista sem o ruído deles.
+    """
+
+    ALL = "all"
+    ONLY = "only"
+    WITHOUT = "without"
+
+
 class ClosingType(StrEnum):
     """Prazo de crédito do POS, vindo do «Fecho Realtime» da Lista de POS."""
 

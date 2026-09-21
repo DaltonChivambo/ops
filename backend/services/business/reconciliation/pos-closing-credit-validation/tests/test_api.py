@@ -145,17 +145,23 @@ def test_details_forward_page_filter_and_search(client, service: FakeService):
         "perPage": 25,
         "validation": "missing,mismatch",
         "search": "259342",
-        "simoDuplicates": False,
+        "repeated": "all",
     }
 
 
-def test_details_forward_the_simo_duplicates_filter(client, service: FakeService):
-    client.get(f"{BASE}/execucoes/{EXECUTION_ID}/detalhes", params={"simoDuplicates": "true"})
+def test_details_forward_the_repeated_closings_filter(client, service: FakeService):
+    client.get(f"{BASE}/execucoes/{EXECUTION_ID}/detalhes", params={"repeated": "only"})
 
-    assert service.calls["list_details"]["simoDuplicates"] is True
+    assert service.calls["list_details"]["repeated"] == "only"
 
 
-# ─── Contar, ou não, as linhas repetidas da SIMO ─────────────────────────────
+def test_details_reject_an_unknown_repeated_closings_filter(client):
+    response = client.get(f"{BASE}/execucoes/{EXECUTION_ID}/detalhes", params={"repeated": "xpto"})
+
+    assert response.status_code == 422
+
+
+# ─── Contar, ou não, os fechos repetidos da SIMO ─────────────────────────────
 
 
 def test_simo_duplicates_decision_reaches_the_service(client, service: FakeService):
@@ -180,7 +186,7 @@ def test_simo_duplicates_decision_returns_the_whole_execution(client):
 
 
 def test_simo_duplicates_decision_leaves_the_states_alone(client):
-    """A decisão é só do apuramento: uma linha repetida não é um fecho novo."""
+    """A decisão é só do apuramento: um fecho repetido não é um fecho novo."""
     before = client.get(f"{BASE}/execucoes/ultima").json()["summary"]
 
     client.put(f"{BASE}/execucoes/{EXECUTION_ID}/duplicados-simo", json={"counted": True})

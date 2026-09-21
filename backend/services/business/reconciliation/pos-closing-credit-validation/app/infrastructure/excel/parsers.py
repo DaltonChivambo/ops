@@ -251,7 +251,7 @@ def parse_banka_credits(stream: IO[bytes], filename: str) -> tuple[dict[str, Ban
     N_DOCUMENTO, único por movimento num export correcto; sem ele (coluna ausente
     ou célula vazia), a linha inteira — só colapsa o que é igual em tudo.
 
-    Devolve os créditos e quantas linhas repetidas foram descartadas.
+    Devolve os créditos e quantos fechos repetidos foram descartadas.
     """
     sheet = _open_sheet(stream, UploadSlot.BANKA_CREDITS, filename, "FECHO_POS")
     header, rows = _header_and_rows(

@@ -17,7 +17,7 @@ from app.domain.errors import NotFoundError
 from app.domain.matching import Match, is_fully_matched, suggest_matches
 from app.domain.models import ReconciliationResult
 from app.domain.reconciliation import reconcile
-from app.domain.vocabulary import CaseType, UploadSlot, Validation
+from app.domain.vocabulary import CaseType, RepeatedClosings, UploadSlot, Validation
 from app.infrastructure.excel import parsers, report
 from app.infrastructure.tables import (
     ClosingDetail,
@@ -86,9 +86,9 @@ class ValidationService:
         return await self._executions.find_latest()
 
     async def set_count_simo_duplicates(self, execution_id: str, counted: bool) -> dict[str, Any]:
-        """Manda contar, ou não, as linhas repetidas do export da SIMO nos montantes.
+        """Manda contar, ou não, os fechos repetidos do export da SIMO nos montantes.
 
-        Não mexe em estados nem em casos: uma linha repetida no ficheiro não é
+        Não mexe em estados nem em casos: um fecho repetido no ficheiro não é
         um fecho novo, e o estado da chave continua a ser o que era. O que muda
         é só o apuramento de montantes — se o dinheiro dessas linhas entra ou
         fica de fora, e a diferença que isso abre.
@@ -116,10 +116,10 @@ class ValidationService:
         page: Page,
         validation: str | None,
         search: str | None,
-        simo_duplicates: bool = False,
+        repeated: RepeatedClosings = RepeatedClosings.ALL,
     ) -> DetailsPage:
         details, total = await self._executions.list_details(
-            execution_id, page, validation, search, simo_duplicates
+            execution_id, page, validation, search, repeated
         )
         counts = await self._executions.count_details_by_validation(execution_id, search)
         duplicated_keys = {
@@ -234,7 +234,7 @@ def _parse_and_reconcile(
     # O `NoClosingsError` é uma excepção de negócio do PDD, com a mensagem já em
     # português: sobe tal como está, sem tradução pelo meio.
     result = reconcile(pos_list, closings, credits)
-    # Quem sabe das linhas repetidas é o parser; o domínio só recebe créditos
+    # Quem sabe dos fechos repetidos é o parser; o domínio só recebe créditos
     # limpos. O número vai para o `summary`, para o operador saber que o
     # ficheiro vinha com elas.
     result.summary.banka_duplicates_discarded = banka_discarded

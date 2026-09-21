@@ -53,6 +53,7 @@ CONTRACT: dict[str, tuple[type[Any], set[str]]] = {
             "simoClosingsCount",
             "bankaMovementsCount",
             "simoDuplicate",
+            "hasSimoDuplicate",
         },
     ),
     "CreditMovement": (

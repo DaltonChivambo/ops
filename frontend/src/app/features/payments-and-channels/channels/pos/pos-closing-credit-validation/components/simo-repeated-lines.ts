@@ -6,12 +6,12 @@ import { InfoTooltipComponent } from '../../../../../../shared/ui/info-tooltip';
 import type { ClosingSummary } from '../data/models';
 
 /**
- * A faixa das linhas repetidas do ficheiro da SIMO, e a decisão sobre elas.
+ * A faixa dos fechos repetidos da SIMO, e a decisão sobre eles.
  *
  * O mesmo fecho aparece às vezes mais do que uma vez na SIMO, igual em tudo.
  * **Não é um fecho novo**: o estado da chave é o do fecho original e não se
  * mexe — continua em «Confere», ou no que for. O que fica por decidir é só o
- * dinheiro: se o montante dessas linhas entra na reconciliação ou fica de fora.
+ * dinheiro: se o montante deles entra na reconciliação ou fica de fora.
  *
  * Fica por cima do cartão dos montantes e não dentro dele: é uma decisão sobre a
  * execução, e o cartão é onde ela se vê.
@@ -28,22 +28,20 @@ import type { ClosingSummary } from '../data/models';
       >
         <p class="text-xs text-gray-500">
           <b class="font-semibold text-gray-900 tabular-nums">{{ count(rows()) }}</b>
-          {{ rows() === 1 ? 'linha repetida' : 'linhas repetidas' }} no ficheiro da SIMO,
+          {{ rows() === 1 ? 'fecho repetido' : 'fechos repetidos' }} na SIMO ·
           <b class="font-semibold text-gray-900 tabular-nums">{{ amount(total()) }}</b> MZN
           <span class="font-semibold" [class]="counted() ? 'text-amber-700' : 'text-gray-400'">
-            {{ counted() ? 'a contar no apuramento' : 'fora do apuramento' }}
+            {{ counted() ? 'no apuramento' : 'fora do apuramento' }}
           </span>
           @if (uncovered() > 0) {
             <span class="text-gray-400">
               · <b class="font-semibold text-alert-600 tabular-nums">{{ amount(uncovered()) }}</b>
-              sem correspondência no Banka
+              sem crédito no Banka
             </span>
-          } @else {
-            <span class="text-gray-400">· com correspondência no Banka</span>
           }
         </p>
 
-        <app-info-tooltip [text]="explanation()" label="Sobre as linhas repetidas da SIMO" />
+        <app-info-tooltip [text]="explanation()" label="Sobre os fechos repetidos da SIMO" />
 
         <button
           type="button"
@@ -61,10 +59,10 @@ import type { ClosingSummary } from '../data/models';
             A guardar…
           } @else if (counted()) {
             <svg lucideCopyX [size]="14" [strokeWidth]="2.2"></svg>
-            Não contar
+            Não considerar
           } @else {
             <svg lucideCopyCheck [size]="14" [strokeWidth]="2.2"></svg>
-            Contar no apuramento
+            Considerar
           }
         </button>
       </div>
@@ -88,8 +86,8 @@ export class SimoRepeatedLinesComponent {
 
   protected readonly explanation = computed(() =>
     this.counted()
-      ? 'O mesmo fecho aparece mais do que uma vez na SIMO, igual em POS, período, data, nº de operações e total. É repetição, não um fecho novo. Estão a contar dos dois lados, com o crédito que pagou o fecho original, para a diferença do total ser a real. O estado da chave continua a ser o do fecho original.'
-      : 'O mesmo fecho aparece mais do que uma vez na SIMO, igual em POS, período, data, nº de operações e total. É repetição, não um fecho novo. O dinheiro conta uma vez só e o estado da chave é o do fecho original.',
+      ? 'O mesmo fecho aparece mais do que uma vez na SIMO, igual em POS, período, data, nº de operações e total. Entram nos dois lados, com o crédito que pagou o fecho original. O estado da chave não muda.'
+      : 'O mesmo fecho aparece mais do que uma vez na SIMO, igual em POS, período, data, nº de operações e total. Não é um fecho novo: o dinheiro conta uma vez e o estado é o do fecho original.',
   );
 
   protected amount = (value: number) => formatAmount(value);

@@ -144,7 +144,7 @@ def test_summary_explains_file_lines_and_repeated_rows(workbook: Any) -> None:
         for row in range(30, 33)
     }
     assert labels["Fechos no ficheiro da SIMO"] == summary["C11"].value + 1  # + o zerado
-    assert labels["Dos quais linhas repetidas"] == 0
+    assert labels["Dos quais repetidos"] == 0
 
 
 def test_pending_summary_counts_closings_without_double_counting_duplicates(workbook: Any) -> None:
@@ -357,7 +357,7 @@ def test_simo_duplicate_counts_with_original_validation_and_is_marked() -> None:
     summary = book["Resumo"]
     assert summary["C10"].value == 1  # confere conta o fecho uma vez
     assert summary["D10"].value == 100
-    assert summary["B11"].value == "Linhas repetidas na SIMO"
+    assert summary["B11"].value == "Fechos repetidos na SIMO"
     assert summary["C11"].value == 1
     assert summary["B12"].value == "Total"
     assert summary["C12"].value == 2

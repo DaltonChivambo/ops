@@ -13,6 +13,7 @@ import {
 import {
   LucideCheck,
   LucideChevronDown,
+  LucideCopy,
   LucideLink2,
   LucideLoaderCircle,
   LucidePlus,
@@ -56,6 +57,7 @@ import {
   startOfToday,
   type SlaView,
 } from '../data/sla';
+import { TooltipDirective } from '../../../../../../shared/ui/tooltip';
 import { STATE_CHIP, STATE_DOT, STATE_LABEL } from '../data/state-options';
 import type {
   CaseMatches,
@@ -77,7 +79,9 @@ import type {
   selector: 'app-key-detail-panel',
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
+    TooltipDirective,
     LucideCheck,
+    LucideCopy,
     LucideChevronDown,
     LucideLink2,
     LucideLoaderCircle,
@@ -110,6 +114,19 @@ import type {
               <span class="size-1.5 rounded-full" [class]="dot()"></span>
               {{ stateLabel() }}
             </span>
+
+            <!-- Quem abre um fecho tem de saber de que lado do par está: se é a
+                 cópia, ou se é o original que tem cópias. O estado é o mesmo nos
+                 dois, por isso a pastilha do estado não o diz. -->
+            @if (d.simoDuplicate || d.hasSimoDuplicate) {
+              <span
+                class="inline-flex items-center gap-1.5 rounded-full bg-rose-50 px-2.5 py-1 text-xs font-bold whitespace-nowrap text-rose-700"
+                [appTooltip]="repeatedHint()"
+              >
+                <svg lucideCopy [size]="13" [strokeWidth]="2.2"></svg>
+                {{ d.simoDuplicate ? 'Fecho repetido na SIMO' : 'Tem fecho repetido na SIMO' }}
+              </span>
+            }
           </div>
 
           <p class="mt-0.5 truncate text-sm text-gray-500">{{ d.merchant }}</p>
@@ -771,6 +788,13 @@ export class KeyDetailPanelComponent {
   protected readonly chip = computed(() => STATE_CHIP[this.detail().validation]);
   protected readonly dot = computed(() => STATE_DOT[this.detail().validation]);
   protected readonly stateLabel = computed(() => STATE_LABEL[this.detail().validation]);
+
+  /** De que lado do par está este fecho, e o que isso quer dizer no apuramento. */
+  protected readonly repeatedHint = computed(() =>
+    this.detail().simoDuplicate
+      ? 'Este fecho vem repetido na SIMO. O estado e o montante são os do fecho original.'
+      : 'Este fecho vem repetido na SIMO, noutra linha. O montante da chave soma-o uma vez.',
+  );
 
   constructor() {
     // Recarrega a cada chave: abrir outro fecho reutiliza o painel já montado.

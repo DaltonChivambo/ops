@@ -200,7 +200,7 @@ class FakeService:
         page: Any,
         validation: Any,
         search: Any,
-        simo_duplicates: bool = False,
+        repeated: Any = "all",
     ) -> DetailsPage:
         self.calls["list_details"] = {
             "page": page.page,
@@ -209,7 +209,7 @@ class FakeService:
             "perPage": page.per_page,
             "validation": validation,
             "search": search,
-            "simoDuplicates": simo_duplicates,
+            "repeated": str(repeated),
         }
         self._guard(execution_id)
         return DetailsPage(

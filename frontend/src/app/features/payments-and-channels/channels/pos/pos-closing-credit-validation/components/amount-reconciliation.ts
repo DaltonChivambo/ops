@@ -32,7 +32,7 @@ type Source = 'simo' | 'banka' | 'difference';
  * Reconciliação de montantes — não quantos fechos divergem, mas quanto dinheiro
  * está em cada estado.
  *
- * As linhas repetidas da SIMO não entram aqui: o montante delas é o do fecho
+ * Os fechos repetidos da SIMO não entram aqui: o montante deles é o do fecho
  * original, que já está na linha do seu estado, e uma linha própria punha os
  * dois lados a somar duas vezes o mesmo dinheiro. Vivem na faixa por cima
  * (`app-simo-repeated-lines`) e, com valor, no relatório.

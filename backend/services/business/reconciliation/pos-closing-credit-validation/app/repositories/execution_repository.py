@@ -19,7 +19,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.domain.models import ReconciliationResult
 from app.domain.reconciliation import KeyTally, with_simo_duplicates
-from app.domain.vocabulary import UploadSlot, Validation
+from app.domain.vocabulary import RepeatedClosings, UploadSlot, Validation
 from app.infrastructure.tables import (
     ClosingDetail,
     ClosingMatch,
@@ -174,9 +174,9 @@ class ExecutionRepository:
         page: Page,
         validation: str | None = None,
         search: str | None = None,
-        simo_duplicates: bool = False,
+        repeated: RepeatedClosings = RepeatedClosings.ALL,
     ) -> tuple[list[ClosingDetail], int]:
-        where = _details_where(execution_id, validation, search, simo_duplicates)
+        where = _details_where(execution_id, validation, search, repeated)
         items_result = await self._session.execute(
             sa.select(ClosingDetail)
             .where(*where)
@@ -256,8 +256,11 @@ class ExecutionRepository:
     ) -> dict[str, int]:
         """Contagens para os chips — sobre TODAS as linhas da execução, não da página."""
         counts: dict[str, int] = {"all": 0, "simo_duplicates": 0, **dict.fromkeys(Validation, 0)}
+        # Sem o `repeated`: as contagens são as da execução inteira, e é o que
+        # faz as três hipóteses do filtro somarem «todos» em vez de se contarem
+        # a si próprias.
         where = _details_where(execution_id, None, search)
-        # As linhas duplicadas na SIMO entram em «todos», mas não no estado da
+        # Os fechos repetidos na SIMO entram em «todos», mas não no estado do
         # original: não são mais um fecho a conferir nem a tratar.
         result = await self._session.execute(
             sa.select(ClosingDetail.validation, ClosingDetail.simo_duplicate, sa.func.count())
@@ -266,9 +269,9 @@ class ExecutionRepository:
         )
         for validation, simo_duplicate, total in result.all():
             if simo_duplicate:
-                # O número do filtro «Duplicados na SIMO»: só as cópias, o mesmo
-                # que o resumo e o relatório. O filtro ligado mostra mais linhas
-                # do que isto — traz também a original de cada cópia.
+                # O número de «Apenas os repetidos»: só as cópias, o mesmo que
+                # o resumo e o relatório — e o mesmo que o filtro traz. O
+                # original de cada uma vê-se ao abrir o fecho.
                 counts["simo_duplicates"] += total
             else:
                 counts[validation] += total
@@ -395,12 +398,12 @@ class ExecutionRepository:
     async def set_count_simo_duplicates(
         self, execution_id: str, counted: bool, summary: dict[str, Any]
     ) -> dict[str, Any]:
-        """Grava a decisão sobre as linhas repetidas da SIMO e refaz o apuramento.
+        """Grava a decisão sobre os fechos repetidos da SIMO e refaz o apuramento.
 
         **Nada se revalida.** O estado de cada fecho é o que está gravado, e isso
-        inclui os que uma conciliação já pôs em «confere». O que muda é só se as
-        linhas repetidas contam, e é a `with_simo_duplicates` que diz onde elas
-        entram: no estado da chave delas, nunca num estado próprio.
+        inclui os que uma conciliação já pôs em «confere». O que muda é só se os
+        fechos repetidos contam, e é a `with_simo_duplicates` que diz onde eles
+        entram: no estado da chave deles, nunca num estado próprio.
         """
         updated = with_simo_duplicates(summary, await self._repeated_keys(execution_id), counted)
         await self._session.execute(
@@ -411,14 +414,14 @@ class ExecutionRepository:
         return updated
 
     async def _repeated_keys(self, execution_id: str) -> list[KeyTally]:
-        """As chaves COM linhas repetidas, com o que elas valem e o que a chave já pesa.
+        """As chaves COM fechos repetidos, com o que eles valem e o que a chave já pesa.
 
         Só essas: o apuramento das outras não muda com esta decisão, e mexer-lhes
         desfazia o que as conciliações já acertaram no `summary`.
 
         `simoKeyTotal` e `bankaClosingTotal` são da chave e repetem-se em todas
-        as linhas dela — daí `MAX` e não `SUM`. A validação sai das próprias
-        linhas repetidas: é nesse estado que elas vão contar.
+        as linhas dela — daí `MAX` e não `SUM`. A validação sai dos próprios
+        fechos repetidos: é nesse estado que eles vão contar.
         """
         rows = await self._session.execute(
             sa.select(
@@ -452,12 +455,15 @@ def _details_where(
     execution_id: str,
     validation: str | None,
     search: str | None,
-    simo_duplicates: bool = False,
+    repeated: RepeatedClosings = RepeatedClosings.ALL,
 ) -> list[Any]:
     conditions: list[Any] = [ClosingDetail.execution_id == execution_id]
-    if simo_duplicates:
-        # Os fechos com linha duplicada na SIMO: a original e as cópias.
-        conditions.append(sa.or_(ClosingDetail.simo_duplicate, ClosingDetail.has_simo_duplicate))
+    # «Só os repetidos» são as cópias, e não o par: é assim que os três números
+    # do filtro somam o total, e o original de cada uma vê-se ao abrir o fecho.
+    if repeated is RepeatedClosings.ONLY:
+        conditions.append(ClosingDetail.simo_duplicate)
+    elif repeated is RepeatedClosings.WITHOUT:
+        conditions.append(ClosingDetail.simo_duplicate.is_(False))
     if validation:
         # Lista de estados a mostrar, separada por vírgulas. Tokens desconhecidos
         # caem fora, por isso a selecção vazia (o cliente manda «nenhum») não

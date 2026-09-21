@@ -52,7 +52,7 @@ export class ResultStatsComponent {
         },
         note:
           s.duplicatesDiscarded > 0
-            ? `${n(s.divergent)} com divergência · ${n(s.duplicatesDiscarded)} linhas repetidas`
+            ? `${n(s.divergent)} com divergência · ${n(s.duplicatesDiscarded)} fechos repetidos`
             : `${n(s.divergent)} com divergência`,
       },
       {

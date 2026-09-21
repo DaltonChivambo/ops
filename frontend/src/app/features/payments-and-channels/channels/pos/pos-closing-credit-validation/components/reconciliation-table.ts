@@ -28,7 +28,10 @@ import {
   numberFormatter,
 } from '../../../../../../shared/format';
 import { DataTableComponent } from '../../../../../../shared/ui/data-table';
-import { ToggleFilterComponent } from '../../../../../../shared/ui/toggle-filter';
+import {
+  SingleSelectFilterComponent,
+  type SingleFilterOption,
+} from '../../../../../../shared/ui/single-select-filter';
 import {
   CellIdentityComponent,
   EmptyValueComponent,
@@ -44,6 +47,7 @@ import type {
   ClosingDetail,
   DetailCounts,
   KeyBreakdown,
+  RepeatedClosings,
   SlaSettings,
 } from '../data/models';
 import {
@@ -111,7 +115,7 @@ function groupByKey(items: readonly ClosingDetail[]): KeyGroup[] {
     MoneyComponent,
     PillComponent,
     StatusChipComponent,
-    ToggleFilterComponent,
+    SingleSelectFilterComponent,
     StateFilterComponent,
     LucideChevronRight,
     LucideCopy,
@@ -136,19 +140,18 @@ function groupByKey(items: readonly ClosingDetail[]): KeyGroup[] {
           (changed)="selected.set($event)"
         />
 
-        <!-- As linhas repetidas no ficheiro da SIMO. Não é um estado (contam na
-             validação da original), por isso é um filtro à parte. O número são só
-             as cópias, como no resumo e no relatório; ligado, o filtro mostra
-             também a original de cada uma. Só aparece quando há. -->
-        @if (counts().simoDuplicates > 0 || simoDuplicatesOnly()) {
-          <app-toggle-filter
-            label="Linhas repetidas"
-            [active]="simoDuplicatesOnly()"
-            [count]="counts().simoDuplicates"
-            (toggled)="simoDuplicatesOnly.set(!simoDuplicatesOnly())"
+        <!-- Os fechos repetidos na SIMO. Não são um estado (contam na validação
+             da original), por isso é um filtro à parte — e de escolha única, que
+             as três hipóteses se excluem. Só aparece quando há repetidos. -->
+        @if (counts().simoDuplicates > 0) {
+          <app-single-select-filter
+            label="Mostrar"
+            [options]="repeatedOptions()"
+            [selected]="repeated()"
+            (changed)="repeated.set($any($event))"
           >
             <svg lucideCopy filterIcon [size]="15" [strokeWidth]="2" class="shrink-0"></svg>
-          </app-toggle-filter>
+          </app-single-select-filter>
         }
 
         @if (filtered()) {
@@ -334,7 +337,7 @@ function groupByKey(items: readonly ClosingDetail[]): KeyGroup[] {
                   @if (detail.simoDuplicate) {
                     <span
                       class="rounded-md bg-rose-50 px-1.5 py-0.5 font-semibold text-rose-700"
-                      title="Linha repetida na SIMO"
+                      title="Fecho repetido na SIMO"
                       >{{ detail.period }}</span
                     >
                   } @else {
@@ -560,7 +563,7 @@ function groupByKey(items: readonly ClosingDetail[]): KeyGroup[] {
         (activated)="opened.set(detail)"
       >
         @if (detail.simoDuplicate) {
-          <app-pill tone="rose" class="mt-1 inline-block">Linha repetida na SIMO</app-pill>
+          <app-pill tone="rose" class="mt-1 inline-block">Fecho repetido na SIMO</app-pill>
         }
       </app-cell-identity>
     </ng-template>
@@ -591,13 +594,37 @@ export class ReconciliationTableComponent {
   private readonly search = signal('');
   /** Estados visíveis — todos por omissão. */
   protected readonly selected = signal<StateId[]>([...ALL_STATES]);
-  /** Só os fechos com linha duplicada na SIMO. */
-  protected readonly simoDuplicatesOnly = signal(false);
+  /** Ver os repetidos à mistura, só a eles, ou a lista sem eles. */
+  protected readonly repeated = signal<RepeatedClosings>('all');
+
+  /** As três hipóteses somam o total: cada fecho está numa e numa só. */
+  protected readonly repeatedOptions = computed<readonly SingleFilterOption[]>(() => {
+    const counts = this.counts();
+    return [
+      // «Mostrar: Apenas os repetidos» — o rótulo é o verbo e cada valor nomeia a
+      // lista que resulta, para o número ao lado se ler como o que ela traz. No
+      // painel o assunto vai por extenso, que aí não há rótulo a dar o contexto.
+      { id: 'all', label: 'Todos os fechos', short: 'Todos', count: counts.all },
+      {
+        id: 'only',
+        label: 'Apenas os repetidos na SIMO',
+        short: 'Apenas os repetidos',
+        dot: 'bg-rose-300',
+        count: counts.simoDuplicates,
+      },
+      {
+        id: 'without',
+        label: 'Excepto os repetidos na SIMO',
+        short: 'Excepto os repetidos',
+        count: counts.all - counts.simoDuplicates,
+      },
+    ];
+  });
 
   /** A identidade da consulta — tudo o que dela deriva reinicia via `linkedSignal` quando ela muda. */
   private readonly queryKey = computed(() => {
     const validations = toValidations(this.selected());
-    return `${this.executionId()}|${validations?.join(',') ?? 'todos'}|${this.search()}|${this.simoDuplicatesOnly()}`;
+    return `${this.executionId()}|${validations?.join(',') ?? 'todos'}|${this.search()}|${this.repeated()}`;
   });
 
   /**
@@ -651,7 +678,7 @@ export class ReconciliationTableComponent {
     () =>
       this.query() !== '' ||
       this.selected().length !== ALL_STATES.length ||
-      this.simoDuplicatesOnly(),
+      this.repeated() !== 'all',
   );
 
   constructor() {
@@ -680,7 +707,7 @@ export class ReconciliationTableComponent {
       const page = this.page();
       const validations = toValidations(this.selected());
       const search = this.search();
-      const simoDuplicates = this.simoDuplicatesOnly();
+      const repeated = this.repeated();
 
       let cancelled = false;
       onCleanup(() => {
@@ -697,7 +724,7 @@ export class ReconciliationTableComponent {
           perPage: PER_PAGE,
           validation: validations,
           q: search,
-          simoDuplicates,
+          repeated,
         })
         .then((result) => {
           if (cancelled) return;
@@ -750,7 +777,7 @@ export class ReconciliationTableComponent {
 
   protected clearFilters(): void {
     this.selected.set([...ALL_STATES]);
-    this.simoDuplicatesOnly.set(false);
+    this.repeated.set('all');
     this.query.set('');
     this.search.set('');
   }

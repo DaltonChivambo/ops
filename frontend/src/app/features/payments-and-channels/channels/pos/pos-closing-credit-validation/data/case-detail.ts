@@ -27,5 +27,8 @@ export const caseToDetail = (item: PendingCase): ClosingDetail => ({
   difference: item.bankaAmount - item.simoAmount,
   simoClosingsCount: item.simoClosingsCount,
   bankaMovementsCount: item.bankaMovementsCount,
+  // Um caso é da chave inteira, não de um fecho: não é repetição de nada nem tem
+  // repetições a assinalar. As marcas verdadeiras vêm com os fechos do servidor.
   simoDuplicate: false,
+  hasSimoDuplicate: false,
 });

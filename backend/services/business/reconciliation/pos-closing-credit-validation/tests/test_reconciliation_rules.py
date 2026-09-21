@@ -304,7 +304,7 @@ def test_banka_side_of_a_repeated_key_keeps_what_falls_short() -> None:
     assert r.summary.banka_amount_duplicated == Decimal("70.00")
 
 
-# ─── O montante das linhas repetidas da SIMO ─────────────────────────────────
+# ─── O montante dos fechos repetidos da SIMO ─────────────────────────────────
 
 
 def test_repeated_simo_lines_carry_their_own_amount() -> None:
@@ -326,7 +326,7 @@ def test_repeated_line_carries_the_credit_that_paid_the_original() -> None:
 
     assert r.summary.duplicates_discarded == 1
     assert r.summary.simo_amount_duplicate_rows == Decimal("100.00")
-    # Os dois lados iguais: contar a linha repetida não abre diferença nenhuma.
+    # Os dois lados iguais: contar o fecho repetido não abre diferença nenhuma.
     assert r.summary.banka_amount_duplicate_rows == Decimal("100.00")
 
 
@@ -355,7 +355,7 @@ def test_without_repeated_lines_the_amount_is_zero() -> None:
     assert r.summary.count_simo_duplicates is False
 
 
-# ─── Contar as linhas repetidas no apuramento ────────────────────────────────
+# ─── Contar os fechos repetidos no apuramento ────────────────────────────────
 
 
 def _summary_of(*closings_and_credits: object) -> dict[str, object]:
