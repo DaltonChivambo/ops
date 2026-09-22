@@ -281,18 +281,36 @@ export class ResultTabsComponent {
   protected readonly stuck = signal(false);
 
   constructor() {
+    let restsAt: number | null = null;
+    let frame = 0;
+
     const measure = () => {
+      frame = 0;
       const el = this.tabList()?.nativeElement;
       if (!el) return;
-      const restsAt = parseFloat(getComputedStyle(el).top) || 0;
+      // O `getComputedStyle` força recálculo de estilo, e o `top` só muda com o
+      // tamanho do ecrã — lê-se uma vez, e o `resize` manda lê-lo de novo.
+      restsAt ??= parseFloat(getComputedStyle(el).top) || 0;
       this.stuck.set(el.getBoundingClientRect().top <= restsAt + 1);
     };
 
-    window.addEventListener('scroll', measure, { passive: true });
-    window.addEventListener('resize', measure, { passive: true });
+    // Uma medição por frame. O scroll dispara dezenas de eventos por segundo, e
+    // medir em cada um forçava layout síncrono outras tantas.
+    const schedule = () => {
+      frame ||= requestAnimationFrame(measure);
+    };
+
+    const remeasure = () => {
+      restsAt = null;
+      schedule();
+    };
+
+    window.addEventListener('scroll', schedule, { passive: true });
+    window.addEventListener('resize', remeasure, { passive: true });
     inject(DestroyRef).onDestroy(() => {
-      window.removeEventListener('scroll', measure);
-      window.removeEventListener('resize', measure);
+      window.removeEventListener('scroll', schedule);
+      window.removeEventListener('resize', remeasure);
+      if (frame) cancelAnimationFrame(frame);
     });
   }
 

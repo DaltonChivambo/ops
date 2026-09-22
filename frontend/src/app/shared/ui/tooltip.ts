@@ -17,6 +17,13 @@ let nextId = 0;
  * mede-se a posição do elemento com `getBoundingClientRect` e decide-se o
  * lado com espaço.
  */
+/**
+ * `capture` apanha o scroll de qualquer contentor (tabelas com scroll próprio
+ * incluídas) — o evento não sobe por bolha, só por captura. `passive` porque o
+ * handler só esconde: o browser não tem de o esperar para rolar.
+ */
+const SCROLL_LISTENER = { capture: true, passive: true } as const;
+
 @Directive({
   selector: '[appTooltip]',
   host: {
@@ -88,13 +95,11 @@ export class TooltipDirective {
 
     this.tooltipEl = el;
     this.describedBy.set(this.tooltipId);
-    // `capture: true` apanha o scroll de qualquer contentor (tabelas com
-    // scroll próprio incluídas) — o evento não sobe por bolha, só por captura.
-    window.addEventListener('scroll', this.onScroll, true);
+    window.addEventListener('scroll', this.onScroll, SCROLL_LISTENER);
   }
 
   protected hide(): void {
-    window.removeEventListener('scroll', this.onScroll, true);
+    window.removeEventListener('scroll', this.onScroll, SCROLL_LISTENER);
     this.tooltipEl?.remove();
     this.tooltipEl = null;
     this.describedBy.set(null);
