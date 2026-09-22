@@ -145,7 +145,7 @@ function groupByKey(items: readonly ClosingDetail[]): KeyGroup[] {
              as três hipóteses se excluem. Só aparece quando há repetidos. -->
         @if (counts().simoDuplicates > 0) {
           <app-single-select-filter
-            label="Mostrar"
+            label="Fechos"
             [options]="repeatedOptions()"
             [selected]="repeated()"
             (changed)="repeated.set($any($event))"
@@ -601,21 +601,22 @@ export class ReconciliationTableComponent {
   protected readonly repeatedOptions = computed<readonly SingleFilterOption[]>(() => {
     const counts = this.counts();
     return [
-      // «Mostrar: Apenas os repetidos» — o rótulo é o verbo e cada valor nomeia a
-      // lista que resulta, para o número ao lado se ler como o que ela traz. No
-      // painel o assunto vai por extenso, que aí não há rótulo a dar o contexto.
+      // «Fechos: Só os repetidos na SIMO» — o rótulo nomeia a lista e o valor diz
+      // o que ela leva. Era «Mostrar», que dizia o verbo e calava o assunto. Pôr o
+      // assunto no rótulo também não servia: sobrava ao valor um «apenas estes»,
+      // que obriga a saltar para o rótulo para saber a quem se refere.
+      // «na SIMO» fica por extenso porque também há chaves repetidas no Banka.
+      // O número é sempre o das linhas que a escolha traz.
       { id: 'all', label: 'Todos os fechos', short: 'Todos', count: counts.all },
       {
         id: 'only',
-        label: 'Apenas os repetidos na SIMO',
-        short: 'Apenas os repetidos',
+        label: 'Só os repetidos na SIMO',
         dot: 'bg-rose-300',
         count: counts.simoDuplicates,
       },
       {
         id: 'without',
-        label: 'Excepto os repetidos na SIMO',
-        short: 'Excepto os repetidos',
+        label: 'Sem os repetidos na SIMO',
         count: counts.all - counts.simoDuplicates,
       },
     ];

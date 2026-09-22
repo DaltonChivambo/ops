@@ -107,7 +107,7 @@ export interface SingleFilterOption {
 export class SingleSelectFilterComponent {
   private readonly host = inject<ElementRef<HTMLElement>>(ElementRef);
 
-  /** O verbo do filtro, curto — sai no botão como «Mostrar: Todos». */
+  /** A lista que o filtro reduz, curto — sai no botão como «Fechos: Todos». */
   readonly label = input.required<string>();
   readonly options = input.required<readonly SingleFilterOption[]>();
   readonly selected = input.required<string>();
