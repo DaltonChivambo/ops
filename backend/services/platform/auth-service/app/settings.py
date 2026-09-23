@@ -1,9 +1,4 @@
-"""Configuração do serviço — variáveis de ambiente tipadas.
-
-As variáveis `auth_*` são as mesmas que o `pos-closing-credit-validation`
-declara, e no compose recebem o mesmo `${...}`: dois serviços a mapear áreas de
-maneira diferente seria uma porta aberta num deles.
-"""
+"""Configuração do serviço — variáveis de ambiente tipadas."""
 
 import logging
 
@@ -19,14 +14,11 @@ class Settings(BaseSettings):
     auth_issuer: str = "http://geea-keycloak:8000/auth/realms/QAS"
     auth_jwks_url: str = "http://geea-keycloak:8000/auth/realms/QAS/protocol/openid-connect/certs"
     auth_allowed_azp: str = "qa-mozaops"
-    #: O cliente cujos papéis concedem acesso ao MozaOps. Ler os papéis daqui, e
-    #: não do `azp` do token, é o que permite admitir mais clientes sem lhes
-    #: delegar a atribuição dos nossos acessos.
+    #: O cliente cujos papéis concedem acesso. Não é o `azp` do token.
     auth_client_id: str = "qa-mozaops"
 
     # ─── Mapa de áreas ───────────────────────────────────────────────────
-    # Rede por baixo dos papéis do realm, que são a fonte principal e não se
-    # configuram aqui — ver `mozaops_libs/auth/areas.py`.
+    # Rede por baixo dos papéis do realm — ver `mozaops_libs/auth/areas.py`.
     #: `area:unidade,unidade;area:unidade`, com os códigos do `departmentCode`.
     auth_areas: str = "channels:3230"
     #: `area:username,username`. Vazio é o estado normal.
@@ -34,22 +26,18 @@ class Settings(BaseSettings):
 
     # ─── Ligação ao GEEA ─────────────────────────────────────────────────
     geea_ssologin_url: str = "http://geea-keycloak:8000/geea/idmUtils/SSOLogin"
-    # `noqa: S105`: o ruff vê «token» e «secret» no nome e assume segredo em
-    # código. Uma é um endereço; a outra, o valor que o compose substitui.
+    # `noqa: S105`: o ruff vê «token»/«secret» no nome; uma é URL, a outra vem do compose.
     geea_token_url: str = "http://geea-keycloak:8000/auth/realms/QAS/protocol/openid-connect/token"  # noqa: S105
     geea_realm: str = "QAS"
     geea_client_id: str = "qa-mozaops"
-    geea_client_secret: str = "mude-me-em-producao"  # noqa: S105
+    geea_client_secret: str
 
     # ─── Sessão ──────────────────────────────────────────────────────────
     #: `False` só em desenvolvimento, onde o Traefik ainda serve em claro.
     session_cookie_secure: bool = True
-    #: O `Path` na vista do browser, com o `/api` que o Traefik corta. Limitá-lo
-    #: impede o cookie de acompanhar os pedidos às automações. É configuração
-    #: porque quem fala com o serviço sem proxy à frente vê outro caminho.
+    #: O caminho na vista do browser, com o `/api` que o Traefik corta.
     session_cookie_path: str = "/api/auth-service"
-    #: Sem isto o endpoint é um oráculo de força bruta, e o bloqueio que
-    #: acontecer é no AD do banco, não aqui.
+    #: Trava a adivinhação de passwords; o bloqueio a sério é o do AD.
     login_attempts_per_minute: int = 10
 
     log_level: str = "INFO"
@@ -70,8 +58,6 @@ def configure_logging() -> None:
         format="%(asctime)s %(levelname)-8s %(name)s: %(message)s",
     )
 
-    # O `httpx` regista cada pedido ao nível INFO, com o URL inteiro — e o URL
-    # do SSOLogin leva a password do domínio na query string, por exigência do
-    # contrato do GEEA. Sem isto, uma password real por login ia para os logs.
+    # O httpx regista o URL inteiro ao nível INFO, e o do SSOLogin leva a password.
     logging.getLogger("httpx").setLevel(logging.WARNING)
     logging.getLogger("httpcore").setLevel(logging.WARNING)

@@ -1,9 +1,4 @@
-"""Erro de domínio → resposta HTTP, no envelope que o SPA sabe ler.
-
-O `{"error": {"code", "message"}}` é contrato: o `error.interceptor.ts` do SPA
-depende desta forma exacta. Os erros de autenticação da lib partilhada trazem
-os seus próprios handlers — ver `register` no fim.
-"""
+"""Erro de domínio → resposta HTTP, no envelope que o SPA sabe ler."""
 
 import logging
 
@@ -48,12 +43,7 @@ def register(app: FastAPI) -> None:
 
     @app.exception_handler(RequestValidationError)
     async def handle_request_validation(_request: Request, _error: Exception) -> JSONResponse:
-        """O 422 do FastAPI, vestido com o nosso envelope.
-
-        **Sem detalhe do que falhou.** Num pedido de login, o corpo que falhou
-        a validação leva a password lá dentro, e a resposta padrão do FastAPI
-        devolve-a ao cliente dentro do `{"detail": [...]}`.
-        """
+        """O 422 do FastAPI, vestido com o nosso envelope."""
         return _envelope(
             422,
             "bad_request",

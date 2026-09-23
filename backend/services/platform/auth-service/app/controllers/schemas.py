@@ -9,27 +9,14 @@ class Schema(BaseModel):
 
 
 class LoginRequest(Schema):
-    """As credenciais chegam **no corpo**, nunca na query string.
-
-    O GEEA obriga-nos a pô-las num URL quando falamos com ele; o que o browser
-    manda para aqui é outra coisa, e essa não tem de ficar no histórico nem
-    nos logs de acesso de tudo o que houver pelo caminho.
-    """
+    """As credenciais chegam **no corpo**, nunca na query string."""
 
     username: str = Field(min_length=1, max_length=120)
     password: str = Field(min_length=1, max_length=256)
 
 
 class PrincipalResponse(Schema):
-    """Quem entrou, e o que é que isso lhe abre.
-
-    `areas` são as do catálogo do MozaOps — as mesmas que a barra lateral do SPA
-    mostra — e podem trazer `all-areas`, que vale por todas. `serviceAccess` é a
-    concessão fina, automação a automação, para quem não é da área.
-    `department`/`departmentCode` são a unidade orgânica tal como o GEEA a
-    nomeia, e vão para o ecrã de «sem acesso»: quem lá cair precisa de dizer à
-    coordenação em que unidade está registado.
-    """
+    """Quem entrou, e o que é que isso lhe abre."""
 
     subject: str
     username: str
@@ -44,12 +31,7 @@ class PrincipalResponse(Schema):
 
 
 class SessionResponse(Schema):
-    """O token de acesso vai no corpo; o de renovação vai em cookie `HttpOnly`.
-
-    O SPA guarda o de acesso em memória e perde-o ao recarregar a página — e é
-    aí que o cookie serve: renova sem voltar a pedir a password, sem nunca
-    ficar ao alcance de JavaScript.
-    """
+    """O token de acesso vai no corpo; o de renovação vai em cookie `HttpOnly`."""
 
     access_token: str
     expires_in: int

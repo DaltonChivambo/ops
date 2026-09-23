@@ -4,7 +4,7 @@ import logging
 
 from app.controllers.sessions import REFRESH_COOKIE
 from app.settings import Settings, settings
-from tests.conftest import CLIENT
+from tests.conftest import CLIENT, make_token
 
 
 class TestLogin:
@@ -230,3 +230,29 @@ class TestGeeaDown:
 
         assert response.status_code == 503
         assert response.json()["error"]["code"] == "identity_unavailable"
+
+
+class TestAudit:
+    def test_login_records_who_came_in(self, client, caplog):
+        with caplog.at_level(logging.INFO, logger="audit"):
+            client.post(
+                "/auth-service/sessions",
+                json={"username": "m001926", "password": "senha-certa"},
+            )
+
+        assert "POST /auth-service/sessions 200 por m001926" in caplog.text
+
+    def test_failed_login_is_recorded_too(self, client, caplog):
+        with caplog.at_level(logging.INFO, logger="audit"):
+            client.post(
+                "/auth-service/sessions",
+                json={"username": "m001926", "password": "errada"},
+            )
+
+        assert "POST /auth-service/sessions 401" in caplog.text
+
+    def test_reading_who_i_am_is_not_recorded(self, client, caplog):
+        with caplog.at_level(logging.INFO, logger="audit"):
+            client.get("/auth-service/me", headers={"Authorization": f"Bearer {make_token()}"})
+
+        assert "/auth-service/me" not in caplog.text

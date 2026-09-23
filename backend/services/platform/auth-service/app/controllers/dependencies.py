@@ -10,8 +10,7 @@ from app.services.session_service import AttemptLimiter, SessionService
 from app.settings import settings
 from mozaops_libs.auth import Principal
 
-# Uma instância só, para a janela de tentativas ser partilhada entre pedidos —
-# um limitador criado por pedido não limitava nada.
+# Uma instância só: a janela de tentativas é partilhada entre pedidos.
 _limiter = AttemptLimiter(settings.login_attempts_per_minute)
 
 _geea = GeeaClient(

@@ -20,11 +20,7 @@ class Session:
 
 
 class AttemptLimiter:
-    """Janela deslizante por utilizador, em memória.
-
-    Em memória chega: o objectivo é tirar o valor a quem tenta adivinhar
-    passwords em série, e o bloqueio a sério é o que o AD já impõe.
-    """
+    """Janela deslizante por utilizador, em memória."""
 
     def __init__(self, per_minute: int):
         self._per_minute = per_minute
@@ -72,8 +68,7 @@ class SessionService:
     async def _session_from(self, output: dict[str, Any]) -> Session:
         access_token = str(output.get("accessToken") or "")
 
-        # O GEEA manda as claims descodificadas ao lado do token, e não se usam:
-        # um objecto JSON não está assinado. Valida-se o JWT como qualquer outro.
+        # As claims que vêm ao lado do token não estão assinadas: valida-se o JWT.
         try:
             claims = await self._verifier.verify(access_token)
         except AuthError as exc:
@@ -81,9 +76,7 @@ class SessionService:
 
         principal = build_principal(claims, self._mapping, self._client)
 
-        # Sem acesso nenhum não se emite sessão, e a mensagem é a mesma das
-        # credenciais inválidas: distinguir «autenticou mas não tem acesso»
-        # confirmaria a quem tenta adivinhar contas que esta existe.
+        # Mesmo erro das credenciais inválidas: não confirma que a conta existe.
         if not principal.areas and not principal.service_access:
             raise InvalidCredentialsError
 

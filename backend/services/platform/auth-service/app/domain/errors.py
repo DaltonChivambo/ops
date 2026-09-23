@@ -1,8 +1,4 @@
-"""O que pode correr mal a fazer login, dito no vocabulário do domínio.
-
-Sem HTTP: a tradução para resposta vive em `controllers/error_handlers.py`.
-As mensagens chegam ao operador, por isso são português pronto a mostrar.
-"""
+"""O que pode correr mal a fazer login, dito no vocabulário do domínio."""
 
 
 class DomainError(Exception):
@@ -12,12 +8,7 @@ class DomainError(Exception):
 
 
 class InvalidCredentialsError(DomainError):
-    """Utilizador ou password que o GEEA não aceitou.
-
-    A mensagem **não distingue** utilizador inexistente de password errada:
-    dizer qual dos dois falhou é confirmar a existência de contas a quem as
-    anda a adivinhar.
-    """
+    """Utilizador ou password que o GEEA não aceitou."""
 
     def __init__(self) -> None:
         super().__init__("Credenciais inválidas. Verifique o utilizador e a password.")

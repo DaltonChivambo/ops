@@ -23,6 +23,7 @@ import pytest
 # caminho por omissão é verificado à parte, em `test_sessions.py`.
 os.environ.setdefault("SESSION_COOKIE_PATH", "/")
 os.environ.setdefault("SESSION_COOKIE_SECURE", "false")
+os.environ.setdefault("GEEA_CLIENT_SECRET", "segredo-de-teste")
 from cryptography.hazmat.primitives.asymmetric import rsa
 from fastapi.testclient import TestClient
 

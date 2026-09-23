@@ -1,9 +1,4 @@
-"""Constrói, uma vez, as peças de autenticação a partir da configuração.
-
-É I/O (o verificador vai buscar o JWKS por HTTP), por isso vive na
-infraestrutura. Os controladores recebem-nas por `Depends` e não sabem como
-foram feitas.
-"""
+"""Constrói, uma vez, as peças de autenticação a partir da configuração."""
 
 from app.settings import settings
 from mozaops_libs.auth import AreaMapping, Auth, TokenVerifier, parse_set

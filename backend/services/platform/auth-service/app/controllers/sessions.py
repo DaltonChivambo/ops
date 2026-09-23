@@ -10,8 +10,7 @@ from app.settings import settings
 
 router = APIRouter(prefix="/sessions", tags=["sessions"])
 
-#: O nome não diz «geea» nem «keycloak»: quem emite pode mudar sem o browser
-#: dar por isso.
+#: O nome não nomeia o emissor: quem emite pode mudar.
 REFRESH_COOKIE = "mozaops_refresh"
 
 
@@ -21,8 +20,7 @@ def _set_refresh_cookie(response: Response, token: str) -> None:
         token,
         # Um XSS no SPA não dá a ninguém uma sessão renovável.
         httponly=True,
-        # `lax` e não `strict`: quem chega por um link de fora continua com
-        # sessão, e o cookie não acompanha escritas vindas de outro sítio.
+        # `lax`: mantém a sessão em links de fora, sem acompanhar escritas de fora.
         samesite="lax",
         secure=settings.session_cookie_secure,
         path=settings.session_cookie_path,
@@ -59,6 +57,8 @@ async def login(
 ) -> SessionResponse:
     client_ip = request.client.host if request.client else "0.0.0.0"  # noqa: S104
     session = await sessions.login(credentials.username, credentials.password, client_ip)
+    # A auditoria tira daqui o nome de quem entrou.
+    request.state.principal = session.principal
     _set_refresh_cookie(response, session.refresh_token)
     return _body(session)
 
@@ -74,17 +74,14 @@ async def refresh(
         raise NoSessionError
 
     session = await sessions.refresh(token)
+    request.state.principal = session.principal
     _set_refresh_cookie(response, session.refresh_token)
     return _body(session)
 
 
 @router.delete("", status_code=status.HTTP_204_NO_CONTENT)
 async def logout(response: Response) -> Response:
-    """Apaga o cookie deste lado.
-
-    A sessão no GEEA continua aberta: terminá-la exige o `end_session` do
-    realm, que fica para quando o login for por reencaminhamento.
-    """
+    """Apaga o cookie deste lado."""
     response.delete_cookie(REFRESH_COOKIE, path=settings.session_cookie_path)
     response.status_code = status.HTTP_204_NO_CONTENT
     return response

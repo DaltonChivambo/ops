@@ -1,14 +1,11 @@
-"""Composition root do serviço `auth-service`.
-
-Junta as peças e mais nada: a app, o router, os handlers de erro e o `/health`.
-Quem decide o que recebe o quê é `controllers/dependencies.py`.
-"""
+"""Composition root do serviço `auth-service`."""
 
 from fastapi import FastAPI
 
 from app.controllers import error_handlers
 from app.controllers.router import router
 from app.settings import configure_logging
+from mozaops_libs.auth import register_audit
 
 configure_logging()
 
@@ -16,6 +13,7 @@ app = FastAPI(title="MozaOps — auth-service")
 
 app.include_router(router)
 error_handlers.register(app)
+register_audit(app)
 
 
 @app.get("/health")

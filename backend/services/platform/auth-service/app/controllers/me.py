@@ -1,9 +1,4 @@
-"""Quem sou eu — a fonte de verdade das áreas, para o SPA.
-
-O SPA guarda o token mas não o abre, e as áreas não são uma claim que se copie:
-saem dos papéis do realm somados ao mapa de unidades. Dar acesso a alguém é
-mexer no realm ou na configuração, e não publicar um SPA novo.
-"""
+"""Quem sou eu — a fonte de verdade das áreas, para o SPA."""
 
 from fastapi import APIRouter
 

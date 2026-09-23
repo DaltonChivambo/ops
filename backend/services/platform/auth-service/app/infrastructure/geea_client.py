@@ -1,12 +1,4 @@
-"""O único ficheiro que conhece o contrato do `SSOLogin` do GEEA.
-
-Isolado de propósito: o `SSOLogin` é legado e leva as credenciais na query
-string de um `GET`. No dia em que o login passar a reencaminhamento, este
-ficheiro desaparece inteiro e o resto do serviço não dá por isso.
-
-Por isso o `httpx` está silenciado em `settings.configure_logging`: o URL que
-ele registaria leva a password.
-"""
+"""O único ficheiro que conhece o contrato do `SSOLogin` do GEEA."""
 
 import logging
 from typing import Any
@@ -51,8 +43,7 @@ class GeeaClient:
             async with httpx.AsyncClient(timeout=self._timeout) as client:
                 response = await client.get(self._ssologin_url, params=params)
         except httpx.HTTPError as exc:
-            # Sem `exc` na mensagem: o `httpx` põe o URL — e a password — na
-            # representação de várias das suas excepções.
+            # Sem `exc`: o httpx põe o URL na mensagem, e o URL leva a password.
             logger.warning("SSOLogin inacessível: %s", type(exc).__name__)
             raise GeeaUnavailableError from None
 
@@ -65,11 +56,7 @@ class GeeaClient:
         return self._output_of(response)
 
     async def refresh(self, refresh_token: str) -> dict[str, Any]:
-        """Renova pelo endpoint normal do Keycloak, e não pelo wrapper.
-
-        O `SSOLogin` devolve um `refreshToken` mas não tem por onde o trocar:
-        quem o aceita é o realm, na rota padrão do OIDC.
-        """
+        """Renova pelo endpoint normal do Keycloak, e não pelo wrapper."""
         form = {
             "grant_type": "refresh_token",
             "refresh_token": refresh_token,
@@ -90,8 +77,7 @@ class GeeaClient:
             raise GeeaUnavailableError
 
         payload = self._json(response)
-        # A rota padrão do OIDC responde em snake_case; o wrapper responde em
-        # camelCase. Traduz-se aqui, para o resto do serviço ver uma forma só.
+        # A rota OIDC responde snake_case e o wrapper camelCase.
         return {
             "accessToken": payload.get("access_token"),
             "refreshToken": payload.get("refresh_token"),
@@ -115,8 +101,7 @@ class GeeaClient:
         if not isinstance(output, dict):
             raise GeeaUnavailableError
 
-        # O GEEA responde 200 com o erro lá dentro; um 200 não chega para
-        # concluir que o login correu bem.
+        # O GEEA responde 200 com o erro lá dentro.
         if output.get("error"):
             raise InvalidCredentialsError
         if not output.get("accessToken"):
