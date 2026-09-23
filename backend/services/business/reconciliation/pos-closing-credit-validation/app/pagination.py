@@ -1,7 +1,4 @@
-"""Paginação — porte de `shared/pagination.py` do MozaOps v1.
-
-Converte os query params (`page`, `perPage`) em `skip`/`take`.
-"""
+"""Paginação — porte de `shared/pagination.py` do MozaOps v1."""
 
 from dataclasses import dataclass
 

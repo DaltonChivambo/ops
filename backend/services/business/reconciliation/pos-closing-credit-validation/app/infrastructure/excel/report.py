@@ -1,24 +1,4 @@
-"""Geração do relatório FECHO_POS_DOP (openpyxl).
-
-Porte de `infrastructure/report.py` do MozaOps v1. Fiel ao template do
-Departamento de Meios de Pagamento e Canais (DOP). O layout segue o
-ficheiro-modelo `FECHO_POS_DOP 21 a 28 de Junho-2026.xlsx`:
-
-  · Todas as folhas de dados começam na coluna B (a coluna A fica vazia).
-  · Resumo ....................... título em B3, dois blocos (validação e casos).
-  · Detalhes Validacao .......... cabeçalho na linha 2, dados a partir da 3.
-  · Total Casos Pendentes na SIMO cabeçalho na linha 2, só o que falta tratar.
-
-O aspecto (cores, logótipo, filtros, impressão) vive em `styles.py`; aqui
-decide-se só o conteúdo e onde fica.
-
-São só estas três. O template do DOP trazia ainda o dump em bruto do Banka e a
-folha «SQL» com a query de extracção — ambas saíram por não terem uso nenhum a
-jusante: quem lê o relatório quer o apuramento, não a matéria-prima nem a forma
-de a obter.
-
-Todo o texto destas folhas é **conteúdo** — logo, em português.
-"""
+"""Geração do relatório FECHO_POS_DOP (openpyxl)."""
 
 import re
 from collections.abc import Collection, Sequence
@@ -39,11 +19,8 @@ MONEY_FORMAT = "#,##0.00"
 # Formato «contabilístico» do template para os montantes de detalhe.
 ACCOUNTING_FORMAT = r'_-* #,##0.00_-;\-* #,##0.00_-;_-* "-"??_-;_-@_-'
 
-# Diferenças: o sinal é sempre explícito, `+` incluído. Numa diferença o sinal é a
-# informação — o Banka creditou a mais ou a menos são problemas opostos —, e sem o
-# `+` um valor positivo lê-se como um montante qualquer. As secções do formato são
-# positivo;negativo;zero(;texto): o zero fica sem sinal, e a variante contabilística
-# mantém o alinhamento do template na folha de detalhe.
+# Diferenças com sinal explícito, `+` incluído: creditar a mais ou a menos são
+# problemas opostos. Secções do formato: positivo;negativo;zero(;texto).
 SIGNED_MONEY_FORMAT = "+#,##0.00;-#,##0.00;#,##0.00"
 SIGNED_ACCOUNTING_FORMAT = r'_-* +#,##0.00_-;\-* #,##0.00_-;_-* "-"??_-;_-@_-'
 DATE_FORMAT = "dd/mm/yyyy"
@@ -110,8 +87,7 @@ DETAILS_IDENTITY_HEADERS = {
     "Data Crédito BANKA",
     "Data Reg.",
 }
-# Colunas de valores curtos, que se lêem melhor ao centro: período, chave, datas,
-# nº de operação, tipo, e-Ticket.
+# Colunas de valores curtos, centradas: período, chave, datas, nº de operação, tipo.
 DETAILS_CENTERED = ("E", "F", "G", "H", "K", "M", "P", "Q")
 
 # O período vem no fim do descritivo — «P24-Fecho TPA 0000263073 - 001».
@@ -150,9 +126,7 @@ CASES_HEADERS = [
 
 def build_workbook(execution: Any, details: Sequence[Any], cases: list[Any]) -> bytes:
     workbook = Workbook()
-    # O Workbook() nasce com uma folha vazia que não queremos; as três folhas do
-    # relatório são criadas a seguir. O `active` é opcional no tipo, nunca na
-    # prática — num livro acabado de criar há sempre uma.
+    # O `Workbook()` nasce com uma folha vazia; as três do relatório vêm a seguir.
     blank = workbook.active
     if blank is not None:
         workbook.remove(blank)
@@ -164,9 +138,8 @@ def build_workbook(execution: Any, details: Sequence[Any], cases: list[Any]) -> 
 
     buffer = BytesIO()
     workbook.save(buffer)
-    # POS ID, nº de conta e chave são dígitos guardados como texto de propósito (a
-    # conta tem zeros à esquerda); sem isto o Excel marca cada célula com o
-    # triângulo verde de «número guardado como texto».
+    # POS ID, conta e chave são dígitos guardados como texto (a conta tem zeros à
+    # esquerda); sem isto o Excel marca cada célula com o triângulo verde.
     return styles.ignore_number_as_text(
         buffer.getvalue(),
         {
@@ -201,13 +174,8 @@ def _add_summary_sheet(
         ],
     )
 
-    # Uma linha por causa, pelas mesmas quatro categorias que a execução mostra no
-    # ecrã: um período duplicado é ambiguidade por desfazer, não um crédito errado,
-    # e juntá-lo aos incorrectos punha no Excel incorrectos que a execução não tem.
-    #
-    # Do lado do Banka, os duplicados levam o que foi creditado nessas chaves: o
-    # crédito existe, só não se pode conferir por soma. Os não creditados são os
-    # únicos sem contrapartida no Banka.
+    # Uma linha por causa, pelas quatro categorias do ecrã. Os duplicados levam o
+    # que foi creditado nessas chaves; os não creditados são os únicos sem Banka.
     validation_rows = [
         (Validation.MISMATCH, "mismatchCount", "simoAmountMismatched", "bankaAmountMismatched"),
         (Validation.MISSING, "missingCount", "simoAmountMissing", None),
@@ -237,11 +205,8 @@ def _add_summary_sheet(
         total_simo += simo
         total_banka += banka
     total_row = first_row + len(validation_rows)
-    # Os fechos repetidos da SIMO numa linha própria, antes do total, só com a
-    # contagem: eles não têm estado próprio, e quando o operador os manda contar
-    # o dinheiro deles já está na linha do estado da chave (ver
-    # `domain.reconciliation.with_simo_duplicates`). Repeti-lo aqui somava duas
-    # vezes o mesmo.
+    # Os repetidos numa linha própria, só com a contagem: o dinheiro deles já está
+    # na linha do estado da chave.
     simo_duplicates = int(summary.get("duplicatesDiscarded", 0))
     if simo_duplicates:
         _write_row(
@@ -276,12 +241,9 @@ def _add_summary_sheet(
     header_row = title_row + 3
     _write_header(sheet, header_row, ["Descrição", "N° Fechos", "Montante de Fecho's"])
 
-    # Conta-se fecho a fecho, a partir dos detalhes, e não caso a caso: um caso de
-    # período duplicado junta vários fechos, e a folha «Total Casos Pendentes na
-    # SIMO» lista-os um por linha. Todo o fecho que não confere tem caso, por isso
-    # o Total deste bloco fecha com as três causas do bloco de cima, e as linhas por
-    # tratar fecham com a folha de pendentes. Não se usa o `summary` aqui: é uma
-    # fotografia da execução e não sabe o que já foi regularizado.
+    # Fecho a fecho a partir dos detalhes, e não caso a caso: um caso de período
+    # duplicado junta vários fechos. Não se usa o `summary`, que não sabe o que já
+    # foi regularizado.
     pending_causes = [Validation.MISMATCH, Validation.MISSING, Validation.DUPLICATED]
     counts: dict[str, int] = {"resolved": 0, **dict.fromkeys(pending_causes, 0)}
     amounts: dict[str, Decimal] = {
@@ -293,9 +255,7 @@ def _add_summary_sheet(
         case = case_by_key.get(detail.key)
         if case is None or getattr(detail, "simo_duplicate", False):
             continue
-        # Um fecho conciliado num caso ainda aberto (a chave só em parte) já não
-        # está por tratar: conta como regularizado, e não como «confere», que
-        # não é linha deste bloco.
+        # Conciliado num caso ainda aberto conta como regularizado, não «confere».
         reconciled = detail.validation == Validation.MATCH
         bucket = "resolved" if case.status == "resolved" or reconciled else detail.validation
         counts[bucket] += 1
@@ -316,9 +276,8 @@ def _add_summary_sheet(
     )
     styles.summary_row(sheet, block_total_row, 3, total=True)
 
-    # De onde vêm os números: as linhas dos ficheiros e as repetidas que não contam.
-    # O export da SIMO traz às vezes a mesma linha duas vezes: conta como fecho e
-    # fica marcada, e aqui diz-se quantas são. O Banka repetido conta uma vez.
+    # As linhas dos ficheiros e as repetidas. As da SIMO contam como fecho; as do
+    # Banka contam uma vez.
     lines_title_row = block_total_row + 4
     sheet.merge_cells(f"B{lines_title_row}:D{lines_title_row}")
     sheet[f"B{lines_title_row}"] = "Linhas dos ficheiros"
@@ -349,22 +308,18 @@ def _add_details_sheet(workbook: Workbook, details: Sequence[Any], cases: list[A
     sheet = workbook.create_sheet("Detalhes Validacao")
     _write_header(sheet, 2, DETAILS_HEADERS, identity=DETAILS_IDENTITY_HEADERS)
 
-    # e-Ticket e Data Reg. são colunas do modelo, preenchidas quando a chave tem
-    # um caso em tratamento. Num fecho que confere não há caso: «n.a», como nas
-    # outras colunas que não se aplicam.
+    # e-Ticket e Data Reg. preenchem-se quando a chave tem caso; senão «n.a».
     case_by_key = {case.key: case for case in cases}
-    # O crédito do Banka é da chave: numa chave com vários fechos vai só na primeira
-    # linha, pela mesma razão da folha de pendentes — repeti-lo inflacionava a soma
-    # da coluna, que tem de dar o que o Banka creditou.
+    # O crédito é da chave: com vários fechos vai só na primeira linha, senão a
+    # soma da coluna inflaciona.
     credited_keys: set[str] = set()
     row_number = 3
-    # Período POS e chave marcados nas linhas duplicadas na SIMO — a original e as cópias.
+    # Período POS e chave marcados nas linhas duplicadas: a original e as cópias.
     marked: list[str] = []
     original_row = 3
     for detail in sorted(details, key=_details_order):
         case = case_by_key.get(detail.key)
-        # Uma cópia do export da SIMO vem logo a seguir à original (a ordenação é
-        # estável e as cópias vêm no fim): mesma validação, sem crédito repetido.
+        # A cópia vem logo a seguir à original: mesma validação, sem crédito repetido.
         copy = bool(getattr(detail, "simo_duplicate", False))
         if copy:
             marked.append(f"E{original_row}:F{row_number}")
@@ -420,19 +375,7 @@ def _add_details_sheet(workbook: Workbook, details: Sequence[Any], cases: list[A
 
 
 def _add_pending_cases_sheet(workbook: Workbook, details: Sequence[Any], cases: list[Any]) -> None:
-    """A lista do que fica por tratar — o que se leva à SIMO.
-
-    Entram os três problemas que exigem acção, e só enquanto não estiverem
-    tratados: creditado incorrectamente, não creditado e períodos repetidos. Um
-    caso regularizado sai daqui (o Resumo é que o contabiliza) — os duplicados
-    também têm caso, mas continuam a vir dos detalhes, um por fecho, porque é
-    fecho a fecho que se desfaz a duplicação; o caso só decide se a chave ainda
-    entra ou já saiu (foi regularizada).
-
-    Cada linha leva o rótulo da sua causa, pela mesma ordem do Resumo — os
-    duplicados como «Períodos repetidos», e não como incorrectos, para o Excel
-    dizer o mesmo que a execução.
-    """
+    """A lista do que fica por tratar — o que se leva à SIMO."""
     sheet = workbook.create_sheet("Total Casos Pendentes na SIMO")
     _write_header(sheet, 2, CASES_HEADERS, identity=CASES_IDENTITY_HEADERS)
 
@@ -442,10 +385,8 @@ def _add_pending_cases_sheet(workbook: Workbook, details: Sequence[Any], cases: 
 
     row_number = 3
 
-    # Incorrectos primeiro, depois não creditados: dinheiro errado antes de dinheiro
-    # em falta. Um caso regularizado já não está pendente na SIMO.
-    # Dentro de cada causa, a mesma ordem da folha de detalhes: POS a POS, e pelo
-    # período do descritivo.
+    # Incorrectos, depois não creditados; um caso regularizado já não está pendente.
+    # Dentro da causa, a ordem da folha de detalhes: POS a POS, pelo período.
     def case_order(case: Any) -> tuple[str, int, Any, int]:
         detail = detail_by_key.get(case.key)
         return _details_order(detail) if detail else (case.pos_id, case.period % 1000, "", 0)
@@ -472,22 +413,16 @@ def _add_pending_cases_sheet(workbook: Workbook, details: Sequence[Any], cases: 
                     else NOT_APPLICABLE,
                     (detail.closing_description if detail else None) or NOT_APPLICABLE,
                     case.banka_amount,
-                    # `missing`/`mismatch` são os mesmos valores nos dois enums:
-                    # o caso herda o rótulo da validação que lhe deu origem.
+                    # `missing`/`mismatch` valem nos dois enums: o caso herda o rótulo.
                     VALIDATION_LABELS[Validation(kind)],
                     case.resolved_at or NOT_APPLICABLE,
                 ],
             )
             row_number += 1
 
-    # Duplicados: um por fecho, com o valor do próprio fecho. O crédito do Banka é
-    # da chave inteira (lá os movimentos também vêm duplicados), por isso vai só na
-    # primeira linha de cada chave — repeti-lo em todas inflacionaria a coluna, que
-    # é exactamente o erro do VLOOKUP manual que esta automação veio corrigir.
-    #
-    # Cada chave duplicada tem um caso próprio (um só, o `_build_cases` já
-    # colapsa os vários fechos) — regularizá-lo tira a chave inteira daqui,
-    # tal como um caso de incorrecto/não-creditado regularizado.
+    # Um por fecho, com o valor do próprio fecho. O crédito é da chave, por isso
+    # vai só na primeira linha. Cada chave duplicada tem um caso só, e regularizá-lo
+    # tira a chave inteira daqui.
     duplicated_cases = {c.key: c for c in cases if c.type == CaseType.DUPLICATED}
     credited_keys: set[str] = set()
     duplicated = [
@@ -537,7 +472,7 @@ def _add_pending_cases_sheet(workbook: Workbook, details: Sequence[Any], cases: 
         styles.empty_message(sheet.cell(row=3, column=FIRST_COLUMN))
 
     # Colunas (com a A vazia): G=Período POS, H=Data Fecho, J=Total SIMO,
-    # M=Total Banka, O=Data Reg. — não deslocar os formatos por causa da A.
+    # M=Total Banka, O=Data Reg.
     _set_widths(sheet, [12, 12, 18, 34, 18, 14, 16, 13, 18, 13, 34, 18, 48, 13])
     _set_format(sheet, ["J", "M"], MONEY_FORMAT, rows=range(3, row_number))
     _set_format(sheet, ["H", "O"], DATE_FORMAT, rows=range(3, row_number))
@@ -578,12 +513,7 @@ def _write_header(
 
 
 def _details_order(detail: Any) -> tuple[str, int, Any, int]:
-    """POS a POS, e dentro de cada POS pelo período do descritivo, do mais antigo.
-
-    O período lê-se no fim do descritivo («… - 001»), que é o que o operador vê
-    na SIMO; sem descritivo, vale o período do fecho. A data e o nº de operação
-    desempatam os fechos do mesmo período.
-    """
+    """POS a POS, e dentro de cada POS pelo período do descritivo, do mais antigo."""
     match = _DESCRIPTION_PERIOD.search(detail.closing_description or "")
     period = int(match.group(1)) if match else detail.period % 1000
     return (detail.pos_id, period, detail.simo_closing_date, detail.operation_number)
@@ -592,11 +522,8 @@ def _details_order(detail: Any) -> tuple[str, int, Any, int]:
 def _write_row(sheet: Worksheet, row: int, values: list[Any]) -> None:
     for offset, value in enumerate(values):
         cell = sheet.cell(row=row, column=FIRST_COLUMN + offset, value=_excel_value(value))
-        # O openpyxl grava como FÓRMULA qualquer texto que comece por «=». Nada
-        # do que aqui se escreve é fórmula: nomes de comerciante e descritivos
-        # vêm dos ficheiros carregados, o e-Ticket é escrito à mão. Sem isto, um
-        # «=HYPERLINK(...)» num desses campos corria no Excel de quem abrisse
-        # o relatório.
+        # O openpyxl grava como fórmula qualquer texto começado por «=». Um
+        # «=HYPERLINK(...)» vindo dos ficheiros corria no Excel de quem abrisse.
         if cell.data_type == "f":
             cell.data_type = "s"
 
@@ -609,11 +536,7 @@ def _generated_at(execution: Any) -> str:
 
 
 def _excel_value(value: Any) -> Any:
-    """O Excel não aceita datas com fuso horário e a BD pode devolver `datetime`.
-
-    As colunas de data guardam só a data (`Date`), logo só a data interessa —
-    descarta-se a hora se por acaso vier um `datetime`.
-    """
+    """O Excel não aceita datas com fuso horário e a BD pode devolver `datetime`."""
     if isinstance(value, datetime):
         return value.date()
     return value

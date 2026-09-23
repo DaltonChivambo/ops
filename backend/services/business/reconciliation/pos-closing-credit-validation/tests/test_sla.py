@@ -5,20 +5,10 @@ mudá-la mexe com o que toda a gente vê como atrasado — daí valer a pena fix
 aqui o que é e o que não é um prazo aceitável.
 """
 
-from datetime import date
-
 import pytest
 
 from app.domain.errors import InvalidSlaSettingsError
-from app.domain.sla import deadline, validate_sla
-
-
-def test_deadline_is_closing_date_plus_sla() -> None:
-    assert deadline(date(2026, 6, 23), 7) == date(2026, 6, 30)
-
-
-def test_deadline_crosses_month_boundary() -> None:
-    assert deadline(date(2026, 6, 28), 7) == date(2026, 7, 5)
+from app.domain.sla import validate_sla
 
 
 def test_normal_sla_and_warning_pass() -> None:

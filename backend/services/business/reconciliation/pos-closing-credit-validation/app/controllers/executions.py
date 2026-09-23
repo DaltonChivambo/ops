@@ -1,13 +1,6 @@
-"""HTTP das execuções: correr uma validação e consultar o que ela produziu.
+"""HTTP das execuções: correr uma validação e consultar o que ela produziu."""
 
-Sub-caminhos em português, herdados do MozaOps v1 — é o contrato que o SPA já
-consome, e o `ARCHITECTURE.md` §8 regista-o como a excepção assumida à regra de
-tudo o resto ser em inglês.
-
-Sem base de dados e sem openpyxl aqui: valida o pedido, chama o serviço,
-devolve o que ele deu.
-"""
-
+import os
 from typing import Any
 
 from fastapi import APIRouter, File, Query, Response, UploadFile
@@ -55,8 +48,7 @@ async def create_execution(
             + ". Carregue os três ficheiros e volte a submeter."
         )
 
-    # Reconstruído sem os `None` — o `missing` acima já garantiu que não há nenhum,
-    # mas é aqui que o tipo passa a dizê-lo.
+    # Sem os `None`: o `missing` acima garantiu que não há nenhum.
     present = {slot: upload for slot, upload in uploads.items() if upload is not None}
     _reject_oversized(present)
     files = {slot: (present[slot].file, present[slot].filename or slot) for slot in REQUIRED_SLOTS}
@@ -68,24 +60,15 @@ async def create_execution(
 
 
 def _reject_oversized(uploads: dict[UploadSlot, UploadFile]) -> None:
-    """Trava os ficheiros grandes demais ANTES de o openpyxl lhes tocar.
-
-    O `max_upload_mb` estava declarado desde o início e nunca era lido: na
-    prática não havia limite nenhum, e um ficheiro suficientemente grande punha
-    o worker a mastigar memória até o pedido morrer sem explicação. Falhar aqui
-    custa um cabeçalho e dá ao operador uma frase que ele percebe.
-    """
+    """Trava os ficheiros grandes demais ANTES de o openpyxl lhes tocar."""
     limit = settings.max_upload_mb * 1024 * 1024
-    oversized = [
-        (slot, upload)
-        for slot, upload in uploads.items()
-        if upload.size is not None and upload.size > limit
-    ]
+    sizes = {slot: _size_of(upload) for slot, upload in uploads.items()}
+    oversized = [(slot, upload) for slot, upload in uploads.items() if sizes[slot] > limit]
     if not oversized:
         return
 
     slot, upload = oversized[0]
-    megabytes = (upload.size or 0) / 1024 / 1024
+    megabytes = sizes[slot] / 1024 / 1024
     raise UploadTooLargeError(
         f"O ficheiro «{upload.filename or SLOT_LABELS[slot]}» no campo «{SLOT_LABELS[slot]}» "
         f"tem {megabytes:.1f} MB e excede o limite de {settings.max_upload_mb} MB. "
@@ -93,12 +76,23 @@ def _reject_oversized(uploads: dict[UploadSlot, UploadFile]) -> None:
     )
 
 
+def _size_of(upload: UploadFile) -> int:
+    """O tamanho, mesmo sem comprimento no multipart. O corpo já está recebido."""
+    if upload.size is not None:
+        return upload.size
+
+    stream = upload.file
+    stream.seek(0, os.SEEK_END)
+    size = stream.tell()
+    stream.seek(0)
+    return size
+
+
 @router.get("/execucoes/ultima", response_model=ValidationResultOut | None)
 async def get_latest_execution(service: ValidationServiceDep) -> Any:
     execution = await service.get_latest_execution()
     if execution is None:
-        # 204 e não 200 com `null`: é assim que o SPA distingue «ainda não correu
-        # nada» de «correu e não deu resultado».
+        # 204 e não 200 com `null`: distingue «ainda não correu» de «sem resultado».
         return Response(status_code=204)
     cases, key_counts = await service.list_cases(execution.id)
     return ValidationResultOut.from_row(execution, cases, key_counts)
@@ -110,12 +104,7 @@ async def set_simo_duplicates(
     body: SimoDuplicatesIn,
     service: ValidationServiceDep,
 ) -> ValidationResultOut:
-    """Conta, ou deixa de contar, os fechos repetidos do export da SIMO.
-
-    PUT e não POST: mandar o mesmo valor duas vezes deixa tudo como mandá-lo uma.
-    Devolve a execução inteira porque muda tudo o que o ecrã mostra — os
-    indicadores, os casos e o estado de cada fecho.
-    """
+    """Conta, ou deixa de contar, os fechos repetidos do export da SIMO."""
     await service.set_count_simo_duplicates(execution_id, body.counted)
     execution = await service.get_execution(execution_id)
     cases, key_counts = await service.list_cases(execution_id)
@@ -130,8 +119,7 @@ async def list_details(
     per_page: int | None = Query(default=None, alias="perPage"),
     validation: str | None = Query(default=None),
     q: str | None = Query(default=None),
-    # Os fechos repetidos na SIMO à parte do `validation`: não são um estado, são
-    # uma marca que se cruza com todos eles. `all` à mistura, `only` ou `without`.
+    # Marca que se cruza com todos os estados: `all`, `only` ou `without`.
     repeated: RepeatedClosings = Query(default=RepeatedClosings.ALL),
 ) -> DetailsPageOut:
     await service.get_execution(execution_id)  # 404 se não existir
@@ -142,10 +130,10 @@ async def list_details(
             ClosingDetailOut.from_row(detail, *result.key_counts.get(detail.key, (1, 1)))
             for detail in result.details
         ],
-        total=result.total,
         page=parsed_page.page,
         per_page=parsed_page.per_page,
-        counts=DetailCountsOut(**result.counts),
+        total=result.total,
+        counts=DetailCountsOut(**result.counts) if result.counts is not None else None,
     )
 
 

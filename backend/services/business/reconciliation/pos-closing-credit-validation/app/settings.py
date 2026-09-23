@@ -1,11 +1,4 @@
-"""Configuração do serviço — variáveis de ambiente tipadas.
-
-Esta lista é o contrato com o `.env.example` e com o `docker-compose.yml`: o que
-o serviço lê está aqui, e o que aqui não está o serviço não lê. O
-`extra="ignore"` esconde qualquer variável mal escrita, por isso a lista ser
-completa é a única coisa que impede uma configuração silenciosamente ignorada —
-foi o que aconteceu ao `LOG_LEVEL` até agora.
-"""
+"""Configuração do serviço — variáveis de ambiente tipadas."""
 
 import logging
 
@@ -17,39 +10,26 @@ from mozaops_libs.auth import AreaMapping, parse_area_map
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_prefix="", extra="ignore")
 
-    database_url: str = (
-        "postgresql+asyncpg://pos_closing_credit_validation:mude-me-em-producao"
-        "@127.0.0.1:15432/mozaops_pos_closing_credit_validation"
-    )
-    # Tamanho máximo de cada ficheiro carregado, verificado em
-    # `controllers/executions.py` antes de o openpyxl lhe tocar.
+    database_url: str
+    # Verificado em `controllers/executions.py` antes de o leitor tocar no ficheiro.
     max_upload_mb: int = 64
     log_level: str = "INFO"
 
     # ─── Autenticação ────────────────────────────────────────────────────
-    # Estas são as MESMAS variáveis que o `platform/auth-service` declara, e no
-    # compose recebem o mesmo `${...}`. Dois serviços a mapear áreas de
-    # maneira diferente seria uma porta aberta no que ficasse para trás.
+    # As mesmas variáveis que o `platform/auth-service` declara, com o mesmo `${...}`.
     auth_issuer: str = "http://geea-keycloak:8000/auth/realms/QAS"
     auth_jwks_url: str = "http://geea-keycloak:8000/auth/realms/QAS/protocol/openid-connect/certs"
     auth_allowed_azp: str = "qa-mozaops"
-    #: O cliente cujos papéis concedem acesso. Ler daqui, e não do `azp` do
-    #: token, é o que permite admitir mais clientes sem lhes delegar a
-    #: atribuição dos nossos acessos.
+    #: O cliente cujos papéis concedem acesso. Não é o `azp` do token.
     auth_client_id: str = "qa-mozaops"
 
     auth_areas: str = "channels:3230"
     auth_area_users: str = ""
 
-    #: A área a que **esta** automação pertence — a mesma que o `service.yaml`
-    #: declara e que o catálogo do SPA mostra. É a única diferença de
-    #: configuração de autenticação entre os dois serviços, e é o que o router
-    #: exige a quem bate à porta.
+    #: A área desta automação, a mesma do `service.yaml`. É o que o router exige.
     auth_service_area: str = "channels"
 
-    #: O id **desta** automação, tal como o `service.yaml` a nomeia. É o que os
-    #: papéis `service:<id>:<read|write>` do realm referem, para dar acesso a
-    #: esta automação sem dar a área inteira.
+    #: O id desta automação, o que os papéis `service:<id>:<read|write>` referem.
     auth_service_id: str = "pos-closing-credit-validation"
 
     def area_mapping(self) -> AreaMapping:
@@ -63,12 +43,7 @@ settings = Settings()
 
 
 def configure_logging() -> None:
-    """Aplica o `LOG_LEVEL` ao arranque.
-
-    O `docker-compose.yml` passa esta variável ao contentor desde o primeiro dia
-    e ninguém a lia: o serviço corria sempre no nível por omissão, e pô-la a
-    `DEBUG` não fazia diferença nenhuma.
-    """
+    """Aplica o `LOG_LEVEL` ao arranque."""
     logging.basicConfig(
         level=settings.log_level.upper(),
         format="%(asctime)s %(levelname)-8s %(name)s: %(message)s",

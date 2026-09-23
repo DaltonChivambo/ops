@@ -1,11 +1,4 @@
-"""Acesso a dados dos casos de divergência.
-
-Os casos são criados pelo `ExecutionRepository`, junto com a execução a que
-pertencem — a `Execution` é a raiz do agregado. Daqui para a frente é o
-operador que lhes mexe, um a um, e é isso que este repositório serve.
-
-Como o outro: a sessão vem de fora e nunca se cria aqui.
-"""
+"""Acesso a dados dos casos de divergência."""
 
 from typing import Any
 
@@ -15,10 +8,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.domain.vocabulary import CaseStatus, CaseType
 from app.infrastructure.tables import PendingCase
 
-# Ordem de leitura do operador: dinheiro errado primeiro (é o que mais salta à
-# vista), depois o que falta chegar, e só no fim a ambiguidade por desfazer, que
-# não é divergência — não é a ordem de declaração do enum (essa é `missing,
-# mismatch, duplicated`, e serve a `Validation`, não isto).
+# Ordem de leitura: dinheiro errado, o que falta chegar, ambiguidade por desfazer.
+# Não é a ordem de declaração do enum.
 _TYPE_ORDER = sa.case(
     (PendingCase.type == CaseType.MISMATCH, 0),
     (PendingCase.type == CaseType.MISSING, 1),
@@ -31,8 +22,7 @@ class CaseRepository:
         self._session = session
 
     async def list_by_execution(self, execution_id: str) -> list[PendingCase]:
-        # Incorrectos, depois duplicados, depois não-creditados — ver
-        # `_TYPE_ORDER`. Dentro do tipo, os maiores montantes.
+        # Ver `_TYPE_ORDER`; dentro do tipo, os maiores montantes.
         result = await self._session.execute(
             sa.select(PendingCase)
             .where(PendingCase.execution_id == execution_id)

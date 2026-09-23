@@ -137,6 +137,33 @@ services:
     image: postgres:18-alpine
     container_name: mozaops-postgres
     restart: unless-stopped
+    # Sem isto corre com os valores de origem, que são de 2005: `work_mem` a 4MB
+    # manda a ordenação de 18 mil fechos para disco, e `max_wal_size` a 1GB
+    # provoca checkpoints a meio de cada carga de 36 mil linhas.
+    #
+    # Estes números são para uma máquina de desenvolvimento. Num servidor sobem
+    # com a memória disponível — `shared_buffers` a ~25% da RAM é a regra.
+    command:
+      - postgres
+      - -c
+      - shared_buffers=256MB
+      - -c
+      - effective_cache_size=768MB
+      # Por operação de ordenação e por ligação: subir muito com dezenas de
+      # ligações abertas multiplica-se pelo mesmo número.
+      - -c
+      - work_mem=16MB
+      - -c
+      - maintenance_work_mem=128MB
+      - -c
+      - max_wal_size=4GB
+      - -c
+      - checkpoint_completion_target=0.9
+      # SSD: sem isto o planeador assume disco rotativo e prefere varrer a usar índice.
+      - -c
+      - random_page_cost=1.1
+      - -c
+      - effective_io_concurrency=200
     environment:
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}

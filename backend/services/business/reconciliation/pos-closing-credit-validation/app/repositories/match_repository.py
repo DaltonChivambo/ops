@@ -1,12 +1,4 @@
-"""Acesso a dados da conciliação fecho a fecho.
-
-Os pares de uma chave substituem-se sempre em bloco: o operador envia o
-conjunto como o deixou no ecrã, e é esse conjunto que passa a valer. Não há
-«acrescentar um par» nem «tirar um par» soltos — dois pedidos assim cruzados
-deixavam a chave num estado que ninguém viu no ecrã.
-
-Como os outros: a sessão vem de fora e nunca se cria aqui.
-"""
+"""Acesso a dados da conciliação fecho a fecho."""
 
 from collections.abc import Collection, Sequence
 
@@ -46,8 +38,7 @@ class MatchRepository:
                 ClosingMatch.execution_id == execution_id, ClosingMatch.key == key
             )
         )
-        # O delete tem de chegar à base antes dos inserts: as `unique` do fecho e
-        # do movimento recusavam um par que se mantém de um pedido para o outro.
+        # O delete tem de chegar à base antes dos inserts, por causa das `unique`.
         await self._session.flush()
         rows = [
             ClosingMatch(

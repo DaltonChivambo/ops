@@ -1,9 +1,4 @@
-"""HTTP da conciliação fecho a fecho: o que se pode conciliar, e conciliar — um caso ou vários.
-
-Conciliar declara «este crédito pagou este fecho», e todas as rotas que o fazem
-registam quem o disse. Os pares vão sempre inteiros, e por isso as escritas são
-PUT: mandar o mesmo conjunto duas vezes deixa tudo como mandá-lo uma.
-"""
+"""HTTP da conciliação fecho a fecho: o que se pode conciliar, e conciliar — um caso ou vários."""
 
 from fastapi import APIRouter
 

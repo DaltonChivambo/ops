@@ -17,12 +17,9 @@ async def get_settings(service: SettingsServiceDep) -> SlaSettingsOut:
 async def save_settings(
     body: SlaSettingsIn,
     service: SettingsServiceDep,
-    # Mudar o prazo muda o que toda a gente vê como atrasado, incluindo em
-    # execuções antigas. Continua a ser de quem for da área — como o resto —
-    # mas fica registado quem mexeu.
+    # Muda o que todos vêem como atrasado, execuções antigas incluídas; fica registado quem mexeu.
     user: CurrentUser,
 ) -> SlaSettingsOut:
-    # O documento vem inteiro, e não em pedaços: o «aviso tem de ser menor do
-    # que o prazo» não se valida com metade dos campos à frente.
+    # O documento vem inteiro: «aviso menor que prazo» não se valida por partes.
     saved = await service.save(body.case_sla_days, body.case_warning_days, user.username)
     return SlaSettingsOut.from_row(saved)

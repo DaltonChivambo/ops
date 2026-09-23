@@ -1,9 +1,4 @@
-"""Modelos de domínio da validação de crédito de fechos de POS.
-
-Porte literal de `domain/models.py` do MozaOps v1. Estruturas puras — sem
-FastAPI, sem SQLAlchemy, sem openpyxl. São o vocabulário que os parsers
-produzem e que a reconciliação consome.
-"""
+"""Modelos de domínio da validação de crédito de fechos de POS."""
 
 from dataclasses import asdict, dataclass, field
 from datetime import date
@@ -14,11 +9,7 @@ from .vocabulary import CaseDateSource, CaseType, ClosingType, Validation
 
 
 def _to_camel(field_name: str) -> str:
-    """`simo_key_total` → `simoKeyTotal`.
-
-    Escrito à mão para o domínio não passar a depender do Pydantic por causa de
-    quatro linhas — é o mesmo motivo por que aqui não entra FastAPI nem openpyxl.
-    """
+    """`simo_key_total` → `simoKeyTotal`."""
     head, *rest = field_name.split("_")
     return head + "".join(part.capitalize() for part in rest)
 
@@ -41,8 +32,7 @@ class SimoClosing:
     closing_date: date
     operation_number: int
     total: Decimal
-    # A linha do export tal como veio, coluna a coluna — o que prova que duas
-    # linhas são a mesma. Vazio quando o fecho não vem de um ficheiro (testes).
+    # A linha do export tal como veio; vazia quando o fecho não vem de ficheiro.
     row: tuple[str, ...] = ()
 
 
@@ -57,16 +47,7 @@ class BankaMovement:
 
 @dataclass(slots=True)
 class BankaCredit:
-    """Créditos do Banka de uma chave: soma dos movimentos + o detalhe por linha.
-
-    `amount` soma TODOS os movimentos da chave, sem prazo: um fecho pode ser
-    creditado no próprio dia ou uma semana depois, e continua a ser o crédito
-    daquele fecho.
-
-    Como o descritivo trunca o período a 3 dígitos, dois períodos reais distintos
-    do mesmo POS podem cair na mesma chave e somar-se aqui. É o preço de não haver
-    prazo, e é pequeno — ver a nota em `reconcile`.
-    """
+    """Créditos do Banka de uma chave: soma dos movimentos + o detalhe por linha."""
 
     amount: Decimal
     credit_date: date | None
@@ -86,9 +67,7 @@ class ClosingDetail:
     simo_closing_date: date
     operation_number: int
     simo_closing_total: Decimal
-    # Soma SIMO da chave — a parcela que o Banka credita e que entra na
-    # `difference`. `simoClosingTotal` é só este fecho; comparar essa linha
-    # com `bankaClosingTotal` (que é da chave) não fecha a conta.
+    # Soma SIMO da chave. `simoClosingTotal` é só este fecho e não fecha a conta.
     simo_key_total: Decimal
     closing_description: str | None
     banka_credit_date: date | None
@@ -96,8 +75,7 @@ class ClosingDetail:
     closing_type: ClosingType
     validation: Validation
     difference: Decimal | None
-    # Linha que o export da SIMO traz repetida. Não é anomalia: conta como fecho,
-    # com a validação da original, e fica só marcada.
+    # Linha repetida no export: conta como fecho, com a validação da original.
     simo_duplicate: bool = False
     # A original de uma linha duplicada na SIMO — para a tabela as pôr juntas.
     has_simo_duplicate: bool = False
@@ -105,9 +83,7 @@ class ClosingDetail:
 
 @dataclass(slots=True)
 class PendingCase:
-    """Caso aberto para análise/regularização pelo operador — por não creditado,
-    por incorrecto, ou por período duplicado (esse último não é bem
-    divergência, é ambiguidade por desfazer)."""
+    """Caso aberto para análise ou regularização pelo operador."""
 
     key: str
     pos_id: str
@@ -117,10 +93,7 @@ class PendingCase:
     simo_amount: Decimal
     banka_amount: Decimal
     type: CaseType
-    # A primeira data que a chave tem, venha do lado que vier: o fecho mais
-    # antigo da SIMO ou o primeiro crédito do Banka, o que for anterior. É daqui
-    # que conta o prazo de tratamento (`domain/sla.py`), e o `first_date_source`
-    # diz de que lado veio — o operador tem de saber qual está a contar.
+    # Primeira data da chave, do lado que for; daqui conta o prazo (`domain/sla.py`).
     first_date: date
     first_date_source: CaseDateSource
 
@@ -138,32 +111,19 @@ class ClosingSummary:
     resolved_cases: int = 0
     missing_count: int = 0
     mismatch_count: int = 0
-    # Fechos de valor 0,00 (sem crédito a esperar do Banka): não são divergência,
-    # ficam fora dos casos pendentes, mas contam-se aqui para se saber que existem.
+    # Fechos a 0,00: não são divergência e ficam fora dos casos pendentes.
     zero_closings: int = 0
-    # Fechos em chaves com >1 fecho na SIMO (período repetido/colidido), OU com
-    # 1 só fecho mas >1 movimento no Banka (outro período real a colidir na
-    # chave): não se somam, ficam fora do match/mismatch e vão para análise
-    # manual individual.
+    # Chaves com >1 fecho SIMO, ou 1 fecho e >1 movimento Banka: análise manual.
     duplicated_periods: int = 0
-    # Fechos repetidos no export da SIMO: entram em `processed`, numa linha
-    # própria, e NUNCA nos estados nem na taxa — o estado é o da linha original,
-    # que continua a ser um fecho só. O que a decisão do operador muda é apenas
-    # se o dinheiro delas entra na reconciliação de montantes.
+    # Repetidos do export: entram em `processed`, nunca nos estados nem na taxa.
     duplicates_discarded: int = 0
-    # O que esses fechos somam do lado da SIMO. Fica sempre calculado; entra no
-    # apuramento só quando `count_simo_duplicates`.
+    # O que somam do lado SIMO; entra no apuramento só com `count_simo_duplicates`.
     simo_amount_duplicate_rows: Decimal = Decimal(0)
-    # E o crédito do Banka que lhes corresponde — ver `_duplicate_rows_credit`.
-    # É o mesmo que já conta na linha do estado da chave, mostrado outra vez para
-    # os dois lados ficarem simétricos quando o operador manda contar as repetidas.
+    # O crédito do Banka correspondente — ver `_duplicate_rows_credit`.
     banka_amount_duplicate_rows: Decimal = Decimal(0)
-    # O operador mandou contar esse dinheiro na reconciliação de montantes.
-    # Decisão da execução inteira, gravada em `execution` — não mexe em estados,
-    # em casos nem na taxa de validação.
+    # Decisão da execução inteira: não mexe em estados, casos nem taxa.
     count_simo_duplicates: bool = False
-    # O mesmo, do lado do Banka: movimentos com o N_DOCUMENTO já visto (um dia
-    # exportado duas vezes), descartados antes de somar a chave.
+    # Movimentos com N_DOCUMENTO repetido, descartados antes de somar a chave.
     banka_duplicates_discarded: int = 0
     # Sinais de qualidade dos ficheiros de entrada (não bloqueiam a execução):
     #   keyCollisions — chaves que agregam >1 período bruto por colisão em % 1000.
@@ -175,26 +135,12 @@ class ClosingSummary:
     simo_amount_mismatched: Decimal = Decimal(0)
     banka_amount_mismatched: Decimal = Decimal(0)
     simo_amount_missing: Decimal = Decimal(0)
-    # Somas das chaves com períodos repetidos. Não é divergência — é o que está
-    # retido à espera de análise manual, e vai ao relatório como tal. O Banka
-    # duplica na mesma proporção da SIMO (a chave tem lá vários movimentos), por
-    # isso há crédito a apontar-lhes: dá-lo por zero punha o montante todo como
-    # dinheiro em falta, que é o contrário do que aconteceu.
+    # Somas das chaves com períodos repetidos: retido à espera de análise manual.
     simo_amount_duplicated: Decimal = Decimal(0)
     banka_amount_duplicated: Decimal = Decimal(0)
 
     def to_json_dict(self) -> dict[str, Any]:
-        """Os indicadores como documento JSON, que é a forma em que são guardados.
-
-        A coluna `execution.summary` é JSONB e o frontend lê-a tal como está —
-        logo esta é a forma canónica, e não uma representação da apresentação.
-
-        **As chaves saem em camelCase, e não é descuido.** Os campos do Python
-        são snake_case, mas este dicionário não é Python: é o documento que fica
-        gravado na base e que o `models.ts` lê. Deixá-lo seguir a renomeação
-        partia o SPA E desalinhava-o das execuções já gravadas, que estão em
-        camelCase e não se migram por causa disto.
-        """
+        """Os indicadores como documento JSON, que é a forma em que são guardados."""
         return {
             _to_camel(field_name): float(value) if isinstance(value, Decimal) else value
             for field_name, value in asdict(self).items()
@@ -203,13 +149,7 @@ class ClosingSummary:
 
 @dataclass(slots=True)
 class CreditMovement:
-    """Um movimento do Banka já atribuído a uma chave, para consulta posterior.
-
-    O `ClosingDetail` guarda a SOMA do crédito da chave; isto guarda as parcelas.
-    É o que permite ao operador abrir um fecho e ver de onde veio (ou não veio) o
-    dinheiro, sem voltar ao MIS. Todos contam: não há prazo a partir do qual um
-    crédito deixe de ser o crédito daquele fecho.
-    """
+    """Um movimento do Banka já atribuído a uma chave, para consulta posterior."""
 
     key: str
     date: date | None

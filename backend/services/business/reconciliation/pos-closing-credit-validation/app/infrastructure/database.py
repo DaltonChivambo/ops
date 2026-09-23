@@ -6,7 +6,16 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_asyn
 
 from app.settings import settings
 
-engine = create_async_engine(settings.database_url, pool_pre_ping=True)
+# Estes valores vezes os workers do gunicorn é o que chega ao `max_connections`.
+engine = create_async_engine(
+    settings.database_url,
+    pool_pre_ping=True,
+    pool_size=10,
+    max_overflow=5,
+    pool_timeout=10,
+    # Uma ligação fechada do lado do Postgres só se descobre ao usá-la.
+    pool_recycle=1800,
+)
 SessionLocal = async_sessionmaker(engine, expire_on_commit=False)
 
 

@@ -1,10 +1,4 @@
-"""Caso de uso das definições: ler o prazo de tratamento, e mudá-lo.
-
-A validação é do domínio (`domain/sla.py`) — aqui só se lê, se valida e se
-grava. Se a linha ainda não existir (base criada antes desta funcionalidade),
-lê-se os valores por omissão em vez de rebentar: o ecrã abre à mesma, e a
-linha nasce na primeira gravação.
-"""
+"""Caso de uso das definições: ler o prazo de tratamento, e mudá-lo."""
 
 from dataclasses import dataclass
 from datetime import datetime

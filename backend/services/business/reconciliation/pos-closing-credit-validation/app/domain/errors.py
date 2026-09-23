@@ -1,14 +1,4 @@
-"""Erros de negócio — o que pode correr mal, dito no vocabulário do domínio.
-
-**Sem HTTP.** Estas classes não sabem o que é um 404 nem um 422: a tradução para
-resposta vive em `controllers/error_handlers.py`, que é a única camada a quem
-isso diz respeito. Foi por isto que saíram de `app/errors.py`, onde traziam um
-`status = 422` que o adaptador de Excel importava sem ter nada que ver com o
-protocolo.
-
-A `message` é a que chega ao operador — logo, escrita em português e pronta a
-mostrar, sem diagnóstico técnico pelo meio.
-"""
+"""Erros de negócio — o que pode correr mal, dito no vocabulário do domínio."""
 
 
 class DomainError(Exception):
@@ -56,8 +46,4 @@ class NotFoundError(DomainError):
 
 
 class NothingToUpdateError(DomainError):
-    """Vieram zero campos para alterar — o pedido não diz o que fazer.
-
-    Não é «não encontrei» nem regra de negócio violada: é um pedido incompleto,
-    e sai como tal.
-    """
+    """Vieram zero campos para alterar — o pedido não diz o que fazer."""

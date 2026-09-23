@@ -1,21 +1,4 @@
-"""Modelos SQLAlchemy — tradução do `schema.prisma` do MozaOps v1.
-
-Único ponto de acesso à base de dados é `repository.py`; este módulo só
-declara a forma das tabelas.
-
-**A ordem de declaração dos enums é a ordem de leitura da tabela.** O Postgres
-ordena um enum pela ordem em que os valores foram declarados no `CREATE TYPE`,
-e `repository.list_details` pede `validation DESC`. Lida de baixo para cima,
-o `Validation` de `domain/vocabulary.py` é o que o operador vê primeiro:
-
-    duplicated · missing · mismatch · match · zero
-
-Primeiro o que exige trabalho, depois o que confere, e no fim os zerados — que
-não pedem nada a ninguém. A ordem vive agora no vocabulário do domínio.
-
-`bankaCreditsRaw` do schema original não se porta: confirmado que é escrito e
-nunca lido em produção (a folha do relatório que o consumia já não existe).
-"""
+"""Modelos SQLAlchemy — tradução do `schema.prisma` do MozaOps v1."""
 
 import uuid
 from datetime import UTC, date, datetime
@@ -40,21 +23,12 @@ def _uuid() -> str:
 
 
 def _now() -> datetime:
-    """Instante actual em UTC, sem fuso — a coluna `executedAt` é `DateTime` sem timezone.
-
-    Substitui `datetime.utcnow`, depreciado no 3.12. Guarda exactamente o mesmo
-    valor: pôr lá um `datetime` com fuso é que mudaria o que fica na base.
-    """
+    """Instante actual em UTC, sem fuso — a coluna `executedAt` é `DateTime` sem timezone."""
     return datetime.now(UTC).replace(tzinfo=None)
 
 
 def _pg_enum(enum: type[StrEnum], name: str) -> sa.Enum:
-    """Enum nativo do Postgres a partir do vocabulário do domínio.
-
-    O `values_callable` não é opcional: sem ele o SQLAlchemy persiste o NOME do
-    membro (`MATCH`) e não o valor (`match`), e a coluna deixava de casar com o
-    `CREATE TYPE` que já está na base.
-    """
+    """Enum nativo do Postgres a partir do vocabulário do domínio."""
     return sa.Enum(
         enum,
         name=name,
@@ -85,12 +59,9 @@ class Execution(Base):
     pos_list_file: Mapped[str] = mapped_column("posListFile", sa.String)
     simo_closings_file: Mapped[str] = mapped_column("simoClosingsFile", sa.String)
     banka_credits_file: Mapped[str] = mapped_column("bankaCreditsFile", sa.String)
-    # Snapshot denormalizado do `ClosingSummary` — mutado quando um caso muda de
-    # estado (ver `service._refresh_case_counters`), não só à criação.
+    # Snapshot do `ClosingSummary`, reescrito a cada mudança de caso.
     summary: Mapped[dict[str, Any]] = mapped_column(JSONB)
-    # O operador mandou contar os fechos repetidos do export da SIMO como fechos
-    # verdadeiros. Vive na execução e não nas definições nem no ecrã: manda nos
-    # estados gravados, nos casos e no relatório, e tem de ser igual para todos.
+    # Contar os repetidos do export como fechos: decisão da execução, igual para todos.
     count_simo_duplicates: Mapped[bool] = mapped_column(
         "countSimoDuplicates", sa.Boolean, default=False, server_default=sa.false()
     )
@@ -104,6 +75,17 @@ class ClosingDetail(Base):
         sa.Index("ix_closing_detail_execution_validation", "executionId", "validation"),
         sa.Index("ix_closing_detail_execution_pos_id", "executionId", "posId"),
         sa.Index("ix_closing_detail_execution_key", "executionId", "key"),
+        # A ordem da tabela inteira, num índice: sem ela cada página ordenava tudo.
+        sa.Index(
+            "ix_closing_detail_reading_order",
+            "executionId",
+            "sortRank",
+            "posId",
+            "period",
+            "simoClosingDate",
+            "simoDuplicate",
+            "operationNumber",
+        ),
     )
 
     id: Mapped[str] = mapped_column(sa.String(36), primary_key=True, default=_uuid)
@@ -132,13 +114,15 @@ class ClosingDetail(Base):
     closing_type: Mapped[ClosingType] = mapped_column("closingType", ClosingTypeEnum)
     validation: Mapped[Validation] = mapped_column(ValidationEnum)
     difference: Mapped[Decimal | None] = mapped_column(Money, nullable=True)
-    # Linha duplicada no export da SIMO — conta, fica marcada (ver `domain.models`).
+    # Linha duplicada no export: conta e fica marcada.
     simo_duplicate: Mapped[bool] = mapped_column(
         "simoDuplicate", sa.Boolean, default=False, server_default=sa.false()
     )
     has_simo_duplicate: Mapped[bool] = mapped_column(
         "hasSimoDuplicate", sa.Boolean, default=False, server_default=sa.false()
     )
+    #: A ordem de leitura do operador, materializada — ver `execution_repository`.
+    sort_rank: Mapped[int] = mapped_column("sortRank", sa.SmallInteger)
 
 
 class CreditMovement(Base):
@@ -178,29 +162,18 @@ class PendingCase(Base):
     simo_amount: Mapped[Decimal] = mapped_column("simoAmount", Money)
     banka_amount: Mapped[Decimal] = mapped_column("bankaAmount", Money)
     type: Mapped[CaseType] = mapped_column(CaseTypeEnum)
-    # A primeira data da chave (fecho da SIMO ou crédito do Banka, o que for
-    # anterior) e de que lado veio — o prazo de tratamento conta daqui.
+    # A primeira data da chave e de que lado veio; daqui conta o prazo.
     first_date: Mapped[date] = mapped_column("firstDate", sa.Date)
     first_date_source: Mapped[CaseDateSource] = mapped_column("firstDateSource", CaseDateSourceEnum)
     e_ticket: Mapped[str | None] = mapped_column("eTicket", sa.String, nullable=True)
     status: Mapped[CaseStatus] = mapped_column(CaseStatusEnum, default=CaseStatus.PENDING)
-    # Desde quando o caso está no estado em que está — é daqui que sai «submetido
-    # à SIMO há 5 dias» ou «em análise interna há 2». Muda a cada mudança de
-    # estado, ao contrário do `resolvedAt`, que só existe no fim.
+    # Desde quando está neste estado; muda a cada mudança, ao contrário do `resolvedAt`.
     status_since: Mapped[date] = mapped_column("statusSince", sa.Date, default=date.today)
     resolved_at: Mapped[date | None] = mapped_column("resolvedAt", sa.Date, nullable=True)
 
 
 class ClosingMatch(Base):
-    """Um fecho da SIMO conciliado com um movimento do Banka, numa chave duplicada.
-
-    Um par só por fecho e um só por movimento — as duas `unique` são a regra de
-    `domain/matching.py` guardada também na base, para que dois pedidos ao mesmo
-    tempo não consigam fazer um movimento pagar dois fechos.
-
-    Apagado em cascata com a execução, e com o fecho ou o movimento: sem um dos
-    lados, o par não diz nada.
-    """
+    """Um fecho da SIMO conciliado com um movimento do Banka, numa chave duplicada."""
 
     __tablename__ = "closing_match"
     __table_args__ = (sa.Index("ix_closing_match_execution_key", "executionId", "key"),)
@@ -216,24 +189,13 @@ class ClosingMatch(Base):
     movement_id: Mapped[str] = mapped_column(
         "movementId", sa.ForeignKey("credit_movement.id", ondelete="CASCADE"), unique=True
     )
-    # Conciliar declara «este crédito pagou este fecho», e é isso que tira o caso
-    # da fila: fica registado quem o disse e quando.
+    # Quem declarou que este crédito pagou este fecho, e quando.
     matched_at: Mapped[datetime] = mapped_column("matchedAt", sa.DateTime, default=_now)
     matched_by: Mapped[str | None] = mapped_column("matchedBy", sa.String, nullable=True)
 
 
 class Setting(Base):
-    """As definições do serviço — uma linha só, sempre a de `id = 1`.
-
-    Tabela em vez de variável de ambiente porque o prazo de tratamento é do
-    DOP, não da equipa técnica: muda-se no ecrã, sem reiniciar nada. Como muda
-    para toda a gente ao mesmo tempo, fica registado quem mexeu e quando.
-
-    **O prazo é retroactivo, de propósito.** A data limite calcula-se sempre a
-    partir da data do fecho com o valor actual, por isso baixar o prazo põe
-    casos antigos em atraso de imediato — é o que se espera de uma regra que
-    se afina. Nada disto fica congelado no `summary` da execução.
-    """
+    """As definições do serviço — uma linha só, sempre a de `id = 1`."""
 
     __tablename__ = "setting"
     __table_args__ = (sa.CheckConstraint("id = 1", name="ck_setting_single_row"),)

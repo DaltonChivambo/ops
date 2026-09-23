@@ -1,11 +1,4 @@
-"""O aspecto do relatório: cores, cabeçalhos, linhas, logótipo e impressão.
-
-À parte do `report.py`, que decide o que vai em cada célula. Aqui decide-se só
-como se vê — e sempre de forma que as ~30 mil linhas de uma execução real não
-pesem: as folhas de detalhe não pintam célula a célula, usam formatação
-condicional (linhas alternadas, cor da validação, diferença a vermelho), que o
-Excel aplica ao abrir e o ficheiro guarda uma vez por intervalo.
-"""
+"""O aspecto do relatório: cores, cabeçalhos, linhas, logótipo e impressão."""
 
 import re
 import zipfile
@@ -29,8 +22,7 @@ LOGO_HEIGHT_PX = 46
 # ─── Paleta ──────────────────────────────────────────────────────────────────
 
 MOZA_RED = "FFC00000"
-# Cabeçalho das colunas de identificação e datas — quem, quando — para se
-# distinguirem das de montantes e validação, que ficam a vermelho.
+# Cabeçalho das colunas de identificação e datas; montantes e validação a vermelho.
 MOZA_NAVY = "FF1F2A44"
 INK = "FF1F2937"
 MUTED = "FF6B7280"
@@ -38,7 +30,7 @@ LINE = "FFE5E7EB"
 ZEBRA = "FFF9FAFB"
 TOTAL = "FFF3F4F6"
 
-# Tom de cada estado: fundo claro e texto escuro da mesma cor — os mesmos do ecrã.
+# Tom de cada estado, o mesmo do ecrã: fundo claro e texto escuro.
 STATE_TONES = {
     "match": ("FFECFDF5", "FF047857"),
     "mismatch": ("FFFEF2F2", "FFB91C1C"),
@@ -166,8 +158,7 @@ def data_sheet(
         data = f"B{first_data}:{last_column}{last_row}"
         sheet.auto_filter.ref = f"B{header}:{last_column}{last_row}"
         if marked:
-            # Antes das linhas alternadas: a primeira regra ganha no fundo, e o
-            # vermelho não pode ficar tapado pelo cinzento das linhas pares.
+            # Antes das linhas alternadas: a primeira regra ganha no fundo.
             red_fill, red_text = STATE_TONES["repeated"]
             sheet.conditional_formatting.add(
                 " ".join(marked),
@@ -178,7 +169,7 @@ def data_sheet(
                     stopIfTrue=True,
                 ),
             )
-        # Linhas alternadas e a risca fina entre linhas, numa regra para o intervalo inteiro.
+        # Linhas alternadas e a risca entre linhas, numa regra para o intervalo.
         sheet.conditional_formatting.add(
             data,
             _when(
@@ -189,7 +180,7 @@ def data_sheet(
         )
         sheet.conditional_formatting.add(data, _when(formula=["MOD(ROW(),2)=1"], border=ROW_BORDER))
 
-        # A validação na cor do estado — o mesmo tom do ecrã.
+        # A validação na cor do estado.
         cells = f"{validation_column}{first_data}:{validation_column}{last_row}"
         top = f"{validation_column}{first_data}"
         for needle, state in (
@@ -218,7 +209,7 @@ def data_sheet(
                 ),
             )
 
-    # O POS ID fica à vista ao correr para o lado, e o cabeçalho ao correr para baixo.
+    # Congela o POS ID e o cabeçalho ao correr a folha.
     sheet.freeze_panes = f"C{first_data}"
     printable(sheet, repeat_rows=f"{header}:{header}")
 
@@ -257,16 +248,11 @@ def _when(
 
 
 def ignore_number_as_text(data: bytes, ranges: dict[str, str]) -> bytes:
-    """Desliga, nos intervalos dados, o aviso de «número guardado como texto».
-
-    O openpyxl não escreve `<ignoredErrors>`, por isso acrescenta-se ao XML de cada
-    folha depois de gravado. O elemento tem lugar fixo no esquema: antes de
-    `drawing`, `legacyDrawing`, `tableParts` e `extLst`, ou no fim.
-    """
+    """Desliga, nos intervalos dados, o aviso de «número guardado como texto»."""
     source = zipfile.ZipFile(BytesIO(data))
     workbook_xml = source.read("xl/workbook.xml").decode("utf-8")
     rels_xml = source.read("xl/_rels/workbook.xml.rels").decode("utf-8")
-    # Os atributos vêm por qualquer ordem: lê-se cada elemento e depois cada atributo.
+    # Os atributos vêm por qualquer ordem.
     targets = {
         _attribute(tag, "Id"): _attribute(tag, "Target")
         for tag in re.findall(r"<Relationship\b[^>]*>", rels_xml)

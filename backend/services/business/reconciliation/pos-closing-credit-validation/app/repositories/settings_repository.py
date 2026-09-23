@@ -1,7 +1,4 @@
-"""Acesso às definições do serviço — a linha única da tabela `setting`.
-
-Como os outros: a sessão vem de fora e nunca se cria aqui.
-"""
+"""Acesso às definições do serviço — a linha única da tabela `setting`."""
 
 from datetime import UTC, datetime
 
@@ -28,8 +25,7 @@ class SettingsRepository:
             self._session.add(row)
         row.case_sla_days = sla_days
         row.case_warning_days = warning_days
-        # UTC sem fuso, como a `executedAt` da execução — a coluna é `DateTime`
-        # simples, e pôr lá um `datetime` com fuso mudava o que fica na base.
+        # UTC sem fuso: a coluna é `DateTime` simples.
         row.updated_at = datetime.now(UTC).replace(tzinfo=None)
         row.updated_by = updated_by
         await self._session.flush()

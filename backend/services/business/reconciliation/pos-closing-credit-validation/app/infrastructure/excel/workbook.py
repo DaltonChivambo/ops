@@ -1,10 +1,4 @@
-"""Utilitários de leitura de Excel — porte de `shared/excel.py` do MozaOps v1.
-
-Os exports do Portal SIMO e do MIS/MicroStrategy trazem datas em três formatos
-(serial Excel, `dd/mm/yyyy` e `datetime` nativo) e números em dois (formato
-português `3.180,00` e decimal `143975.4`), com linhas de título antes dos
-cabeçalhos em posições que variam. Estas funções normalizam tudo isso.
-"""
+"""Utilitários de leitura de Excel — porte de `shared/excel.py` do MozaOps v1."""
 
 import re
 from collections.abc import Iterable, Sequence
@@ -17,12 +11,8 @@ EXCEL_EPOCH_OFFSET = 25569
 SECONDS_PER_DAY = 86400
 
 EXCEL_EPOCH = date(1899, 12, 30)
-# Um número só é um serial de data se cair num intervalo em que um fecho de POS
-# pode ter acontecido. Fora dele o número é outra coisa — um período, um número
-# de operação, um código —, e convertê-lo dava 1899 ou 1900: foi assim que um
-# relatório de Agosto de 2026 apareceu como «31 de Dezembro a 10 de Março».
-# Serve também de guarda ao `datetime.fromtimestamp`, que com um timestamp
-# negativo levanta OSError no Windows em vez de devolver a data.
+# Fora deste intervalo o número não é data, é um período ou um código. Guarda
+# também o `datetime.fromtimestamp`, que com timestamp negativo falha no Windows.
 MIN_DATE_SERIAL = (date(2000, 1, 1) - EXCEL_EPOCH).days
 MAX_DATE_SERIAL = (date(2100, 1, 1) - EXCEL_EPOCH).days
 
@@ -51,11 +41,7 @@ def _ddmmyyyy_to_date(value: str) -> date | None:
 
 
 def parse_number(value: Any) -> Decimal | None:
-    """Interpreta um valor numérico de célula.
-
-    Aceita números nativos, strings em formato português (`3.180,00` — ponto de
-    milhares, vírgula decimal) e strings decimais (`143975.4`).
-    """
+    """Interpreta um valor numérico de célula."""
     if isinstance(value, bool) or value is None:
         return None
     if isinstance(value, (int, float, Decimal)):
@@ -81,17 +67,13 @@ def cell_text(value: Any) -> str:
     if isinstance(value, (datetime, date)):
         return value.isoformat()
     if isinstance(value, float) and value.is_integer():
-        # O openpyxl devolve 252524.0 para códigos numéricos; queremos "252524".
+        # Um código numérico vem como 252524.0; queremos "252524".
         return str(int(value))
     return str(value).strip()
 
 
 def cell_date(value: Any) -> date | None:
-    """Data de célula: aceita `datetime`/`date`, serial Excel ou `dd/mm/yyyy`.
-
-    Um número fora do intervalo de datas plausíveis não é data — devolve None,
-    e a linha é descartada por quem chama, em vez de entrar com 1899.
-    """
+    """Data de célula: aceita `datetime`/`date`, serial Excel ou `dd/mm/yyyy`."""
     if isinstance(value, datetime):
         return value.date()
     if isinstance(value, date):
@@ -108,10 +90,7 @@ def cell_date(value: Any) -> date | None:
 
 
 def find_header_row(rows: Iterable[Row], anchor: str, max_rows: int = 10) -> int | None:
-    """Localiza a linha de cabeçalhos pela coluna-âncora, nas primeiras linhas.
-
-    Devolve o índice 0-based dentro de `rows`, ou None se não encontrar.
-    """
+    """Localiza a linha de cabeçalhos pela coluna-âncora, nas primeiras linhas."""
     target = anchor.lower()
     for index, row in enumerate(rows):
         if index >= max_rows:
@@ -122,10 +101,7 @@ def find_header_row(rows: Iterable[Row], anchor: str, max_rows: int = 10) -> int
 
 
 def validate_headers(header_row: Row, expected: Sequence[str]) -> list[str]:
-    """Devolve os cabeçalhos esperados que faltam na linha (comparação por prefixo).
-
-    Lista vazia = o ficheiro tem a estrutura esperada.
-    """
+    """Devolve os cabeçalhos esperados que faltam na linha (comparação por prefixo)."""
     present = [cell_text(cell).lower() for cell in header_row]
     return [
         header

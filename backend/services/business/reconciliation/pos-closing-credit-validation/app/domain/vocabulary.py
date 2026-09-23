@@ -1,20 +1,4 @@
-"""O vocabulário do domínio, declarado uma vez.
-
-Antes destes enums, os cinco estados de validação estavam escritos à mão em seis
-sítios — um comentário no domínio, um tuplo nas tabelas, um `frozenset` e um
-dicionário no repositório, dois mapas de rótulos na apresentação e um `if` no
-serviço — sem nada que os obrigasse a concordar. Acrescentar um estado era
-encontrar seis sítios de cor.
-
-São `StrEnum`: comparam, ordenam, indexam dicionários e serializam para JSON
-exactamente como as strings que substituem, por isso entram sem obrigar quem os
-usa a converter nada.
-
-**Os rótulos NÃO estão aqui**, e é de propósito. O relatório escreve «Fecho Não
-Creditado_aguarda tratamento da SIMO» e o JSON escreve `missing`: são duas
-apresentações do mesmo valor, e cada camada fica com a sua tabela — agora
-indexada por estes membros em vez de por strings soltas.
-"""
+"""O vocabulário do domínio, declarado uma vez."""
 
 from enum import StrEnum
 
@@ -22,15 +6,8 @@ from enum import StrEnum
 class Validation(StrEnum):
     """Como um fecho ficou, depois de comparado o lado SIMO com o lado Banka.
 
-    **A ORDEM DE DECLARAÇÃO É CONTRATO DA BASE DE DADOS.** O Postgres ordena um
-    enum pela ordem do `CREATE TYPE`, e o repositório pede `validation DESC` —
-    ou seja, o operador lê esta lista de baixo para cima:
-
-        duplicados · não creditados · incorrectos · conferem · zerados
-
-    Primeiro o que exige trabalho, no fim os zerados, que não pedem nada a
-    ninguém. Trocar a ordem aqui reordena a tabela que o operador vê e obriga a
-    uma migração; tem de continuar igual à da migração `9e88fa0665cd`.
+    A ordem de declaração é contrato da base de dados: o Postgres ordena o enum
+    por ela, e mudá-la obriga a migração. Igual à da `9e88fa0665cd`.
     """
 
     ZERO = "zero"
@@ -41,12 +18,7 @@ class Validation(StrEnum):
 
 
 class RepeatedClosings(StrEnum):
-    """O que a lista de fechos faz aos fechos repetidos na SIMO.
-
-    Não é um estado — é uma marca que se cruza com todos eles —, por isso não
-    entra na `Validation`. O operador ou os vê à mistura, ou só a eles, ou
-    trabalha a lista sem o ruído deles.
-    """
+    """O que a lista de fechos faz aos fechos repetidos na SIMO."""
 
     ALL = "all"
     ONLY = "only"
@@ -62,14 +34,7 @@ class ClosingType(StrEnum):
 
 
 class CaseStatus(StrEnum):
-    """Onde está o tratamento de um caso.
-
-    «Em análise» não é um estado só: um caso pode estar a ser analisado cá
-    dentro ou já ter sido submetido à SIMO, e quem espera por quem muda com
-    isso. Enquanto foi um estado único, o operador não conseguia dizer se
-    estava à espera de si próprio ou do outro lado — e o tempo de espera de
-    cada um é precisamente o que se quer medir.
-    """
+    """Onde está o tratamento de um caso."""
 
     PENDING = "pending"
     IN_REVIEW_INTERNAL = "in_review_internal"
@@ -78,9 +43,7 @@ class CaseStatus(StrEnum):
 
 
 class CaseType(StrEnum):
-    """Porque é que a chave abriu caso. A ordem manda os não-creditados à frente,
-    e os períodos repetidos — que não são bem divergência, só ambiguidade a
-    desfazer — ficam por último."""
+    """Porque é que a chave abriu caso; a ordem de declaração manda a leitura."""
 
     MISSING = "missing"
     MISMATCH = "mismatch"
@@ -88,24 +51,14 @@ class CaseType(StrEnum):
 
 
 class CaseDateSource(StrEnum):
-    """De que lado veio a primeira data da chave — a que abre o prazo.
-
-    Normalmente é a SIMO (o fecho existe antes do crédito), mas nem sempre: um
-    crédito pode chegar antes do fecho que lhe corresponde entrar no export. O
-    operador tem de saber qual dos dois está a contar, por isso isto viaja com
-    o caso em vez de se adivinhar no ecrã.
-    """
+    """De que lado veio a primeira data da chave — a que abre o prazo."""
 
     SIMO = "simo"
     BANKA = "banka"
 
 
 class UploadSlot(StrEnum):
-    """Os três campos do formulário de execução.
-
-    Os valores são camelCase porque são nomes de campos multipart — parte do
-    contrato com o SPA, não identificadores de Python.
-    """
+    """Os três campos do formulário de execução."""
 
     POS_LIST = "posList"
     SIMO_CLOSINGS = "simoClosings"

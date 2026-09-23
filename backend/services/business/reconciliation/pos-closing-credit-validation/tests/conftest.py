@@ -10,12 +10,19 @@ Sem base de dados e sem `.xlsx`: correm no `make test` de hoje, em qualquer
 máquina, sem preparar nada.
 """
 
+import os
 from datetime import date, datetime
 from decimal import Decimal
 from typing import Any
 
 import pytest
 from fastapi.testclient import TestClient
+
+# Antes de qualquer import de `app.*`: as settings são lidas na importação.
+os.environ.setdefault(
+    "DATABASE_URL",
+    "postgresql+asyncpg://tests:tests@127.0.0.1:15432/tests",
+)
 
 from app.controllers.dependencies import (
     get_case_service,
@@ -212,10 +219,11 @@ class FakeService:
             "repeated": str(repeated),
         }
         self._guard(execution_id)
+        first_page = page.page == 1
         return DetailsPage(
             details=self.details,
-            total=len(self.details),
-            counts=self.counts,
+            total=len(self.details) if first_page else None,
+            counts=self.counts if first_page else None,
             key_counts=self.key_counts,
         )
 

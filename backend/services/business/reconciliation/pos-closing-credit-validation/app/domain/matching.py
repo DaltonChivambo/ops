@@ -1,22 +1,4 @@
-"""Conciliação fecho a fecho numa chave de períodos repetidos.
-
-Uma chave «períodos repetidos» não se valida por soma (ver
-`domain/reconciliation.py`): tem vários fechos na SIMO, ou vários movimentos no
-Banka, e a soma de um lado contra a soma do outro não diz qual crédito pagou qual
-fecho. Quem desfaz isso é o operador, emparelhando um fecho com um movimento.
-
-**A regra do par é a mesma da reconciliação: valor exactamente igual.** Sem
-tolerância, pela mesma razão — um crédito que difere num cêntimo não é o crédito
-daquele fecho, é outro problema. E cada lado entra num par só: um movimento não
-paga dois fechos, e um fecho não é pago duas vezes.
-
-Uma chave está conciliada quando **todos os fechos da SIMO** têm par. O que
-se valida são os fechos da SIMO contra o Banka: os movimentos do Banka que sobram
-(de outro período real que cai na mesma chave, `período % 1000`) não são fechos,
-e não seguram nada.
-
-Camada de domínio: sem I/O, sem tabelas — recebe os dois lados já lidos.
-"""
+"""Conciliação fecho a fecho numa chave de períodos repetidos."""
 
 from collections import defaultdict
 from collections.abc import Sequence
@@ -45,18 +27,12 @@ class Match:
 
 
 def _by_date(side: MatchSide) -> tuple[bool, date, str]:
-    # Sem data vai para o fim; o id desempata, para a sugestão sair sempre igual.
+    # Sem data vai para o fim; o id desempata.
     return (side.date is None, side.date or date.min, side.id)
 
 
 def suggest_matches(closings: Sequence[MatchSide], movements: Sequence[MatchSide]) -> list[Match]:
-    """Os pares que se podem fazer sem ambiguidade de valor — a sugestão do ecrã.
-
-    Dentro de cada valor, emparelha por ordem de data: o fecho mais antigo com o
-    crédito mais antigo. Quando há mais fechos do que créditos desse valor (ou o
-    contrário), os que sobram ficam sem par — e é isso que o ecrã mostra como
-    «não é possível conciliar todos».
-    """
+    """Os pares que se podem fazer sem ambiguidade de valor — a sugestão do ecrã."""
     movements_by_amount: dict[Decimal, list[MatchSide]] = defaultdict(list)
     for movement in sorted(movements, key=_by_date):
         movements_by_amount[movement.amount].append(movement)
@@ -74,11 +50,7 @@ def validate_matches(
     closings: Sequence[MatchSide],
     movements: Sequence[MatchSide],
 ) -> None:
-    """Recusa um conjunto de pares que o operador não podia ter feito.
-
-    As mensagens chegam ao operador: dizem o que está errado no par, não no
-    pedido.
-    """
+    """Recusa um conjunto de pares que o operador não podia ter feito."""
     closing_by_id = {closing.id: closing for closing in closings}
     movement_by_id = {movement.id: movement for movement in movements}
     used_closings: set[str] = set()
@@ -144,18 +116,7 @@ def match_effect(
 def reconciled_summary(
     summary: dict[str, Any], before: MatchEffect, after: MatchEffect
 ) -> dict[str, Any]:
-    """O `summary` gravado, com a conciliação de uma chave reflectida nele.
-
-    **Um fecho conciliado confere.** Ligado a um crédito de valor exactamente
-    igual, é o que a reconciliação teria dito se a chave não fosse ambígua — por
-    isso sai de «períodos repetidos» e entra em «crédito confere», com os
-    montantes dos dois lados, e a taxa de validação recalcula-se. Desfazer um par
-    faz o caminho inverso.
-
-    Aplica-se a diferença entre os pares de antes e os de agora, e não os pares
-    de agora por cima: guardar o mesmo conjunto duas vezes não pode contar duas.
-    O documento é JSON (camelCase, montantes em `float`), e sai na mesma forma.
-    """
+    """O `summary` gravado, com a conciliação de uma chave reflectida nele."""
     closings = after.closings - before.closings
     simo = after.simo_amount - before.simo_amount
     banka = after.banka_amount - before.banka_amount
@@ -170,7 +131,7 @@ def reconciled_summary(
     updated["bankaAmountMatched"] = shifted("bankaAmountMatched", banka)
     updated["simoAmountDuplicated"] = shifted("simoAmountDuplicated", -simo)
     updated["bankaAmountDuplicated"] = shifted("bankaAmountDuplicated", -banka)
-    # Os duplicados na SIMO contam em `processed` mas não na taxa — ver `reconcile`.
+    # Os duplicados contam em `processed` mas não na taxa.
     validated = summary.get("processed", 0) - summary.get("duplicatesDiscarded", 0)
     updated["validationRate"] = validation_rate(updated["matched"], validated)
     return updated

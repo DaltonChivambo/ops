@@ -1,13 +1,4 @@
-"""Acesso a dados da execução e de tudo o que lhe pertence.
-
-Porte de `repositories.py` do MozaOps v1 (Prisma → SQLAlchemy async). Esta
-camada e a `CaseRepository` são as ÚNICAS que importam `sqlalchemy`: é isso que
-mantém a troca de ORM contida aqui.
-
-**A sessão vem de fora, e nunca se cria aqui.** É a regra que substitui uma
-unit of work: quem abre a sessão é o `Depends` do pedido, o repositório apenas a
-recebe, e é por isso que tudo o que corre num pedido partilha a transacção.
-"""
+"""Acesso a dados da execução e de tudo o que lhe pertence."""
 
 import uuid
 from collections.abc import Collection, Mapping
@@ -29,31 +20,44 @@ from app.infrastructure.tables import (
 )
 from app.pagination import Page
 
-# O Postgres aceita inserções grandes, mas lotes desta ordem mantêm a memória
-# estável nas ~18k linhas de uma execução real.
+# Lotes desta ordem mantêm a memória estável nas ~18k linhas de uma execução.
 INSERT_BATCH = 5_000
 
 VALIDATION_STATES = frozenset(Validation)
 
-# Ordem de leitura do operador na tabela de fechos — a mesma dos casos (ver
-# `CaseRepository._TYPE_ORDER`) e a do relatório: incorrecto e não creditado à
-# frente, que é onde há dinheiro errado ou dinheiro em falta; períodos repetidos
-# a seguir (ambiguidade a desfazer, não divergência); depois os fechos com linha
-# repetida na SIMO, juntos num bloco (não são anomalia, mas vêem-se); confere
-# depois; zerado por último, que não pede nada a ninguém. Não é a ordem de
-# declaração do enum `Validation` (essa é `zero, match, mismatch, missing,
-# duplicated`, contrato da migração `9e88fa0665cd`) — só a leitura muda.
-_VALIDATION_ORDER = sa.case(
-    (ClosingDetail.validation == Validation.MISMATCH, 0),
-    (ClosingDetail.validation == Validation.MISSING, 1),
-    (ClosingDetail.validation == Validation.DUPLICATED, 2),
-    (sa.or_(ClosingDetail.simo_duplicate, ClosingDetail.has_simo_duplicate), 3),
-    (ClosingDetail.validation == Validation.MATCH, 4),
-    (ClosingDetail.validation == Validation.ZERO, 5),
-)
+# Ordem de leitura do operador, a mesma dos casos e do relatório: incorrecto,
+# não creditado, períodos repetidos, linha repetida na SIMO, confere, zerado.
+# Não é a ordem de declaração do enum `Validation`.
+# Vive numa coluna (`sortRank`) porque uma expressão no `ORDER BY` não é indexável.
+_RANK_BY_VALIDATION = {
+    Validation.MISMATCH: 0,
+    Validation.MISSING: 1,
+    Validation.DUPLICATED: 2,
+    Validation.MATCH: 4,
+    Validation.ZERO: 5,
+}
+_REPEATED_RANK = 3
 
-# As cópias do export da SIMO não são fechos da chave: ficam fora do que se
-# concilia e do que se conta por chave.
+
+def sort_rank(validation: Validation, simo_duplicate: bool, has_simo_duplicate: bool) -> int:
+    rank = _RANK_BY_VALIDATION[validation]
+    if rank > _REPEATED_RANK and (simo_duplicate or has_simo_duplicate):
+        return _REPEATED_RANK
+    return rank
+
+
+def _sort_rank_value(validation: Validation) -> sa.ColumnElement[int] | int:
+    """O mesmo cálculo em SQL, para quando o estado muda e as marcas ficam."""
+    rank = _RANK_BY_VALIDATION[validation]
+    if rank < _REPEATED_RANK:
+        return rank
+    return sa.case(
+        (sa.or_(ClosingDetail.simo_duplicate, ClosingDetail.has_simo_duplicate), _REPEATED_RANK),
+        else_=rank,
+    )
+
+
+# As cópias do export ficam fora do que se concilia e do que se conta por chave.
 _REAL_CLOSING = ClosingDetail.simo_duplicate.is_(False)
 
 
@@ -67,12 +71,7 @@ class ExecutionRepository:
         files: Mapping[UploadSlot, str],
         summary: dict[str, Any],
     ) -> str:
-        """Persiste execução + detalhes + movimentos + casos numa única transacção.
-
-        Os casos entram por aqui e não pelo `CaseRepository` de propósito: a
-        `Execution` é a raiz do agregado, e partir esta escrita em duas deixava
-        a porta aberta a uma execução gravada sem os casos dela.
-        """
+        """Persiste execução + detalhes + movimentos + casos numa única transacção."""
         execution_id = str(uuid.uuid4())
         self._session.add(
             Execution(
@@ -88,8 +87,7 @@ class ExecutionRepository:
         )
         await self._session.flush()
 
-        # As chaves são os NOMES DOS ATRIBUTOS da ORM (o SQLAlchemy mapeia-os
-        # para as colunas), não os nomes das colunas.
+        # As chaves são nomes de atributos da ORM, não nomes de colunas.
         details: list[dict[str, Any]] = [
             {
                 "id": str(uuid.uuid4()),
@@ -111,13 +109,15 @@ class ExecutionRepository:
                 "difference": detail.difference,
                 "simo_duplicate": detail.simo_duplicate,
                 "has_simo_duplicate": detail.has_simo_duplicate,
+                "sort_rank": sort_rank(
+                    detail.validation, detail.simo_duplicate, detail.has_simo_duplicate
+                ),
             }
             for detail in result.details
         ]
         await self._insert_in_batches(ClosingDetail, details)
 
-        # Uma linha por movimento do Banka (~18k, a par dos detalhes): é o que
-        # permite abrir um fecho e ver as parcelas do crédito da chave.
+        # Uma linha por movimento do Banka (~18k), para se abrirem as parcelas da chave.
         movements: list[dict[str, Any]] = [
             {
                 "id": str(uuid.uuid4()),
@@ -175,30 +175,40 @@ class ExecutionRepository:
         validation: str | None = None,
         search: str | None = None,
         repeated: RepeatedClosings = RepeatedClosings.ALL,
-    ) -> tuple[list[ClosingDetail], int]:
+    ) -> list[ClosingDetail]:
         where = _details_where(execution_id, validation, search, repeated)
         items_result = await self._session.execute(
             sa.select(ClosingDetail)
             .where(*where)
-            # Ver `_VALIDATION_ORDER`. Dentro do tipo ordena-se por chave e depois
-            # por data, para as linhas da mesma chave ficarem contíguas e a tabela
-            # as poder agrupar.
+            # Esta lista é a do `ix_closing_detail_reading_order`. Dentro do tipo,
+            # por chave e data, para as linhas da mesma chave ficarem contíguas.
             .order_by(
-                _VALIDATION_ORDER,
+                ClosingDetail.sort_rank.asc(),
                 ClosingDetail.pos_id.asc(),
                 ClosingDetail.period.asc(),
                 ClosingDetail.simo_closing_date.asc(),
-                # A original antes das suas linhas duplicadas na SIMO: o ecrã junta-as.
+                # A original antes das suas cópias: o ecrã junta-as.
                 ClosingDetail.simo_duplicate.asc(),
                 ClosingDetail.operation_number.asc(),
             )
             .offset(page.skip)
             .limit(page.take)
         )
-        total_result = await self._session.execute(
+        return list(items_result.scalars().all())
+
+    async def count_details(
+        self,
+        execution_id: str,
+        validation: str | None = None,
+        search: str | None = None,
+        repeated: RepeatedClosings = RepeatedClosings.ALL,
+    ) -> int:
+        """Quantas linhas tem a consulta inteira. Separado da página de propósito:"""
+        where = _details_where(execution_id, validation, search, repeated)
+        result = await self._session.execute(
             sa.select(sa.func.count()).select_from(ClosingDetail).where(*where)
         )
-        return list(items_result.scalars().all()), total_result.scalar_one()
+        return result.scalar_one()
 
     async def list_all_details(self, execution_id: str) -> list[ClosingDetail]:
         """Todos os detalhes da execução, na ordem natural do relatório."""
@@ -256,12 +266,10 @@ class ExecutionRepository:
     ) -> dict[str, int]:
         """Contagens para os chips — sobre TODAS as linhas da execução, não da página."""
         counts: dict[str, int] = {"all": 0, "simo_duplicates": 0, **dict.fromkeys(Validation, 0)}
-        # Sem o `repeated`: as contagens são as da execução inteira, e é o que
-        # faz as três hipóteses do filtro somarem «todos» em vez de se contarem
-        # a si próprias.
+        # Sem o `repeated`: as contagens são da execução inteira, e é o que faz
+        # as três hipóteses do filtro somarem «todos».
         where = _details_where(execution_id, None, search)
-        # Os fechos repetidos na SIMO entram em «todos», mas não no estado do
-        # original: não são mais um fecho a conferir nem a tratar.
+        # Os repetidos entram em «todos», mas não no estado do original.
         result = await self._session.execute(
             sa.select(ClosingDetail.validation, ClosingDetail.simo_duplicate, sa.func.count())
             .where(*where)
@@ -269,9 +277,7 @@ class ExecutionRepository:
         )
         for validation, simo_duplicate, total in result.all():
             if simo_duplicate:
-                # O número de «Apenas os repetidos»: só as cópias, o mesmo que
-                # o resumo e o relatório — e o mesmo que o filtro traz. O
-                # original de cada uma vê-se ao abrir o fecho.
+                # «Só os repetidos» são as cópias, o mesmo que o resumo e o relatório.
                 counts["simo_duplicates"] += total
             else:
                 counts[validation] += total
@@ -281,15 +287,7 @@ class ExecutionRepository:
     async def count_by_key(
         self, execution_id: str, keys: Collection[str]
     ) -> dict[str, tuple[int, int]]:
-        """(nº fechos SIMO, nº movimentos Banka) por chave — só para as chaves pedidas.
-
-        Chamado só com as chaves `duplicated` de uma página/lista, nunca com a
-        execução inteira: é o que desfaz, no frontend, a ambiguidade entre uma
-        chave com vários fechos na SIMO e uma com um só fecho mas vários
-        movimentos no Banka (ver a nota central em `domain/reconciliation.py`).
-        Duas queries planas em vez de um join — as duas tabelas não têm FK
-        entre si, e um join duplicaria linhas ou pedia `COUNT(DISTINCT ...)`.
-        """
+        """(nº fechos SIMO, nº movimentos Banka) por chave — só para as chaves pedidas."""
         if not keys:
             return {}
         simo = await self._session.execute(
@@ -327,22 +325,15 @@ class ExecutionRepository:
         await self._session.execute(
             sa.update(ClosingDetail)
             .where(ClosingDetail.execution_id == execution_id, ClosingDetail.id.in_(closing_ids))
-            .values(validation=validation, difference=difference)
+            .values(
+                validation=validation,
+                difference=difference,
+                sort_rank=_sort_rank_value(validation),
+            )
         )
 
     async def duplicated_totals(self, execution_id: str) -> tuple[int, Decimal, Decimal] | None:
-        """O que ainda está em «períodos repetidos»: nº de fechos, soma SIMO e soma Banka.
-
-        O Banka conta só os movimentos das chaves com fechos por conciliar que
-        nenhum par levou — os que já têm par estão em «confere», e os que sobram
-        numa chave toda conciliada não são fecho nenhum da SIMO. `None` numa
-        execução sem movimentos guardados (anterior à migração que os passou a
-        gravar): aí não há como recontar o Banka.
-
-        Em dois passos, com a lista de chaves na mão — ver a nota de desempenho
-        em `list_details`: subconsultas sobre as duas tabelas grandes de uma
-        execução acabada de gravar deixavam o Postgres minutos preso.
-        """
+        """O que ainda está em «períodos repetidos»: nº de fechos, soma SIMO e soma Banka."""
         has_movements = await self._session.execute(
             sa.select(CreditMovement.id).where(CreditMovement.execution_id == execution_id).limit(1)
         )
@@ -381,9 +372,7 @@ class ExecutionRepository:
         banka_where = [CreditMovement.execution_id == execution_id, CreditMovement.key.in_(keys)]
         if used_ids:
             banka_where.append(CreditMovement.id.not_in(used_ids))
-        # Chave a chave e não uma soma só: o lado do Banka nunca passa o da SIMO
-        # — a mesma regra do `compute_summary`, e pela mesma razão (crédito de um
-        # período que colide em `% 1000` não é crédito desta chave).
+        # Chave a chave: o Banka nunca passa a SIMO — a regra do `compute_summary`.
         banka_rows = await self._session.execute(
             sa.select(CreditMovement.key, sa.func.coalesce(sa.func.sum(CreditMovement.amount), 0))
             .where(*banka_where)
@@ -398,13 +387,7 @@ class ExecutionRepository:
     async def set_count_simo_duplicates(
         self, execution_id: str, counted: bool, summary: dict[str, Any]
     ) -> dict[str, Any]:
-        """Grava a decisão sobre os fechos repetidos da SIMO e refaz o apuramento.
-
-        **Nada se revalida.** O estado de cada fecho é o que está gravado, e isso
-        inclui os que uma conciliação já pôs em «confere». O que muda é só se os
-        fechos repetidos contam, e é a `with_simo_duplicates` que diz onde eles
-        entram: no estado da chave deles, nunca num estado próprio.
-        """
+        """Grava a decisão sobre os fechos repetidos da SIMO e refaz o apuramento."""
         updated = with_simo_duplicates(summary, await self._repeated_keys(execution_id), counted)
         await self._session.execute(
             sa.update(Execution)
@@ -414,15 +397,7 @@ class ExecutionRepository:
         return updated
 
     async def _repeated_keys(self, execution_id: str) -> list[KeyTally]:
-        """As chaves COM fechos repetidos, com o que eles valem e o que a chave já pesa.
-
-        Só essas: o apuramento das outras não muda com esta decisão, e mexer-lhes
-        desfazia o que as conciliações já acertaram no `summary`.
-
-        `simoKeyTotal` e `bankaClosingTotal` são da chave e repetem-se em todas
-        as linhas dela — daí `MAX` e não `SUM`. A validação sai dos próprios
-        fechos repetidos: é nesse estado que eles vão contar.
-        """
+        """As chaves COM fechos repetidos, com o que eles valem e o que a chave já pesa."""
         rows = await self._session.execute(
             sa.select(
                 ClosingDetail.validation,
@@ -458,17 +433,14 @@ def _details_where(
     repeated: RepeatedClosings = RepeatedClosings.ALL,
 ) -> list[Any]:
     conditions: list[Any] = [ClosingDetail.execution_id == execution_id]
-    # «Só os repetidos» são as cópias, e não o par: é assim que os três números
-    # do filtro somam o total, e o original de cada uma vê-se ao abrir o fecho.
+    # «Só os repetidos» são as cópias e não o par: é assim que os três somam o total.
     if repeated is RepeatedClosings.ONLY:
         conditions.append(ClosingDetail.simo_duplicate)
     elif repeated is RepeatedClosings.WITHOUT:
         conditions.append(ClosingDetail.simo_duplicate.is_(False))
     if validation:
-        # Lista de estados a mostrar, separada por vírgulas. Tokens desconhecidos
-        # caem fora, por isso a selecção vazia (o cliente manda «nenhum») não
-        # devolve nada. Parâmetro ausente OU vazio não filtra: `?validation=` a
-        # devolver zero linhas seria uma armadilha para quem chama a API à mão.
+        # Estados a mostrar, separados por vírgulas. Tokens desconhecidos caem fora,
+        # e uma selecção vazia não devolve nada; parâmetro ausente ou vazio não filtra.
         wanted = [token for token in validation.split(",") if token in VALIDATION_STATES]
         conditions.append(ClosingDetail.validation.in_(wanted))
     if search:

@@ -1,15 +1,4 @@
-"""O contrato REST, tipado — espelha `data/models.ts` do SPA, campo a campo.
-
-Substitui os `*_to_dict` escritos à mão. O ganho não é estética: o contrato
-deixa de viver em funções soltas que ninguém verifica e passa a ser uma
-declaração que gera OpenAPI e que o `test_contract.py` confere contra o
-`models.ts`.
-
-**As chaves são o contrato e não mudam.** Os `Decimal` saem como número (o SPA
-formata com `Intl`), as datas em ISO, e dois enums são traduzidos porque o
-frontend sempre os leu assim: `D_PLUS_1` → `D+1`, `NA` → `n.a`, `in_review` →
-`in-review`.
-"""
+"""O contrato REST, tipado — espelha `data/models.ts` do SPA, campo a campo."""
 
 from datetime import date, datetime
 from typing import Any, Literal
@@ -51,15 +40,7 @@ CASE_STATUS_LABELS: dict[CaseStatus, CaseStatusLabel] = {
 
 
 class Schema(BaseModel):
-    """Base de todos os modelos de saída.
-
-    Os campos são snake_case porque são Python; o JSON sai em camelCase
-    porque é o contrato do `models.ts`. O alias faz a ponte, e o
-    `populate_by_name` deixa construí-los pelo nome do campo — que é como o
-    código os escreve.
-
-    `extra="forbid"` porque um campo a mais numa resposta é sempre engano.
-    """
+    """Base de todos os modelos de saída."""
 
     model_config = ConfigDict(alias_generator=to_camel, populate_by_name=True, extra="forbid")
 
@@ -86,14 +67,8 @@ class ClosingDetailOut(Schema):
     closing_type: ClosingTypeLabel
     validation: Validation
     difference: float | None
-    # Nº de fechos SIMO / movimentos Banka desta chave — não vêm da linha (não
-    # são colunas persistidas, ver `ExecutionRepository.count_by_key`), por
-    # isso `from_row` recebe-os à parte. `1, 1` por omissão: só interessam
-    # quando `validation` é `duplicated`, e desfazem aí a ambiguidade entre
-    # duplicação do lado SIMO, do lado Banka, ou de ambos.
-    # Fecho repetido da SIMO: conta, e o ecrã marca-a. `has_simo_duplicate` é a
-    # outra ponta do par — o fecho original, que não é repetição de ninguém mas
-    # tem cópias. Quem abre um fecho tem de saber de que lado do par está.
+    # Contagens da chave: não são colunas persistidas, vêm à parte (`count_by_key`).
+    # `has_simo_duplicate` é a outra ponta do par: o original que tem cópias.
     simo_duplicate: bool
     has_simo_duplicate: bool
     simo_closings_count: int
@@ -164,8 +139,7 @@ class PendingCaseOut(Schema):
     simo_amount: float
     banka_amount: float
     type: CaseType
-    # A data limite não vem daqui: é `first_date` mais o prazo em vigor, e quem
-    # a calcula é o SPA, que já traz as definições e sabe que dia é hoje.
+    # A data limite é calculada pelo SPA, a partir de `first_date` e do prazo.
     first_date: date
     first_date_source: CaseDateSource
     e_ticket: str | None
@@ -173,8 +147,7 @@ class PendingCaseOut(Schema):
     # Desde quando está neste estado — «submetido à SIMO há 5 dias» sai daqui.
     status_since: date
     resolved_at: date | None
-    # Ver o comentário equivalente em `ClosingDetailOut` — mesma origem e
-    # omissão a `1, 1`.
+    # Mesma origem que em `ClosingDetailOut`.
     simo_closings_count: int
     banka_movements_count: int
 
@@ -223,9 +196,7 @@ class ValidationResultOut(Schema):
     period_end: date
     report_name: str
     files: ExecutionFilesOut
-    # Não é tipado campo a campo de propósito: é o documento JSONB tal como foi
-    # gravado, e o `ClosingSummary` do domínio é que manda na sua forma. Tipá-lo
-    # aqui obrigava a manter duas listas de 24 campos em dia uma com a outra.
+    # O documento JSONB tal como foi gravado; a forma é do `ClosingSummary`.
     summary: dict[str, Any]
     cases: list[PendingCaseOut]
 
@@ -272,8 +243,7 @@ class KeyBreakdownOut(Schema):
     closings: list[ClosingDetailOut]
     movements: list[CreditMovementOut]
     case: PendingCaseOut | None
-    # Os pares já guardados, e os que se podem fazer só pelo valor — ver
-    # `domain/matching.py`. O ecrã só os usa nas chaves de períodos repetidos.
+    # Pares guardados e pares possíveis só pelo valor — ver `domain/matching.py`.
     matches: list[ClosingMatchOut]
     suggested_matches: list[ClosingMatchOut]
 
@@ -287,9 +257,7 @@ class KeyBreakdownOut(Schema):
         matches: list[ClosingMatch],
         suggested_matches: list[Match],
     ) -> "KeyBreakdownOut":
-        # As duas listas já vêm completas (ver `list_details_by_key`/
-        # `list_movements_by_key`), por isso a contagem é grátis aqui — sem
-        # repetir a query que `count_by_key` faz para as listas paginadas.
+        # As listas já vêm completas: a contagem não repete o `count_by_key`.
         simo_count, banka_count = len(closings), len(movements)
         return cls(
             key=key,
@@ -318,10 +286,11 @@ class DetailsPageOut(Schema):
     """Página da tabela de reconciliação — filtrada e contada no servidor."""
 
     items: list[ClosingDetailOut]
-    total: int
     page: int
     per_page: int
-    counts: DetailCountsOut
+    # Ausentes a partir da segunda página: valem para a consulta, não para a página.
+    total: int | None = None
+    counts: DetailCountsOut | None = None
 
 
 class CaseUpdateOut(Schema):
@@ -368,13 +337,7 @@ class SlaSettingsOut(Schema):
 
 
 class CasePatchIn(BaseModel):
-    """O que o operador pode mudar num caso. Ambos opcionais: manda-se só um.
-
-    O `status` fica `str` e não `Literal` de propósito — quem sabe que estados
-    existem e como se passa de um para o outro é o domínio, e é ele que devolve
-    a mensagem em português quando o valor não serve. Validá-lo aqui trocava
-    essa mensagem por uma do Pydantic.
-    """
+    """O que o operador pode mudar num caso. Ambos opcionais: manda-se só um."""
 
     model_config = ConfigDict(alias_generator=to_camel, populate_by_name=True, extra="ignore")
 
@@ -390,11 +353,7 @@ class ClosingMatchIn(BaseModel):
 
 
 class SimoDuplicatesIn(BaseModel):
-    """A decisão do operador sobre os fechos repetidos do export da SIMO.
-
-    `counted` a `true` é «estas linhas são fechos verdadeiros, o Banka é que não
-    os creditou» — e a execução revalida-se com elas dentro.
-    """
+    """A decisão do operador sobre os fechos repetidos do export da SIMO."""
 
     model_config = ConfigDict(alias_generator=to_camel, populate_by_name=True, extra="ignore")
 
@@ -402,12 +361,7 @@ class SimoDuplicatesIn(BaseModel):
 
 
 class CaseReconciliationIn(BaseModel):
-    """Os pares de um caso, inteiros — substituem os que havia.
-
-    Uma lista vazia é um pedido válido: desfaz a conciliação da chave. As
-    regras do par (valor igual, cada lado uma vez) são do domínio, que devolve
-    a mensagem em português — não se validam aqui.
-    """
+    """Os pares de um caso, inteiros — substituem os que havia."""
 
     model_config = ConfigDict(alias_generator=to_camel, populate_by_name=True, extra="ignore")
 
@@ -432,12 +386,7 @@ class ReconciliationBatchIn(BaseModel):
 
 
 class SlaSettingsIn(BaseModel):
-    """O prazo novo, inteiro — não em pedaços.
-
-    Os limites ficam no domínio (`domain/sla.py`) e não em `Field(ge=...)`: o
-    invariante que interessa é «o aviso vem antes do prazo», e esse compara
-    dois campos. Validado num sítio só, devolve a mensagem em português.
-    """
+    """O prazo novo, inteiro — não em pedaços."""
 
     model_config = ConfigDict(alias_generator=to_camel, populate_by_name=True, extra="ignore")
 

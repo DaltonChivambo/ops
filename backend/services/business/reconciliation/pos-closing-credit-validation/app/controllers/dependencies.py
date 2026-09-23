@@ -1,11 +1,4 @@
-"""A cablagem do pedido: sessão → repositórios → serviços.
-
-É aqui, e só aqui, que se diz quem recebe o quê. O `Depends()` do FastAPI faz de
-contentor de injecção — não há nem é preciso outro.
-
-Vale também como fronteira dos testes: substituir `get_validation_service` por
-um duplo dá um cliente HTTP sem base de dados nenhuma.
-"""
+"""A cablagem do pedido: sessão → repositórios → serviços."""
 
 from typing import Annotated
 
@@ -70,12 +63,8 @@ CaseServiceDep = Annotated[CaseService, Depends(get_case_service)]
 SettingsServiceDep = Annotated[SettingsService, Depends(get_settings_service)]
 
 # ─── Quem está do outro lado ─────────────────────────────────────────────────
-# Uma guarda só, no router inteiro (`controllers/router.py`), e não rota a rota:
-# assim uma rota acrescentada amanhã nasce fechada, em vez de ficar aberta até
-# alguém se lembrar.
-#
-# Devolve o `Principal`, o que deixa a mesma dependência servir de guarda e de
-# resposta a «quem está a pedir isto» — sem a rota o pedir duas vezes.
+# Uma guarda só, no router inteiro (`controllers/router.py`), e não rota a rota.
+# Devolve o `Principal`, para servir de guarda e de resposta a quem pede.
 require_access = auth.require_access(settings.auth_service_id, settings.auth_service_area)
 
 CurrentUser = Annotated[Principal, Depends(auth.principal)]

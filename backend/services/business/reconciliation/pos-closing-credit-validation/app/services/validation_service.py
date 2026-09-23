@@ -1,15 +1,11 @@
-"""Caso de uso da validação: executar, consultar e gerar o relatório.
+"""Caso de uso da validação: executar, consultar e gerar o relatório."""
 
-O pipeline está deliberadamente separado em `parse → reconcile → persist`: hoje
-corre síncrono dentro do pedido HTTP, mas a separação já deixa a porta aberta
-para o desenho assíncrono sem tocar no pipeline em si.
-
-Esta camada não sabe o que é um pedido HTTP nem uma tabela: recebe repositórios
-e devolve objectos. Quem os transforma em JSON é o controlador.
-"""
-
+import asyncio
+import logging
+import time
 from collections import defaultdict
-from collections.abc import Iterable, Mapping
+from collections.abc import Iterable, Iterator, Mapping
+from contextlib import contextmanager
 from dataclasses import dataclass
 from typing import IO, Any, Protocol
 
@@ -32,16 +28,19 @@ from app.repositories.execution_repository import ExecutionRepository
 from app.repositories.match_repository import MatchRepository
 from app.services.match_sides import closing_side, movement_side
 
+logger = logging.getLogger("pos_closing_credit_validation")
+
 
 @dataclass(frozen=True, slots=True)
 class DetailsPage:
     """Uma página da tabela de fechos, com o que cada linha precisa além do fecho."""
 
     details: list[ClosingDetail]
-    total: int
-    # Contagens dos filtros, sobre a execução inteira — não sobre a página.
-    counts: dict[str, int]
-    # (nº de fechos SIMO, nº de movimentos Banka) das chaves duplicadas da página.
+    # `None` a partir da segunda página: são as duas leituras que varrem tudo.
+    total: int | None
+    # Contagens dos filtros, sobre a execução inteira.
+    counts: dict[str, int] | None
+    # (nº de fechos SIMO, nº de movimentos Banka) das chaves duplicadas.
     key_counts: dict[str, tuple[int, int]]
 
 
@@ -68,13 +67,11 @@ class ValidationService:
         self._matches = matches
 
     async def run(self, files: Mapping[UploadSlot, tuple[IO[bytes], str]]) -> str:
-        """Executa a validação e devolve o id da execução persistida.
-
-        `files` mapeia cada campo multipart para `(stream, nome do ficheiro)`.
-        """
-        result = _parse_and_reconcile(files)
+        """Executa a validação e devolve o id da execução persistida."""
+        result = await asyncio.to_thread(_parse_and_reconcile, files)
         names = {slot: files[slot][1] for slot in UploadSlot}
-        return await self._executions.create(result, names, result.summary.to_json_dict())
+        with _timed("gravação"):
+            return await self._executions.create(result, names, result.summary.to_json_dict())
 
     async def get_execution(self, execution_id: str) -> Execution:
         execution = await self._executions.find(execution_id)
@@ -86,16 +83,7 @@ class ValidationService:
         return await self._executions.find_latest()
 
     async def set_count_simo_duplicates(self, execution_id: str, counted: bool) -> dict[str, Any]:
-        """Manda contar, ou não, os fechos repetidos do export da SIMO nos montantes.
-
-        Não mexe em estados nem em casos: um fecho repetido no ficheiro não é
-        um fecho novo, e o estado da chave continua a ser o que era. O que muda
-        é só o apuramento de montantes — se o dinheiro dessas linhas entra ou
-        fica de fora, e a diferença que isso abre.
-
-        A decisão é da execução inteira, e não preferência de quem está a olhar:
-        o relatório sai com ela, logo tem de ser igual para toda a gente.
-        """
+        """Manda contar, ou não, os fechos repetidos do export da SIMO nos montantes."""
         execution = await self.get_execution(execution_id)
         summary = dict(execution.summary or {})
         if execution.count_simo_duplicates == counted:
@@ -118,27 +106,30 @@ class ValidationService:
         search: str | None,
         repeated: RepeatedClosings = RepeatedClosings.ALL,
     ) -> DetailsPage:
-        details, total = await self._executions.list_details(
+        details = await self._executions.list_details(
             execution_id, page, validation, search, repeated
         )
-        counts = await self._executions.count_details_by_validation(execution_id, search)
+        first_page = page.page == 1
         duplicated_keys = {
             detail.key for detail in details if detail.validation == Validation.DUPLICATED
         }
         return DetailsPage(
             details=details,
-            total=total,
-            counts=counts,
+            total=(
+                await self._executions.count_details(execution_id, validation, search, repeated)
+                if first_page
+                else None
+            ),
+            counts=(
+                await self._executions.count_details_by_validation(execution_id, search)
+                if first_page
+                else None
+            ),
             key_counts=await self._executions.count_by_key(execution_id, duplicated_keys),
         )
 
     async def get_key_breakdown(self, execution_id: str, key: str) -> dict[str, Any]:
-        """Os dois lados de uma chave: os fechos da SIMO e os movimentos do Banka.
-
-        A unidade é a CHAVE e não o fecho, porque o crédito do Banka é da chave: um
-        fecho isolado não tem crédito próprio de que se possa falar. Clicar num fecho
-        abre a chave a que ele pertence.
-        """
+        """Os dois lados de uma chave: os fechos da SIMO e os movimentos do Banka."""
         await self.get_execution(execution_id)  # 404 se a execução não existir
         details = await self._executions.list_details_by_key(execution_id, key)
         if not details:
@@ -149,9 +140,8 @@ class ValidationService:
             "closings": details,
             "movements": movements,
             "case": await self._cases.find_by_key(execution_id, key),
-            # O que já foi conciliado, e o que se pode conciliar só pelo valor. A
-            # sugestão vai sempre: é o ecrã que decide onde a mostra, e a regra
-            # do par fica num sítio só (`domain/matching.py`).
+            # O que já foi conciliado e o que se pode conciliar só pelo valor.
+            # A sugestão vai sempre; a regra do par vive em `domain/matching.py`.
             "matches": await self._matches.list_by_key(execution_id, key),
             "suggested_matches": suggest_matches(
                 [closing_side(row) for row in details],
@@ -162,16 +152,7 @@ class ValidationService:
     async def list_reconciliation_candidates(
         self, execution_id: str
     ) -> list[ReconciliationCandidate]:
-        """As chaves que se conciliam com crédito igual — cada fecho com um crédito do mesmo valor.
-
-        Só essas: uma chave onde algum fecho não tem crédito igual não se concilia
-        aqui, trata-se pelo caso (fase e e-Ticket). Também ficam de fora as que já
-        têm pares guardados — alguém lhes mexeu no painel, e confirmar a
-        sugestão por cima desfazia esse trabalho.
-
-        Três queries para todos os casos, e não três por caso: numa execução com
-        centenas de chaves duplicadas o pedido não pode crescer com elas.
-        """
+        """As chaves que se conciliam com crédito igual, fecho a fecho."""
         await self.get_execution(execution_id)  # 404 se a execução não existir
         cases = await self._cases.list_open_duplicated(execution_id)
         keys = [case.key for case in cases]
@@ -207,12 +188,12 @@ class ValidationService:
         execution = await self.get_execution(execution_id)
         details = await self._executions.list_all_details(execution_id)
         cases = await self._cases.list_by_execution(execution_id)
-        return report.build_workbook(execution, details, cases), f"{execution.report_name}.xlsx"
+        content = await asyncio.to_thread(report.build_workbook, execution, details, cases)
+        return content, f"{execution.report_name}.xlsx"
 
 
 class _Keyed(Protocol):
-    # Propriedade e não atributo: nas tabelas `key` é um `Mapped[str]`, que só
-    # vira `str` quando lido — e é isso que interessa aqui.
+    # Propriedade e não atributo: nas tabelas `key` é um `Mapped[str]`.
     @property
     def key(self) -> str: ...
 
@@ -225,17 +206,26 @@ def _group_by_key[Row: _Keyed](rows: Iterable[Row]) -> dict[str, list[Row]]:
     return grouped
 
 
+@contextmanager
+def _timed(phase: str) -> Iterator[None]:
+    """Quanto demorou cada fase, no log. É por onde se decide o que optimizar."""
+    started = time.perf_counter()
+    yield
+    logger.info("%s: %.2fs", phase, time.perf_counter() - started)
+
+
 def _parse_and_reconcile(
     files: Mapping[UploadSlot, tuple[IO[bytes], str]],
 ) -> ReconciliationResult:
-    pos_list = parsers.parse_pos_list(*files[UploadSlot.POS_LIST])
-    closings = parsers.parse_simo_closings(*files[UploadSlot.SIMO_CLOSINGS])
-    credits, banka_discarded = parsers.parse_banka_credits(*files[UploadSlot.BANKA_CREDITS])
-    # O `NoClosingsError` é uma excepção de negócio do PDD, com a mensagem já em
-    # português: sobe tal como está, sem tradução pelo meio.
-    result = reconcile(pos_list, closings, credits)
-    # Quem sabe dos fechos repetidos é o parser; o domínio só recebe créditos
-    # limpos. O número vai para o `summary`, para o operador saber que o
-    # ficheiro vinha com elas.
+    with _timed("leitura do POS list"):
+        pos_list = parsers.parse_pos_list(*files[UploadSlot.POS_LIST])
+    with _timed("leitura dos fechos SIMO"):
+        closings = parsers.parse_simo_closings(*files[UploadSlot.SIMO_CLOSINGS])
+    with _timed("leitura dos créditos Banka"):
+        credits, banka_discarded = parsers.parse_banka_credits(*files[UploadSlot.BANKA_CREDITS])
+    # O `NoClosingsError` já traz a mensagem em português: sobe tal como está.
+    with _timed("reconciliação"):
+        result = reconcile(pos_list, closings, credits)
+    # Quem sabe dos repetidos é o parser; o domínio só recebe créditos limpos.
     result.summary.banka_duplicates_discarded = banka_discarded
     return result

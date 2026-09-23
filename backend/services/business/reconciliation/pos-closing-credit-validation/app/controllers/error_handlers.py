@@ -1,12 +1,7 @@
 """Excepção de domínio → resposta HTTP. O único sítio que conhece os dois lados.
 
-O domínio levanta o que correu mal no seu próprio vocabulário; é esta tabela que
-decide com que estado isso sai. Manter o mapeamento aqui é o que permite ao
-adaptador de Excel levantar um erro de negócio sem importar nada de HTTP.
-
-O envelope `{"error": {"code", "message"}}` é contrato: o `error.interceptor.ts`
-do SPA depende desta forma exacta para transformar a resposta num `ApiError` com
-mensagem para mostrar ao operador.
+O envelope `{"error": {"code", "message"}}` é contrato com o `error.interceptor.ts`
+do SPA, que não sabe ler o `{"detail": ...}` do FastAPI.
 """
 
 import logging
@@ -26,12 +21,10 @@ from mozaops_libs.auth import register_error_handlers
 
 logger = logging.getLogger("pos_closing_credit_validation")
 
-# Percorrido pela MRO da excepção, do mais específico para o mais geral: uma
-# subclasse nova de `BusinessRuleError` cai no 422 sem se tocar aqui.
+# Percorrido pela MRO da excepção, do mais específico para o mais geral.
 STATUS_BY_ERROR: tuple[tuple[type[DomainError], int, str], ...] = (
     (NotFoundError, 404, "not_found"),
-    # Antes do `BusinessRuleError`, de quem é subclasse: um ficheiro grande
-    # demais tem estado próprio, e o 413 diz ao operador o que aconteceu.
+    # Antes do `BusinessRuleError`, de quem é subclasse.
     (UploadTooLargeError, 413, "payload_too_large"),
     (BusinessRuleError, 422, "business_rule"),
     (NothingToUpdateError, 400, "bad_request"),
@@ -44,8 +37,7 @@ def _envelope(status: int, code: str, message: str) -> JSONResponse:
 
 
 def register(app: FastAPI) -> None:
-    # Os 401/403 da autenticação saem no mesmo envelope, e vêm da lib porque a
-    # forma tem de ser a mesma em todos os serviços — é o que o SPA lê.
+    # Os 401/403 vêm da lib: o envelope é o mesmo em todos os serviços.
     register_error_handlers(app)
 
     @app.exception_handler(DomainError)
@@ -57,13 +49,7 @@ def register(app: FastAPI) -> None:
 
     @app.exception_handler(RequestValidationError)
     async def handle_request_validation(_request: Request, _error: Exception) -> JSONResponse:
-        """O 422 do próprio FastAPI, vestido com o nosso envelope.
-
-        Sem isto, um `?page=abc` ou um corpo que não é JSON devolviam o
-        `{"detail": [...]}` do FastAPI — a única resposta do serviço que o
-        `error.interceptor.ts` do SPA não sabia ler, e que caía na mensagem
-        genérica de «erro inesperado».
-        """
+        """O 422 do próprio FastAPI, vestido com o nosso envelope."""
         return _envelope(
             422,
             "bad_request",
