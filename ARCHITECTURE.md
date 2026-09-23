@@ -279,9 +279,12 @@ Registado aqui para não passar por esquecimento:
   `SSOLogin` — é o contrato que o GEEA expõe hoje. O fluxo `authorization_code`, em que o
   MozaOps nunca vê a password, espera pelo registo do `redirect_uri` no realm QAS.
 - **Tracing.** O Traefik exporta para o collector; os serviços ainda não instrumentam.
-- **Execução assíncrona.** A reconciliação corre dentro do request. Um ficheiro grande o
-  suficiente vai bater no timeout antes de a fila existir.
-- **CI.** Não há pipeline.
+- **Execução assíncrona.** A reconciliação corre dentro do request. O trabalho síncrono —
+  ler os Excel, reconciliar, desenhar o relatório — sai para uma thread, para não parar o
+  event loop do worker: no loop, um upload grande deixava o serviço sem responder a nada,
+  nem ao `/health`, e o gunicorn contava o silêncio como worker morto e matava-o a meio.
+  Isto tira o pior sintoma, não o limite: um ficheiro grande o suficiente continua a bater
+  no `--timeout 60` antes de a fila existir.
 
 ---
 
@@ -336,6 +339,11 @@ make migrate             # alembic upgrade head
 make lint                # ruff (regras e formato) e mypy --strict
 make test                # testes do backend
 ```
+
+Estes dois últimos correm sozinhos em cada push e em cada pull request
+(`.github/workflows/ci.yml`), a que se junta o `npm test` e o build de produção do frontend.
+O workflow invoca o `make` e o `npm` em vez de repetir os comandos: duas definições do que é
+«verde» divergem, e a que falha é sempre a que ninguém corre à mão.
 
 | | |
 |---|---|
