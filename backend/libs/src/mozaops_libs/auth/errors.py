@@ -1,15 +1,4 @@
-"""O que pode correr mal na autenticação, sem saber o que é HTTP.
-
-Mesmo princípio do `domain/errors.py` de cada serviço: quem levanta o erro
-não decide com que estado ele sai. A tradução para resposta vive em
-`fastapi.py`, e é lá — num sítio só — que se garante o envelope
-`{"error": {"code", "message"}}` que o SPA sabe ler.
-
-A `message` chega ao operador, por isso é português e não traz diagnóstico
-técnico: dizer «assinatura inválida» ou «o `kid` não está no JWKS» a quem
-está a tentar entrar não ajuda ninguém, e conta a quem tenta forçar a
-entrada exactamente o que falhou.
-"""
+"""O que pode correr mal na autenticação, sem saber o que é HTTP."""
 
 
 class AuthError(Exception):
@@ -28,13 +17,7 @@ class UnauthenticatedError(AuthError):
 
 
 class IdentityUnavailableError(AuthError):
-    """Não se conseguiu falar com o GEEA para obter as chaves de assinatura.
-
-    Distinto do `UnauthenticatedError` de propósito: o token pode estar
-    perfeito e o problema ser nosso. Dizer «sessão inválida» a quem acabou de
-    entrar manda a pessoa repetir o login para nada, e esconde de quem opera
-    que o que está em baixo é a ligação ao GEEA.
-    """
+    """Não se conseguiu falar com o GEEA para obter as chaves de assinatura."""
 
     def __init__(
         self,

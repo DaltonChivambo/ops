@@ -1,9 +1,4 @@
-"""Autenticação partilhada: validar tokens do GEEA e decidir acessos.
-
-Está em `libs/` porque tem dois consumidores — o `platform/auth-service` e o
-`pos-closing-credit-validation` — e autenticação diferente entre dois serviços
-da mesma aplicação é a porta que fica aberta no que ficou para trás.
-"""
+"""Autenticação partilhada: validar tokens do GEEA e decidir acessos."""
 
 from mozaops_libs.auth.access import (
     SERVICE_ROLE_PREFIX,

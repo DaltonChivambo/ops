@@ -1,20 +1,4 @@
-"""Validação de tokens do GEEA, pelo JWKS.
-
-Assinatura RS256 verificada com a chave pública que o emissor publica — nunca
-com um segredo partilhado. É o que permite ao MozaOps aceitar tokens sem
-guardar nada do GEEA e sem lhe telefonar a cada pedido.
-
-Duas decisões que não são óbvias:
-
-- **`aud` não é verificado.** Os tokens do GEEA trazem `aud: "account"`, que é
-  o que o Keycloak põe quando o cliente não pede audiência nenhuma — não diz
-  nada sobre para quem o token serve. Em vez disso verifica-se o `azp`, que
-  identifica o cliente que o pediu, contra uma lista fechada.
-- **O refrescamento do JWKS é limitado no tempo.** Um `kid` desconhecido faz
-  ir buscar as chaves outra vez (é assim que a rotação de chaves funciona sem
-  reinícios), mas sem limite isso seria um pedido de saída por cada token
-  inventado que chegasse — um amplificador à distância de qualquer um.
-"""
+"""Validação de tokens do GEEA, pelo JWKS."""
 
 import asyncio
 import time

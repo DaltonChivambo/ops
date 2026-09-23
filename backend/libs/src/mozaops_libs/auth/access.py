@@ -1,10 +1,4 @@
-"""Acesso a um microserviço, concedido papel a papel pelo realm.
-
-A área diz de que departamento se é e abre as automações todas dele. Isto é a
-concessão fina, para quem precisa de uma automação só — uma pessoa que consulta
-sem mexer, ou um programa que integra connosco. Vale para os dois da mesma
-maneira, e é por isso que nada aqui distingue pessoa de programa.
-"""
+"""Acesso a um microserviço, concedido papel a papel pelo realm."""
 
 from collections.abc import Iterable, Mapping
 from enum import IntEnum
@@ -13,8 +7,7 @@ from typing import Any
 
 SERVICE_ROLE_PREFIX = "service:"
 
-#: Métodos que não mudam estado. A guarda usa-os para saber o nível exigido, em
-#: vez de uma lista de rotas que alguém teria de manter sincronizada.
+#: Métodos que não mudam estado.
 SAFE_METHODS = frozenset({"GET", "HEAD", "OPTIONS"})
 
 
@@ -37,12 +30,7 @@ class AccessLevel(IntEnum):
 
 
 def client_roles(claims: dict[str, Any], client: str) -> frozenset[str]:
-    """Os papéis que o realm atribui ao **nosso** cliente.
-
-    O cliente vem da configuração e não do `azp` do token: quem pede o token
-    deixa de ser quem nos diz o que pode fazer, e admitir mais um cliente passa
-    a ser admitir um cliente, e não delegar-lhe a atribuição dos nossos acessos.
-    """
+    """Os papéis que o realm atribui ao **nosso** cliente."""
     if not client:
         return frozenset()
 
@@ -64,9 +52,7 @@ def client_roles(claims: dict[str, Any], client: str) -> frozenset[str]:
 def parse_service_access(roles: Iterable[str]) -> Mapping[str, AccessLevel]:
     """`service:<serviço>:<read|write>` → `{serviço: nível}`, o mais alto vence.
 
-    Um papel sem sufixo, ou com um sufixo desconhecido, não abre nada: quem
-    atribui papéis no realm não conhece as nossas convenções, e um engano de
-    escrita tem de falhar fechado.
+    Um papel sem sufixo, ou com sufixo desconhecido, não abre nada.
     """
     access: dict[str, AccessLevel] = {}
 

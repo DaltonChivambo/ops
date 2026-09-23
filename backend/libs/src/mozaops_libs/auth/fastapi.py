@@ -1,14 +1,4 @@
-"""A ponte para o FastAPI: dependências de rota e tradução de erros.
-
-É o único ficheiro da lib que sabe o que é HTTP. As camadas de baixo
-(`verifier`, `areas`, `access`, `principal`) não importam nada daqui, e por isso
-testam-se sem cliente nem aplicação.
-
-**O envelope é contrato.** O `HTTPException` do FastAPI responde
-`{"detail": ...}`, e o `error.interceptor.ts` do SPA não sabe ler essa forma —
-cai na mensagem genérica de «erro inesperado». Daí registarem-se handlers em vez
-de se levantar `HTTPException`.
-"""
+"""A ponte para o FastAPI: dependências de rota e tradução de erros."""
 
 from collections.abc import Awaitable, Callable
 from typing import Any
@@ -28,9 +18,7 @@ from mozaops_libs.auth.errors import (
 from mozaops_libs.auth.principal import Principal
 from mozaops_libs.auth.verifier import TokenVerifier
 
-# `auto_error=False`: com o erro automático, o FastAPI responderia o seu
-# `{"detail": "Not authenticated"}` antes de nós vermos o pedido — fora do
-# envelope, e em inglês.
+# `auto_error=False`: sem isto o FastAPI responde fora do nosso envelope.
 _bearer = HTTPBearer(auto_error=False)
 
 _STATUS_BY_ERROR: tuple[tuple[type[AuthError], int, str], ...] = (
@@ -41,13 +29,7 @@ _STATUS_BY_ERROR: tuple[tuple[type[AuthError], int, str], ...] = (
 
 
 def display_name(claims: dict[str, Any]) -> str:
-    """O nome como se mostra a alguém, a partir do que o GEEA registou.
-
-    O directório repete o apelido no `name` de quem tem mais do que um nome
-    próprio — «Dalton Chivambo Chivambo», quando o apelido é «Chivambo» — e é
-    essa repetição que se corta, e só ela. Ficar pelo `given_name` cortava
-    também o apelido de quem não tem a repetição, e mostrava «John» a John Doe.
-    """
+    """O nome como se mostra a alguém, a partir do que o GEEA registou."""
     name = " ".join(str(claims.get("name") or "").split())
     if name:
         parts = name.split(" ")
@@ -67,7 +49,7 @@ def principal_from_claims(claims: dict[str, Any], mapping: AreaMapping, client: 
         department_code=str(claims.get("departmentCode") or ""),
         department=str(claims.get("department") or ""),
         function=str(claims.get("function") or ""),
-        # O GEEA usa mesmo uma chave com espaço e maiúsculas; é o contrato dele.
+        # A claim do GEEA tem mesmo espaço e maiúsculas.
         employee_id=str(claims.get("Employee ID") or ""),
     )
 
@@ -90,21 +72,12 @@ class Auth:
 
         claims = await self._verifier.verify(credentials.credentials)
         principal = principal_from_claims(claims, self._mapping, self._client)
-        # O middleware de auditoria corre fora da rota e não tem como pedir
-        # dependências; é por aqui que lhe chega quem está do outro lado.
+        # É daqui que o middleware de auditoria tira o principal.
         request.state.principal = principal
         return principal
 
     def require_access(self, service: str, area: str) -> Callable[..., Awaitable[Principal]]:
-        """Dependência que exige acesso a um microserviço.
-
-        Quem é da área passa como sempre passou. Quem não é passa se lhe tiverem
-        concedido este serviço com nível suficiente — e o nível sai do método,
-        não de uma lista de rotas que alguém teria de manter.
-
-        Devolver o `Principal` em vez de `None` deixa a mesma dependência servir
-        de guarda e de fonte de quem está a pedir.
-        """
+        """Dependência que exige acesso a um microserviço."""
 
         async def guard(
             request: Request, principal: Principal = Depends(self.principal)
@@ -124,8 +97,7 @@ def register_error_handlers(app: FastAPI) -> None:
     async def handle_auth_error(_request: Request, error: Exception) -> JSONResponse:
         for error_type, status, code in _STATUS_BY_ERROR:
             if isinstance(error, error_type):
-                # O `WWW-Authenticate` no 401 é o que a norma manda, e o que diz
-                # a um cliente que o caminho é renovar a sessão.
+                # `WWW-Authenticate`: diz ao cliente para renovar a sessão.
                 headers = {"WWW-Authenticate": "Bearer"} if status == 401 else None
                 return JSONResponse(
                     status_code=status,

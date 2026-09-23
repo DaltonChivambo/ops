@@ -1,11 +1,4 @@
-"""Registo de quem alterou o quê.
-
-Só as escritas: uma leitura não muda nada, e registá-las afogava o que importa.
-
-Existe porque nada mais o faz. O access log do Traefik guarda apenas respostas
-400-599 e descarta o `Authorization`, e os serviços não instrumentam tracing —
-uma execução corrida com sucesso não deixava rasto em lado nenhum.
-"""
+"""Registo de quem alterou o quê."""
 
 import logging
 from collections.abc import Awaitable, Callable

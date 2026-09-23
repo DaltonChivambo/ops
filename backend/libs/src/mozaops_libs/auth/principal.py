@@ -1,15 +1,4 @@
-"""Quem está autenticado, do ponto de vista da aplicação.
-
-O token do GEEA traz muito mais do que isto — `session_state`, `at_hash`,
-`allowed-origins` e o resto do que um Keycloak põe lá dentro. O que atravessa a
-fronteira para dentro do MozaOps é só o que a aplicação usa, e nada mais.
-
-**Nada aqui distingue pessoa de programa.** Os dois autenticam-se da mesma
-maneira e recebem os acessos da mesma maneira; o que varia é o que lhes foi
-concedido. Uma distinção que o código nunca testa seria peso morto — e amarrava
-a autorização à forma como o token foi obtido, que é justamente o que há de
-mudar quando os programas passarem a autenticar-se por segredo de cliente.
-"""
+"""Quem está autenticado, do ponto de vista da aplicação."""
 
 from collections.abc import Mapping
 from dataclasses import dataclass
@@ -26,15 +15,11 @@ class Principal:
     username: str
     name: str
     email: str
-    #: As áreas do MozaOps que abre. `ALL_AREAS` vale por todas, incluindo as
-    #: que ainda não existem.
+    #: Áreas que abre; `ALL_AREAS` vale por todas.
     areas: frozenset[str]
-    #: id do microserviço → o que lá pode fazer. A concessão fina, para quem não
-    #: é da área.
+    #: id do microserviço → o que lá pode fazer.
     service_access: Mapping[str, AccessLevel]
-    #: `department_code` e `department` são os nomes das claims do GEEA. O que
-    #: lá está é a unidade orgânica — que tanto pode ser um departamento como
-    #: uma área, um serviço ou um gabinete.
+    #: Nomes das claims do GEEA; o valor é a unidade orgânica.
     department_code: str
     department: str
     function: str
