@@ -14,14 +14,15 @@ from mozaops_libs.auth.areas import (
     parse_set,
 )
 from mozaops_libs.auth.audit import register_audit
+from mozaops_libs.auth.error_handlers import register_error_handlers
 from mozaops_libs.auth.errors import (
     AuthError,
     ForbiddenError,
     IdentityUnavailableError,
     UnauthenticatedError,
 )
-from mozaops_libs.auth.fastapi import Auth, principal_from_claims, register_error_handlers
-from mozaops_libs.auth.principal import Principal
+from mozaops_libs.auth.guard import Auth
+from mozaops_libs.auth.principal import Principal, principal_from_claims
 from mozaops_libs.auth.verifier import TokenVerifier
 
 __all__ = [
