@@ -236,10 +236,11 @@ export interface DetailCounts {
 /** Página da tabela de reconciliação — filtrada e contada no servidor. */
 export interface DetailsPage {
   items: ClosingDetail[];
-  total: number;
   page: number;
   perPage: number;
-  counts: DetailCounts;
+  /** Só na primeira página: valem para a consulta, não para a página. */
+  total: number | null;
+  counts: DetailCounts | null;
 }
 
 export interface DetailsQuery {

@@ -145,7 +145,6 @@ function groupByKey(items: readonly ClosingDetail[]): KeyGroup[] {
              as três hipóteses se excluem. Só aparece quando há repetidos. -->
         @if (counts().simoDuplicates > 0) {
           <app-single-select-filter
-            label="Fechos"
             [options]="repeatedOptions()"
             [selected]="repeated()"
             (changed)="repeated.set($any($event))"
@@ -228,7 +227,7 @@ function groupByKey(items: readonly ClosingDetail[]): KeyGroup[] {
                       [attr.aria-expanded]="open"
                       [attr.aria-label]="
                         (open ? 'Encolher' : 'Expandir') +
-                        ' as linhas duplicadas na SIMO do POS ' +
+                        ' as repetições na SIMO do POS ' +
                         detail.posId +
                         ' no período ' +
                         detail.period
@@ -255,7 +254,7 @@ function groupByKey(items: readonly ClosingDetail[]): KeyGroup[] {
                 <td [class]="t.tdMuted">
                   <span class="inline-flex items-center gap-1.5">
                     {{ detail.period }}
-                    <app-pill tone="rose">{{ n(group.items.length) }} linhas na SIMO</app-pill>
+                    <app-pill tone="rose">Aparece {{ n(group.items.length) }}× na SIMO</app-pill>
                   </span>
                 </td>
                 <td [class]="t.tdMuted + ' hidden text-left @5xl:table-cell'">
@@ -601,13 +600,11 @@ export class ReconciliationTableComponent {
   protected readonly repeatedOptions = computed<readonly SingleFilterOption[]>(() => {
     const counts = this.counts();
     return [
-      // «Fechos: Só os repetidos na SIMO» — o rótulo nomeia a lista e o valor diz
-      // o que ela leva. Era «Mostrar», que dizia o verbo e calava o assunto. Pôr o
-      // assunto no rótulo também não servia: sobrava ao valor um «apenas estes»,
-      // que obriga a saltar para o rótulo para saber a quem se refere.
-      // «na SIMO» fica por extenso porque também há chaves repetidas no Banka.
-      // O número é sempre o das linhas que a escolha traz.
-      { id: 'all', label: 'Todos os fechos', short: 'Todos', count: counts.all },
+      // Sem rótulo: o painel não o mostra, e sem ele «Incluídos» ficava sem
+      // sujeito. Com/Só/Sem dizem a frase inteira, iguais no botão e no painel.
+      // «na SIMO» por extenso porque também há chaves repetidas no Banka. O
+      // número é o das linhas que a escolha traz.
+      { id: 'all', label: 'Com os repetidos na SIMO', count: counts.all },
       {
         id: 'only',
         label: 'Só os repetidos na SIMO',
@@ -730,8 +727,10 @@ export class ReconciliationTableComponent {
         .then((result) => {
           if (cancelled) return;
           this.items.update((current) => (first ? result.items : [...current, ...result.items]));
-          this.total.set(result.total);
-          this.counts.set(result.counts);
+          // Nulos a partir da segunda página: o servidor não os recalcula, e o
+          // que veio na primeira continua a valer para esta consulta.
+          if (result.total !== null) this.total.set(result.total);
+          if (result.counts !== null) this.counts.set(result.counts);
           if (result.items.length === 0) this.exhausted.set(true);
         })
         .finally(() => {

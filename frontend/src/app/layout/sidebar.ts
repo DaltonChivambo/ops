@@ -188,7 +188,7 @@ const SECTIONS: readonly NavSection[] = [
     }
 
     <aside
-      class="fixed inset-y-0 left-0 z-40 flex flex-col border-r border-gray-100 bg-white py-6 transition-[width,translate] duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] lg:translate-x-0"
+      class="fixed inset-y-0 left-0 z-40 flex flex-col border-r border-gray-100 bg-white py-6 transition-[width,translate] duration-200 ease-[cubic-bezier(0.4,0,0.2,1)] lg:translate-x-0"
       [class]="collapsed() ? 'w-[4.75rem] px-3' : 'w-[16.5rem] px-4'"
       [class.translate-x-0]="open()"
       [class.-translate-x-full]="!open()"
@@ -206,7 +206,7 @@ const SECTIONS: readonly NavSection[] = [
           lucideChevronsLeft
           [size]="15"
           [strokeWidth]="2.2"
-          class="transition-transform duration-300 ease-[cubic-bezier(0.16,1,0.3,1)]"
+          class="transition-transform duration-200 ease-[cubic-bezier(0.4,0,0.2,1)]"
           [class.rotate-180]="collapsed()"
         ></svg>
       </button>
@@ -216,10 +216,10 @@ const SECTIONS: readonly NavSection[] = [
           <img
             src="mozaops_logo_OPS_sem_fundo.svg"
             alt="MozaOps"
-            class="h-5 w-auto motion-safe:animate-[card-in_300ms_cubic-bezier(0.16,1,0.3,1)]"
+            class="h-5 w-auto motion-safe:animate-[card-in_200ms_cubic-bezier(0.4,0,0.2,1)]"
           />
         } @else {
-          <span class="min-w-0 motion-safe:animate-[card-in_300ms_cubic-bezier(0.16,1,0.3,1)]">
+          <span class="min-w-0 motion-safe:animate-[card-in_200ms_cubic-bezier(0.4,0,0.2,1)]">
             <img src="mozaops_logo_sem_fundo.svg" alt="MozaOps" class="h-8 w-auto" />
             <!-- Duas linhas em vez de truncar: cortado, o nome da área
                  deixa de dizer de qual se trata. -->
@@ -243,7 +243,7 @@ const SECTIONS: readonly NavSection[] = [
           <div>
             @if (section.label) {
               <div
-                class="grid transition-[grid-template-rows] duration-300 ease-[cubic-bezier(0.16,1,0.3,1)]"
+                class="grid transition-[grid-template-rows] duration-200 ease-[cubic-bezier(0.4,0,0.2,1)]"
                 [style.grid-template-rows]="collapsed() ? '0fr' : '1fr'"
               >
                 <p
@@ -258,10 +258,10 @@ const SECTIONS: readonly NavSection[] = [
             }
 
             <ul class="flex flex-col gap-1">
-              @for (item of section.items; track item.id) {
+              @for (item of section.items; track item.id; let itemIndex = $index) {
                 <ng-container
                   [ngTemplateOutlet]="navItem"
-                  [ngTemplateOutletContext]="{ $implicit: item }"
+                  [ngTemplateOutletContext]="{ $implicit: item, index: itemIndex }"
                 />
               }
             </ul>
@@ -371,7 +371,7 @@ const SECTIONS: readonly NavSection[] = [
     }
 
     <!-- Um item da barra: o botão, e a sublista quando o grupo está aberto. -->
-    <ng-template #navItem let-item>
+    <ng-template #navItem let-item let-index="index">
       <li>
         <button
           type="button"
@@ -380,7 +380,7 @@ const SECTIONS: readonly NavSection[] = [
           [attr.aria-label]="item.label"
           [attr.title]="collapsed() ? item.label : null"
           (click)="onItemClick(item)"
-          class="relative flex w-full items-center rounded-xl py-2.5 text-left text-base transition-[gap,color,background-color] duration-300 ease-[cubic-bezier(0.16,1,0.3,1)]"
+          class="relative flex w-full items-center rounded-xl py-2.5 text-left text-base transition-colors duration-150"
           [class]="collapsed() ? 'justify-center gap-0 px-0' : 'gap-3 px-3'"
           [class.bg-moza-100]="isActive(item)"
           [class.font-semibold]="isActive(item)"
@@ -429,18 +429,23 @@ const SECTIONS: readonly NavSection[] = [
                a 0fr por dentro, o próprio <span> continuava a comer o espaço
                que sobrava no botão e descentrava o ícone. -->
           <span
-            class="grid transition-[grid-template-columns] duration-300 ease-[cubic-bezier(0.16,1,0.3,1)]"
+            class="grid transition-[grid-template-columns] duration-200 ease-[cubic-bezier(0.4,0,0.2,1)]"
             [class.flex-1]="!collapsed()"
             [style.grid-template-columns]="collapsed() ? '0fr' : '1fr'"
           >
             <span class="min-w-0 overflow-hidden">
-              <span class="block truncate">{{ item.label }}</span>
+              <span
+                class="block truncate transition-opacity duration-150 ease-out"
+                [class.opacity-0]="collapsed()"
+                [style.transition-delay.ms]="collapsed() ? 0 : 40 + index * 25"
+                >{{ item.label }}</span
+              >
             </span>
           </span>
 
           @if (item.children) {
             <span
-              class="grid transition-[grid-template-columns] duration-300 ease-[cubic-bezier(0.16,1,0.3,1)]"
+              class="grid transition-[grid-template-columns] duration-200 ease-[cubic-bezier(0.4,0,0.2,1)]"
               [style.grid-template-columns]="collapsed() ? '0fr' : '1fr'"
             >
               <span class="overflow-hidden">
@@ -458,7 +463,7 @@ const SECTIONS: readonly NavSection[] = [
 
         @if (item.children) {
           <div
-            class="grid transition-[grid-template-rows] duration-300 ease-[cubic-bezier(0.16,1,0.3,1)]"
+            class="grid transition-[grid-template-rows] duration-200 ease-[cubic-bezier(0.4,0,0.2,1)]"
             [style.grid-template-rows]="isExpanded(item.id) && !collapsed() ? '1fr' : '0fr'"
           >
             <ul

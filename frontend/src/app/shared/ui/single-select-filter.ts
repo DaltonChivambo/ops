@@ -63,7 +63,9 @@ export interface SingleFilterOption {
       "
     >
       <ng-content select="[filterIcon]" />
-      <span class="font-medium opacity-60">{{ label() }}:</span>
+      @if (label()) {
+        <span class="font-medium opacity-60">{{ label() }}:</span>
+      }
       {{ currentLabel() }}
       <svg
         lucideChevronDown
@@ -107,8 +109,12 @@ export interface SingleFilterOption {
 export class SingleSelectFilterComponent {
   private readonly host = inject<ElementRef<HTMLElement>>(ElementRef);
 
-  /** A lista que o filtro reduz, curto — sai no botão como «Fechos: Todos». */
-  readonly label = input.required<string>();
+  /** A dimensão filtrada — sai no botão como «Validação: Todas».
+   *
+   *  Vazio quando os valores já se explicam sozinhos: um rótulo que seja o
+   *  sujeito obriga cada valor a repeti-lo ou a apontar-lhe («apenas estes»).
+   */
+  readonly label = input('');
   readonly options = input.required<readonly SingleFilterOption[]>();
   readonly selected = input.required<string>();
   readonly changed = output<string>();
