@@ -9,12 +9,12 @@ from typing import Any
 
 import pytest
 from fastapi.testclient import TestClient
+from mozaops_libs.auth import AccessLevel, Principal
 
 from app.controllers.dependencies import get_case_service, get_validation_service
 from app.infrastructure.auth import auth
 from app.main import app
 from app.settings import settings
-from mozaops_libs.auth import AccessLevel, Principal
 from tests.conftest import CASE_ID, EXECUTION_ID, FakeService
 
 SERVICE = settings.auth_service_id

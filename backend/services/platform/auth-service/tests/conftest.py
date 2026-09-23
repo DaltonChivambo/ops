@@ -26,7 +26,6 @@ os.environ.setdefault("SESSION_COOKIE_SECURE", "false")
 os.environ.setdefault("GEEA_CLIENT_SECRET", "segredo-de-teste")
 from cryptography.hazmat.primitives.asymmetric import rsa
 from fastapi.testclient import TestClient
-
 from mozaops_libs.auth import AreaMapping, TokenVerifier
 
 ISSUER = "http://geea-teste/auth/realms/QAS"

@@ -1,7 +1,8 @@
 """Constrói, uma vez, as peças de autenticação a partir da configuração."""
 
-from app.settings import settings
 from mozaops_libs.auth import AreaMapping, Auth, TokenVerifier, parse_set
+
+from app.settings import settings
 
 area_mapping: AreaMapping = settings.area_mapping()
 

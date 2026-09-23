@@ -3,12 +3,12 @@
 from typing import Annotated
 
 from fastapi import Depends
+from mozaops_libs.auth import Principal
 
 from app.infrastructure.auth import area_mapping, auth, verifier
 from app.infrastructure.geea_client import GeeaClient
 from app.services.session_service import AttemptLimiter, SessionService
 from app.settings import settings
-from mozaops_libs.auth import Principal
 
 # Uma instância só: a janela de tentativas é partilhada entre pedidos.
 _limiter = AttemptLimiter(settings.login_attempts_per_minute)

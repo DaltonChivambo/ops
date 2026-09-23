@@ -42,7 +42,8 @@ case "$node_version" in
 esac
 
 if command -v uv >/dev/null 2>&1; then ok "uv $(uv --version | awk '{print $2}')"
-else fail "uv não está no PATH"; fi
+else printf '  - %s
+' "uv não instalado: os scripts de ci/ correm-no em contentor"; fi
 
 if docker ps >/dev/null 2>&1; then ok "Docker acessível sem sudo"
 else fail "Docker inacessível — falta 'sudo usermod -aG docker \$USER' e voltar a entrar na sessão"; fi

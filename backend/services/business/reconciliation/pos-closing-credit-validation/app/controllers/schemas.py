@@ -80,7 +80,7 @@ class ClosingDetailOut(Schema):
         row: ClosingDetail,
         simo_closings_count: int = 1,
         banka_movements_count: int = 1,
-    ) -> "ClosingDetailOut":
+    ) -> ClosingDetailOut:
         return cls(
             id=row.id,
             pos_id=row.pos_id,
@@ -117,7 +117,7 @@ class CreditMovementOut(Schema):
     description: str | None
 
     @classmethod
-    def from_row(cls, row: CreditMovement) -> "CreditMovementOut":
+    def from_row(cls, row: CreditMovement) -> CreditMovementOut:
         return cls(
             id=row.id,
             key=row.key,
@@ -157,7 +157,7 @@ class PendingCaseOut(Schema):
         row: PendingCase,
         simo_closings_count: int = 1,
         banka_movements_count: int = 1,
-    ) -> "PendingCaseOut":
+    ) -> PendingCaseOut:
         return cls(
             id=row.id,
             key=row.key,
@@ -206,7 +206,7 @@ class ValidationResultOut(Schema):
         row: Execution,
         cases: list[PendingCase],
         key_counts: dict[str, tuple[int, int]],
-    ) -> "ValidationResultOut":
+    ) -> ValidationResultOut:
         return cls(
             execution_id=row.id,
             executed_at=row.executed_at,
@@ -232,7 +232,7 @@ class ClosingMatchOut(Schema):
     movement_id: str
 
     @classmethod
-    def from_match(cls, match: ClosingMatch | Match) -> "ClosingMatchOut":
+    def from_match(cls, match: ClosingMatch | Match) -> ClosingMatchOut:
         return cls(closing_id=match.closing_id, movement_id=match.movement_id)
 
 
@@ -256,7 +256,7 @@ class KeyBreakdownOut(Schema):
         case: PendingCase | None,
         matches: list[ClosingMatch],
         suggested_matches: list[Match],
-    ) -> "KeyBreakdownOut":
+    ) -> KeyBreakdownOut:
         # As listas já vêm completas: a contagem não repete o `count_by_key`.
         simo_count, banka_count = len(closings), len(movements)
         return cls(
@@ -324,7 +324,7 @@ class SlaSettingsOut(Schema):
     updated_by: str | None
 
     @classmethod
-    def from_row(cls, row: SlaSettings) -> "SlaSettingsOut":
+    def from_row(cls, row: SlaSettings) -> SlaSettingsOut:
         return cls(
             case_sla_days=row.case_sla_days,
             case_warning_days=row.case_warning_days,

@@ -13,13 +13,13 @@ permissions:
 
 jobs:
   backend:
-    name: backend (ruff, mypy --strict, pytest)
+    name: backend (lock, ruff, mypy --strict, pytest)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
 
-      # Num só `make`: partilham o estágio `test` da imagem.
-      - run: make lint test
+      # Cada pacote e cada serviço verificados à parte, pelos scripts de `ci/`.
+      - run: make check
 
   frontend:
     name: frontend (vitest, build de produção)

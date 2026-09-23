@@ -24,6 +24,8 @@ os.environ.setdefault(
     "postgresql+asyncpg://tests:tests@127.0.0.1:15432/tests",
 )
 
+from mozaops_libs.auth import Principal
+
 from app.controllers.dependencies import (
     get_case_service,
     get_settings_service,
@@ -51,7 +53,6 @@ from app.services.case_service import STATUS_FROM_JSON, ReconciledCase
 from app.services.match_sides import closing_side, movement_side
 from app.services.settings_service import SlaSettings
 from app.services.validation_service import DetailsPage, ReconciliationCandidate
-from mozaops_libs.auth import Principal
 
 EXECUTION_ID = "3f2b1c00-0000-4000-8000-000000000001"
 CASE_ID = "3f2b1c00-0000-4000-8000-000000000002"

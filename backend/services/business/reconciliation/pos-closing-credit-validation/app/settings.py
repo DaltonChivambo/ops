@@ -2,9 +2,8 @@
 
 import logging
 
-from pydantic_settings import BaseSettings, SettingsConfigDict
-
 from mozaops_libs.auth import AreaMapping, parse_area_map
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):

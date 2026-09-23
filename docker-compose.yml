@@ -1,19 +1,18 @@
-# MozaOps — infraestrutura local completa.
+# MozaOps — infraestrutura local: entrada, base de dados, identidade,
+# observabilidade e os serviços de negócio.
 #
-# A fundação (entrada, base de dados, identidade, observabilidade) mais os
-# serviços de negócio. Cada serviço traz o seu bloco e as suas labels de
-# encaminhamento — um serviço novo não obriga a editar ficheiro central nenhum.
+# Só para desenvolvimento: as imagens vêm do Docker Hub e os pacotes do PyPI.
+# Cada serviço constrói a partir da sua própria pasta.
 #
 #   docker compose up -d          sobe tudo
 #   docker compose logs -f        acompanha
-#   docker compose down -v        apaga TAMBÉM os volumes (bases e realm voltam ao zero)
+#   docker compose down -v        apaga TAMBÉM os volumes
 
 name: mozaops
 
 services:
   # ─── Entrada única ────────────────────────────────────────────────────────
-  # Tudo entra por aqui. O SPA e a API partilham origem, por isso não há CORS
-  # nenhum para configurar — a razão principal de existir um proxy à frente.
+  # O SPA e a API partilham origem por entrarem aqui: é o que dispensa CORS.
   traefik:
     image: traefik:v3.6
     container_name: mozaops-traefik
@@ -39,38 +38,25 @@ services:
       retries: 5
 
   # ─── Serviços de negócio ──────────────────────────────────────────────────
-  # Validação de crédito de valores de fecho — específico do POS. ATM e
-  # Quiosques, quando chegar a vez, ganham serviços próprios em vez de
-  # partilhar este.
+  # Validação de crédito dos valores de fecho do POS.
   pos-closing-credit-validation:
-    build:
-      # Contexto em `backend/` e não na pasta do serviço: o workspace uv resolve
-      # `libs/` por caminho, e um contexto mais estreito não lá chegava.
-      context: ./backend
-      args:
-        CATEGORY: business/reconciliation
-        SERVICE: pos-closing-credit-validation
-    image: mozaops-pos-closing-credit-validation
+    build: ./backend/services/business/reconciliation/pos-closing-credit-validation
+    image: mozaops/pos-closing-credit-validation:local
     container_name: mozaops-pos-closing-credit-validation
     restart: unless-stopped
     environment:
       DATABASE_URL: postgresql+asyncpg://${DB_RECONCILIATION_USER}:${DB_RECONCILIATION_PASSWORD}@postgres:5432/mozaops_pos_closing_credit_validation
       LOG_LEVEL: ${LOG_LEVEL}
-      # Com valor por omissão porque a variável é nova: um `.env` anterior a ela
-      # resolveria para string vazia, e uma string vazia num campo inteiro faz o
-      # serviço rebentar no arranque em vez de usar o default do `settings.py`.
+      # Com default: um `.env` sem a variável daria string vazia num campo inteiro.
       MAX_UPLOAD_MB: ${MAX_UPLOAD_MB:-64}
-      # As mesmas variáveis, e o mesmo valor, que o `auth-service` recebe — dois
-      # serviços a mapear áreas de maneira diferente seria uma porta aberta no
-      # que ficasse para trás. Ver `app/settings.py` de cada um.
+      # As mesmas variáveis, e o mesmo valor, que o `auth-service` recebe.
       AUTH_ISSUER: ${AUTH_ISSUER}
       AUTH_JWKS_URL: ${AUTH_JWKS_URL}
       AUTH_ALLOWED_AZP: ${AUTH_ALLOWED_AZP}
       AUTH_CLIENT_ID: ${AUTH_CLIENT_ID:-qa-mozaops}
       AUTH_AREAS: ${AUTH_AREAS:-channels:3230}
       AUTH_AREA_USERS: ${AUTH_AREA_USERS:-}
-      # As únicas que diferem do `auth-service`: a área a que ESTA automação
-      # pertence, e o id dela. O router exige uma ou a concessão do outro.
+      # As únicas que diferem do `auth-service`: a área desta automação, e o id dela.
       AUTH_SERVICE_AREA: ${AUTH_SERVICE_AREA:-channels}
       AUTH_SERVICE_ID: ${AUTH_SERVICE_ID:-pos-closing-credit-validation}
     networks: [mozaops]
@@ -79,27 +65,18 @@ services:
         condition: service_healthy
     labels:
       - traefik.enable=true
-      # O frontend chama `/api/pos/validacao-credito-fecho/...` e o router do
-      # serviço monta em `/pos/validacao-credito-fecho`: o `/api` é a fronteira
-      # da API, não parte do caminho. O stripprefix faz aqui o que o
-      # `pathRewrite` do proxy.conf.json faz em dev — mesma topologia dos dois
-      # lados, que é o ponto de haver um proxy à frente.
+      # O `/api` é a fronteira da API e não parte do caminho que o serviço monta:
+      # o stripprefix corta-o, como o `pathRewrite` do proxy.conf.json em dev.
       - traefik.http.routers.pos-closing-credit-validation.rule=Host(`${DOMAIN}`) && PathPrefix(`/api/pos/validacao-credito-fecho`)
       - traefik.http.routers.pos-closing-credit-validation.entrypoints=web
       - traefik.http.middlewares.api-strip.stripprefix.prefixes=/api
       - traefik.http.routers.pos-closing-credit-validation.middlewares=api-strip
       - traefik.http.services.pos-closing-credit-validation.loadbalancer.server.port=8000
 
-  # Sessões e áreas. É quem fala com o GEEA — nenhum outro serviço o faz — e
-  # quem diz ao SPA quem está do outro lado. Sem base de dados: a identidade
-  # vem do GEEA a cada login e as áreas saem destas variáveis.
+  # Sessões e áreas. O único que fala com o GEEA, e sem base de dados própria.
   auth-service:
-    build:
-      context: ./backend
-      args:
-        CATEGORY: platform
-        SERVICE: auth-service
-    image: mozaops-auth-service
+    build: ./backend/services/platform/auth-service
+    image: mozaops/auth-service:local
     container_name: mozaops-auth-service
     restart: unless-stopped
     environment:
@@ -115,8 +92,7 @@ services:
       GEEA_REALM: ${GEEA_REALM}
       GEEA_CLIENT_ID: ${GEEA_CLIENT_ID}
       GEEA_CLIENT_SECRET: ${GEEA_CLIENT_SECRET}
-      # `false` só enquanto o Traefik servir em claro. Ver a secção de
-      # segurança no README do serviço.
+      # `false` só enquanto o Traefik servir em claro.
       SESSION_COOKIE_SECURE: ${SESSION_COOKIE_SECURE:-true}
       SESSION_COOKIE_PATH: ${SESSION_COOKIE_PATH:-/api/auth-service}
       LOGIN_ATTEMPTS_PER_MINUTE: ${LOGIN_ATTEMPTS_PER_MINUTE:-10}
@@ -125,32 +101,27 @@ services:
       - traefik.enable=true
       - traefik.http.routers.auth-service.rule=Host(`${DOMAIN}`) && PathPrefix(`/api/auth-service`)
       - traefik.http.routers.auth-service.entrypoints=web
-      # O mesmo middleware do outro serviço: o `/api` é a fronteira da API e
-      # não parte do caminho que o serviço monta.
+      # O mesmo middleware do outro serviço.
       - traefik.http.routers.auth-service.middlewares=api-strip
       - traefik.http.services.auth-service.loadbalancer.server.port=8000
 
   # ─── Base de dados ────────────────────────────────────────────────────────
-  # Um servidor, uma base e um role por serviço, com as ligações cruzadas
-  # revogadas. Ver infra/postgres/initdb/01-create-databases.sh.
+  # Uma base e um role por serviço, com as ligações cruzadas revogadas —
+  # ver infra/postgres/initdb/01-create-databases.sh.
   postgres:
     image: postgres:18-alpine
     container_name: mozaops-postgres
     restart: unless-stopped
-    # Sem isto corre com os valores de origem, que são de 2005: `work_mem` a 4MB
-    # manda a ordenação de 18 mil fechos para disco, e `max_wal_size` a 1GB
-    # provoca checkpoints a meio de cada carga de 36 mil linhas.
-    #
-    # Estes números são para uma máquina de desenvolvimento. Num servidor sobem
-    # com a memória disponível — `shared_buffers` a ~25% da RAM é a regra.
+    # Sem isto corre com os valores de origem, onde ordenar 18 mil fechos vai a
+    # disco. Estes são para uma máquina de desenvolvimento; num servidor sobem
+    # com a memória — `shared_buffers` a ~25% da RAM é a regra.
     command:
       - postgres
       - -c
       - shared_buffers=256MB
       - -c
       - effective_cache_size=768MB
-      # Por operação de ordenação e por ligação: subir muito com dezenas de
-      # ligações abertas multiplica-se pelo mesmo número.
+      # Por operação de ordenação e por ligação: multiplica-se pelas ligações abertas.
       - -c
       - work_mem=16MB
       - -c
@@ -159,7 +130,7 @@ services:
       - max_wal_size=4GB
       - -c
       - checkpoint_completion_target=0.9
-      # SSD: sem isto o planeador assume disco rotativo e prefere varrer a usar índice.
+      # SSD: por omissão o planeador assume disco rotativo e prefere varrer.
       - -c
       - random_page_cost=1.1
       - -c
@@ -173,10 +144,8 @@ services:
       DB_CASES_USER: ${DB_CASES_USER}
       DB_CASES_PASSWORD: ${DB_CASES_PASSWORD}
     volumes:
-      # A partir do PostgreSQL 18 o mount é em /var/lib/postgresql e não em
-      # .../data: a imagem passou a guardar os dados numa subpasta por versão
-      # maior, para o `pg_upgrade --link` não esbarrar na fronteira do mount.
-      # Montar no caminho antigo faz o container recusar arrancar.
+      # No PostgreSQL 18 o mount é em /var/lib/postgresql e não em .../data.
+      # No caminho antigo o container recusa arrancar.
       - postgres-data:/var/lib/postgresql
       # Os scripts de initdb só correm quando o volume está vazio.
       - ./infra/postgres/initdb:/docker-entrypoint-initdb.d:ro
@@ -188,8 +157,7 @@ services:
       retries: 20
 
   # ─── Observabilidade ──────────────────────────────────────────────────────
-  # Os serviços exportam para aqui e nunca directamente para o Jaeger: trocar o
-  # backend de tracing passa a ser mudar um ficheiro, não N variáveis.
+  # Os serviços exportam para aqui e nunca directamente para o Jaeger.
   otel-collector:
     image: otel/opentelemetry-collector-contrib:0.144.0
     container_name: mozaops-otel

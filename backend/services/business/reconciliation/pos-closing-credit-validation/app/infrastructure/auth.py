@@ -1,7 +1,8 @@
 """Constrói, uma vez, as peças de autenticação a partir da configuração."""
 
-from app.settings import settings
 from mozaops_libs.auth import Auth, TokenVerifier, parse_set
+
+from app.settings import settings
 
 verifier = TokenVerifier(
     jwks_url=settings.auth_jwks_url,

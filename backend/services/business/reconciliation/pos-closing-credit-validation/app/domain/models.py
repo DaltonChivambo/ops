@@ -52,7 +52,7 @@ class BankaCredit:
     amount: Decimal
     credit_date: date | None
     description: str | None
-    movements: list["BankaMovement"] = field(default_factory=list)
+    movements: list[BankaMovement] = field(default_factory=list)
 
 
 @dataclass(slots=True)

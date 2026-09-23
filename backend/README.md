@@ -1,6 +1,6 @@
 # Backend
 
-Workspace `uv` com as bibliotecas partilhadas e os serviços. Ver [`../README.md`](../README.md)
+Serviços independentes e os pacotes internos que eles consomem. Ver [`../README.md`](../README.md)
 para a arquitectura geral e como arrancar tudo, e [`services/README.md`](services/README.md)
 para a organização por categoria e o que cada serviço tem de trazer.
 
@@ -8,7 +8,7 @@ para a organização por categoria e o que cada serviço tem de trazer.
 
 ```
 backend/
-├── libs/           bibliotecas partilhadas entre serviços
+├── packages/       pacotes internos versionados, consumidos como wheel
 └── services/       um serviço por automação — ver services/README.md
 ```
 
@@ -28,8 +28,8 @@ docker compose -f external-services/geea-keycloak/docker-compose.yml up -d
 
 ```bash
 make            # lista os comandos
-make test       # testes de todos os serviços, em contentor
-make lint       # ruff (regras e formato) e mypy --strict, no workspace todo
+make check      # por pacote e serviço: lock, ruff, mypy --strict e pytest
+make lock       # refaz o uv.lock e os requirements de cada serviço
 make down       # pára, mantendo os dados
 ```
 
@@ -75,16 +75,32 @@ e a secção [«Correr»](#correr) acima.
 Cada linha aponta para o README do serviço — o que faz, como se organiza, e como
 correr só esse. Para subir tudo junto, ver o [«Arrancar» da raiz](../README.md#arrancar).
 
-## `libs/`
+## Pacotes internos
 
-`mozaops-libs` — utilitários técnicos partilhados entre serviços, hoje só a
-validação de tokens do GEEA (`mozaops_libs.auth`). Resolvido a partir do
-workspace e não do índice público (`tool.uv.package = false` no
-[`pyproject.toml`](pyproject.toml) da raiz do backend).
+`mozaops-libs` (em [`packages/mozaops-libs/`](packages/mozaops-libs/)): utilitários técnicos
+partilhados entre serviços, hoje só a validação de tokens do GEEA (`mozaops_libs.auth`). Tem os
+seus testes e o seu lock, e sai como wheel.
 
-## Workspace
+Nenhum serviço o lê por caminho. Cada um guarda em `wheels/` o wheel da versão que usa, e é
+isso que o deixa actualizar ao seu ritmo:
 
-O `uv` trata `libs` e cada serviço como membro do mesmo workspace
-(`[tool.uv.workspace]` em [`pyproject.toml`](pyproject.toml)). Lint (`ruff`) e
-tipagem (`mypy --strict`) configuram-se uma vez aqui e valem para todos os
-membros — correm com `make lint` a partir da raiz do monorepo.
+```bash
+ci/package.sh check  backend/packages/mozaops-libs
+ci/package.sh vendor backend/packages/mozaops-libs backend/services/platform/auth-service
+```
+
+O `vendor` copia o wheel da versão actual, acerta o `pyproject.toml` do serviço e refaz o lock.
+
+## Dependências de um serviço
+
+O `uv.lock` de cada serviço é a fonte. Dele saem o `requirements.txt` e o
+`requirements-dev.txt`, com hashes, que são o que a imagem instala. Depois de mudar uma
+dependência, ou para subir uma versão por causa de uma vulnerabilidade:
+
+```bash
+ci/service.sh lock <serviço>
+UV_LOCK_ARGS="--upgrade-package pyjwt" ci/service.sh lock <serviço>
+```
+
+O uv corre num contentor, por isso não é preciso tê-lo instalado. Quem o tiver pode usar
+`uv sync` e `uv run pytest` dentro da pasta do serviço, como em qualquer projecto Python.

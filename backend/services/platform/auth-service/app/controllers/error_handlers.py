@@ -5,6 +5,7 @@ import logging
 from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
+from mozaops_libs.auth import register_error_handlers
 
 from app.domain.errors import (
     DomainError,
@@ -13,7 +14,6 @@ from app.domain.errors import (
     NoSessionError,
     TooManyAttemptsError,
 )
-from mozaops_libs.auth import register_error_handlers
 
 logger = logging.getLogger("auth-service")
 

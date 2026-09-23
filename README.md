@@ -12,8 +12,8 @@ com `VLOOKUP` — por execuções auditáveis e persistidas. Cada processo do de
 
 ## Arquitectura, em cinco linhas
 
-Monorepo. Backend FastAPI em workspace `uv`, com uma base de dados e um role por serviço, sem
-acesso à do outro. Frontend Angular 22. Traefik como entrada única — o que faz com que o SPA e
+Monorepo. Backend FastAPI em serviços independentes, cada um com o seu Dockerfile, a sua versão
+de Python e o seu lock, e com uma base de dados e um role próprios, sem acesso à do outro. Frontend Angular 22. Traefik como entrada única — o que faz com que o SPA e
 a API partilhem origem e não exista CORS nenhum para configurar. Identidade no GEEA — o
 Keycloak corporativo, já federado com o AD — e acesso por área, não por papel. Tudo em Docker
 Compose.
@@ -63,7 +63,7 @@ docker compose run --rm pos-closing-credit-validation alembic upgrade head
 docker compose -f external-services/geea-keycloak/docker-compose.yml up -d
 ```
 
-Os passos seguintes (`make test`, `make down`, etc.) também têm equivalente
+Os passos seguintes (`make check`, `make down`, etc.) também têm equivalente
 directo em `docker compose` — ver os alvos no [`Makefile`](Makefile) para o
 comando exacto de cada um.
 
@@ -90,7 +90,7 @@ Para entrar, o mock do GEEA tem dois utilizadores, ambos com a password
 
 ```bash
 make            # lista os comandos
-make test       # testes do backend
+make check      # lock, ruff, mypy e testes, serviço a serviço
 make down       # pára, mantendo os dados
 ```
 

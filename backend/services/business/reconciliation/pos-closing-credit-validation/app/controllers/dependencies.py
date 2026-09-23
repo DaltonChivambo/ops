@@ -3,6 +3,7 @@
 from typing import Annotated
 
 from fastapi import Depends
+from mozaops_libs.auth import Principal
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.infrastructure.auth import auth
@@ -15,7 +16,6 @@ from app.services.case_service import CaseService
 from app.services.settings_service import SettingsService
 from app.services.validation_service import ValidationService
 from app.settings import settings
-from mozaops_libs.auth import Principal
 
 SessionDep = Annotated[AsyncSession, Depends(get_session)]
 

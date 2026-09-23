@@ -9,6 +9,7 @@ import logging
 from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
+from mozaops_libs.auth import register_error_handlers
 
 from app.domain.errors import (
     BusinessRuleError,
@@ -17,7 +18,6 @@ from app.domain.errors import (
     NothingToUpdateError,
     UploadTooLargeError,
 )
-from mozaops_libs.auth import register_error_handlers
 
 logger = logging.getLogger("pos_closing_credit_validation")
 

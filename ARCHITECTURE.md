@@ -40,8 +40,8 @@ testa em dev é a topologia que corre em produção.
 | Camada | Tecnologia |
 |---|---|
 | Frontend | Angular 22 (standalone, signals, zoneless), Tailwind |
-| Backend | Python 3.12, FastAPI, openpyxl |
-| Pacotes | workspace `uv`, um lock para todo o backend |
+| Backend | Python 3.14 (declarado por serviço), FastAPI, openpyxl |
+| Pacotes | `uv`, um lock por serviço; a imagem instala com `pip` e hashes |
 | ORM / Migrações | SQLAlchemy 2 (async, asyncpg), Alembic |
 | Base de dados | PostgreSQL 18 |
 | Entrada / routing | Traefik v3 |
@@ -120,8 +120,8 @@ partilha a transacção.
 camelCase. A ponte é o nome explícito na coluna (`mapped_column("posId", …)`) e o alias no
 schema (`alias_generator=to_camel`) — nenhum dos dois contratos se dobra ao outro.
 
-**`libs/` só tem o que tem dois consumidores.** Hoje é o `mozaops_libs/auth`: validar tokens
-do GEEA e decidir áreas, partilhado pelo `auth-service` e pela automação. Autenticação diferente
+**`mozaops-libs` só tem o que tem dois consumidores.** Hoje é o `mozaops_libs.auth`: validar
+tokens do GEEA e decidir áreas, partilhado pelo `auth-service` e pela automação. Autenticação diferente
 entre dois serviços da mesma aplicação não é diferença de estilo — é a porta que fica aberta
 no que ficou para trás. Nunca tabelas, nunca regra de negócio.
 
@@ -134,13 +134,12 @@ ops/
 ├── ARCHITECTURE.md · OWNERS.md · Makefile
 ├── docker-compose.yml · docker-compose.override.yml · .env.example
 ├── backend/
-│   ├── pyproject.toml         workspace uv (membros: libs, services/*)
-│   ├── uv.lock                um lock para todo o backend
-│   ├── Dockerfile             um para todos os serviços, via --build-arg SERVICE
-│   ├── libs/                  mozaops_libs — auth: tokens do GEEA e mapa de áreas
-│   └── services/
+│   ├── packages/
+│   │   └── mozaops-libs/      pacote versionado — auth: tokens do GEEA e mapa de áreas
+│   └── services/              cada um com Dockerfile, pyproject, uv.lock, requirements
 │       ├── platform/auth-service/
 │       └── business/reconciliation/pos-closing-credit-validation/
+├── ci/                        service.sh e package.sh: o que qualquer pipeline chama
 ├── external-services/
 │   └── geea-keycloak/         mock do GEEA para desenvolvimento (NÃO é serviço nosso)
 ├── frontend/                 SPA Angular (features por área → ilha)
@@ -151,10 +150,54 @@ ops/
 └── scripts/verify-m0.sh
 ```
 
-**Um Dockerfile para todos os serviços.** O workspace `uv` resolve `libs/` por caminho, o
-que obriga o contexto de build a ser `backend/` inteiro; dois ficheiros idênticos dentro das
-pastas dos serviços seriam duplicação a ter de andar sincronizada. O que muda é o nome, e vai
-em `--build-arg SERVICE`.
+**Cada serviço é uma unidade de build.** Tem o seu Dockerfile, a sua versão de Python, o seu
+`uv.lock` e o seu contexto de build, que é a pasta dele: `docker build .` lá dentro chega.
+Nenhum ficheiro fora da pasta entra na imagem. Um Dockerfile central com o nome do serviço
+em argumento funcionava com dois; com cinquenta, qualquer mudança nele reconstrói e arrisca
+todos ao mesmo tempo, e nenhum pode divergir quando precisar.
+
+**A versão do Python é do serviço.** Está no `requires-python` do `pyproject.toml` e na tag
+do `FROM`, e as duas mudam juntas. O ambiente escolhe de onde vem a imagem; nunca qual é.
+
+**O lock é a fonte; a imagem instala o que ele exporta.** O `uv.lock` gera o
+`requirements.txt` (execução) e o `requirements-dev.txt` (verificação), ambos com o hash de
+cada ficheiro. A imagem instala-os com `pip --require-hashes`, sem precisar do uv. Os hashes
+são os mesmos no PyPI e num espelho como o Nexus, por isso trocar o índice não muda o lock.
+O `ci/service.sh check` falha se os três divergirem.
+
+**Os pacotes internos são versionados, não partilhados por caminho.** O `mozaops-libs` vive em
+`backend/packages/`, com os seus testes e o seu lock, e sai como wheel. Cada serviço guarda o
+wheel da versão que usa em `wheels/` e declara-o como fonte no `pyproject.toml`. Nenhum
+serviço lê `../packages`. Subir de versão é um passo por serviço
+(`ci/package.sh vendor <pacote> <serviço>`), e é isso que deixa cada um actualizar ao seu
+ritmo. O wheel é reproduzível: publicado mais tarde num repositório, tem o mesmo hash, e basta
+tirar a linha de `[tool.uv.sources]` e refazer o lock.
+
+**Desenvolvimento e produção diferem só em variáveis.** Sem nenhuma, tudo vem da Internet:
+imagem base do Docker Hub, pacotes do PyPI, imagem local. O `docker-compose.yml` é só de
+desenvolvimento e não passa nenhuma. A produção passa-as ao build, pela pipeline:
+
+| Variável | Para quê | Vazia |
+|---|---|---|
+| `PYTHON_BASE_REGISTRY` | registo da imagem base | `docker.io` |
+| `PYTHON_BASE_NAMESPACE` | caminho dentro do registo | `library` |
+| `PYPI_INDEX_URL` | índice dos pacotes Python | PyPI |
+| `PYPI_TRUSTED_HOST` | host do índice, quando serve em HTTP | — |
+| `DOCKER_REGISTRY` | destino do `push` | sem push |
+| `PYPI_PUBLISH_URL` | onde publicar os pacotes internos | sem publicação |
+
+Nenhum endereço corporativo está escrito no repositório: mudam de host, de IP e de porta, e
+uma mudança dessas tem de ser uma variável na pipeline, não um commit em cada serviço.
+
+**Os scripts de `ci/` não pressupõem ferramenta de CI.** Recebem tudo pelo ambiente, e o
+GitHub Actions deste repositório chama-os através do `make check`. A pipeline do banco, seja
+ela qual for, chama os mesmos com as variáveis de produção.
+
+**Vulnerabilidades tratam-se em dois sítios diferentes.** Na imagem base (Debian, Python), a
+correcção é uma imagem base nova e reconstruir os serviços, sem mudar código. Numa
+dependência Python, procura-se o pacote nos `requirements.txt` para saber que serviços o
+usam, e cada um sobe a versão com `UV_LOCK_ARGS="--upgrade-package <pacote>"
+ci/service.sh lock <serviço>`.
 
 **As rotas não vivem num ficheiro central.** São labels no `docker-compose.yml`, ao lado do
 serviço a que pertencem — um serviço novo não obriga a editar configuração partilhada.
@@ -337,11 +380,10 @@ make up                  # traefik, postgres, auth-service, otel, jaeger e os se
 # o GEEA simulado sobe à parte — não é um serviço nosso:
 docker compose -f external-services/geea-keycloak/docker-compose.yml up -d
 make migrate             # alembic upgrade head
-make lint                # ruff (regras e formato) e mypy --strict
-make test                # testes do backend
+make check               # por serviço e pacote: lock, ruff, mypy --strict e pytest
 ```
 
-Estes dois últimos correm sozinhos em cada push e em cada pull request
+Este último corre sozinho em cada push e em cada pull request
 (`.github/workflows/ci.yml`), a que se junta o `npm test` e o build de produção do frontend.
 O workflow invoca o `make` e o `npm` em vez de repetir os comandos: duas definições do que é
 «verde» divergem, e a que falha é sempre a que ninguém corre à mão.

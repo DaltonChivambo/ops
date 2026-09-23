@@ -82,8 +82,15 @@ A partir da raiz do monorepo:
 ```bash
 make up        # levanta a fundação e o serviço
 make migrate   # Alembic sobe o schema
-make lint      # ruff (regras e formato) e mypy --strict
-make test      # os testes, em contentor
+make check SERVICES=backend/services/business/reconciliation/pos-closing-credit-validation
+```
+
+O `check` confirma que o lock e os requirements estão em dia e corre ruff, mypy e pytest no
+estágio `test` da imagem. Só com Docker, dentro desta pasta, é o mesmo que:
+
+```bash
+docker build --target test -t pos-closing-credit-validation:test .
+docker run --rm pos-closing-credit-validation:test
 ```
 
 ## Testes

@@ -79,5 +79,11 @@ cliente, e não delegar-lhe a atribuição dos nossos acessos.
 ## Testes
 
 ```bash
-make test SERVICE=auth-service CATEGORY=platform
+ci/service.sh check backend/services/platform/auth-service   # a partir da raiz
+```
+
+Ou, só com Docker, dentro desta pasta:
+
+```bash
+docker build --target test -t auth-service:test . && docker run --rm auth-service:test
 ```

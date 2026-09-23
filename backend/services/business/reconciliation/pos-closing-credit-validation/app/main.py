@@ -1,11 +1,11 @@
 """Composition root do serviço `pos-closing-credit-validation`."""
 
 from fastapi import FastAPI
+from mozaops_libs.auth import register_audit
 
 from app.controllers import error_handlers
 from app.controllers.router import router
 from app.settings import configure_logging
-from mozaops_libs.auth import register_audit
 
 configure_logging()
 

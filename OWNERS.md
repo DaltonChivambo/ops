@@ -30,6 +30,6 @@ organiza-se por área, porque é o que o `service.yaml` e o `AUTH_AREAS` declara
 
 | Caminho | Owner | Regra |
 |---|---|---|
-| `backend/libs/` | Plataforma | Só utilitários técnicos — nunca tabelas, nunca regra de negócio. Hoje: `auth` (tokens do GEEA e mapa de áreas), partilhado pelos dois serviços. |
-| `backend/Dockerfile`, `backend/pyproject.toml`, `backend/uv.lock` | Plataforma | Servem todos os serviços; qualquer PR exige revisão da Plataforma. |
+| `backend/packages/` | Plataforma | Pacotes versionados. Só utilitários técnicos — nunca tabelas, nunca regra de negócio. Hoje: `mozaops-libs` (tokens do GEEA e mapa de áreas), usado pelos dois serviços. |
+| `ci/` | Plataforma | Os scripts que qualquer pipeline chama; qualquer PR exige revisão da Plataforma. |
 | `infra/`, `docker-compose*.yml` | Plataforma / DevOps | |

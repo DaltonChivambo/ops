@@ -33,9 +33,9 @@ serviço a prometer servir os três canais.
 
 ## Acrescentar um serviço
 
-**Numa (sub)categoria existente**, é criar a pasta lá dentro. O `uv` apanha-o
-sozinho: o workspace tem `members = ["libs", "services/platform/*",
-"services/business/*/*"]`.
+**Numa (sub)categoria existente**, é criar a pasta lá dentro, com o `Dockerfile` e o
+`pyproject.toml` do serviço mais parecido como ponto de partida. O `make check` descobre-o
+pelo `Dockerfile`, sem editar nada fora da pasta.
 
 **Categoria nova** só quando houver um processo que não caiba em nenhuma —
 e com pelo menos um serviço a entrar já. Uma pasta de categoria vazia, ou com um
@@ -52,6 +52,10 @@ monitorização (fraude, alertas), cadastro.
 | | |
 |---|---|
 | `service.yaml` | contrato legível por máquina — ver o esquema abaixo |
+| `Dockerfile` | a imagem do serviço, com a pasta como contexto de build |
+| `pyproject.toml` · `uv.lock` | dependências, versão do Python e configuração do ruff e do mypy |
+| `requirements.txt` · `requirements-dev.txt` | exportados do lock, com hashes: o que a imagem instala |
+| `wheels/` | os pacotes internos, na versão que o serviço usa |
 | `README.md` | o que faz, como se organiza, como se corre, e a tabela de responsabilidade |
 | `app/` | as cinco camadas — ver o `ARCHITECTURE.md` |
 | `migrations/` | Alembic |

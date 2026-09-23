@@ -5,10 +5,11 @@ from collections import deque
 from dataclasses import dataclass
 from typing import Any
 
-from app.domain.errors import InvalidCredentialsError, TooManyAttemptsError
-from app.infrastructure.geea_client import GeeaClient
 from mozaops_libs.auth import AreaMapping, AuthError, Principal, TokenVerifier
 from mozaops_libs.auth import principal_from_claims as build_principal
+
+from app.domain.errors import InvalidCredentialsError, TooManyAttemptsError
+from app.infrastructure.geea_client import GeeaClient
 
 
 @dataclass(frozen=True, slots=True)
@@ -92,5 +93,5 @@ def _as_int(value: object) -> int:
     """O GEEA devolve `expiresIn` como string («18000»), não como número."""
     try:
         return int(str(value))
-    except (TypeError, ValueError):
+    except TypeError, ValueError:
         return 0

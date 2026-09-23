@@ -3,17 +3,13 @@ SHELL := /bin/bash
 
 COMPOSE := docker compose
 
-# O `lint` e o `test` partilham a imagem: é o estágio que traz o pytest, o ruff e
-# o mypy, que a imagem de execução não leva. Construir uma vez serve os dois.
-#
-# `SERVICES` é a lista de caminhos completos até cada serviço (o `business/`
-# tem uma subcategoria a mais, por isso os caminhos não têm todos a mesma
-# profundidade). Estava aqui um serviço fixo, e com o segundo isso deixava
-# metade do backend por testar sem o dizer. Para correr só um:
-# `make test SERVICES=platform/auth-service`.
-SERVICES := business/reconciliation/pos-closing-credit-validation platform/auth-service
+# Os serviços e os pacotes descobrem-se pela pasta: um serviço novo não obriga a
+# editar este ficheiro. Para correr só um:
+# `make check SERVICES=backend/services/platform/auth-service`.
+SERVICES ?= $(patsubst %/Dockerfile,%,$(wildcard backend/services/*/*/Dockerfile backend/services/*/*/*/Dockerfile))
+PACKAGES ?= $(patsubst %/pyproject.toml,%,$(wildcard backend/packages/*/pyproject.toml))
 
-.PHONY: help up down restart logs status verify-m0 psql clean migrate test lint test-image
+.PHONY: help up down restart logs status verify-m0 psql clean migrate check build lock
 
 help:  ## Mostra os comandos disponíveis
 	@grep -hE '^[a-zA-Z_-]+:.*?## ' $(MAKEFILE_LIST) \
@@ -26,47 +22,15 @@ up:  ## Sobe a infraestrutura e os serviços
 migrate:  ## Aplica as migrações Alembic de cada serviço
 	$(COMPOSE) run --rm pos-closing-credit-validation alembic upgrade head
 
-test-image:
-	@for path in $(SERVICES); do \
-		category=$${path%/*}; service=$${path##*/}; \
-		docker build --target test \
-			--build-arg CATEGORY=$$category --build-arg SERVICE=$$service \
-			-t mozaops-$$service:test ./backend || exit 1; \
-	done
+check:  ## Lock em dia, ruff, mypy e pytest, em cada pacote e serviço
+	@for dir in $(PACKAGES); do ci/package.sh check $$dir || exit 1; done
+	@for dir in $(SERVICES); do ci/service.sh check $$dir || exit 1; done
 
-test: test-image  ## Testes do backend (estágio `test` da imagem — a de execução não traz pytest)
-	@for path in $(SERVICES); do \
-		service=$${path##*/}; \
-		echo "── $$service ─────────────────────────────────────────────"; \
-		docker run --rm mozaops-$$service:test || exit 1; \
-	done
-	@# A lib partilhada tem testes próprios e nenhum serviço os corre: os
-	@# `pytest` de cada serviço param na pasta dele. Correm-se na imagem de um
-	@# deles, que já traz o workspace instalado.
-	@#
-	@# O `cd` vai dentro do `sh` e não num `-w`, pela mesma razão que no `lint`:
-	@# o Git Bash do Windows traduz o caminho do `-w` e o container recebe algo
-	@# como `C:/Program Files/Git/app/libs`.
-	@echo "── mozaops-libs ──────────────────────────────────────────"
-	@docker run --rm mozaops-auth-service:test sh -c "cd /app/libs && pytest -q"
+build:  ## Imagens de execução de todos os serviços
+	@for dir in $(SERVICES); do ci/service.sh build $$dir || exit 1; done
 
-lint: test-image  ## ruff (regras e formato) e mypy --strict, sobre o backend todo
-	@# Uma passagem por serviço, e não uma só: a imagem de cada um traz o seu
-	@# código e a `libs/`, mas não o código dos outros — é o preço de o
-	@# contexto de build ser estreito, e correr só numa deixava metade por
-	@# olhar sem o dizer.
-	@#
-	@# O `cd /app` vai dentro do `sh` e não num `-w`: é em /app que está o
-	@# `pyproject.toml` com a configuração das duas ferramentas — e passá-lo em
-	@# `-w` faz o Git Bash do Windows traduzi-lo para um caminho que não existe.
-	@for path in $(SERVICES); do \
-		category=$${path%/*}; service=$${path##*/}; \
-		echo "── $$service ─────────────────────────────────────────────"; \
-		docker run --rm mozaops-$$service:test sh -c "cd /app && \
-			ruff check . && \
-			ruff format --check . && \
-			mypy libs/src/mozaops_libs services/$$category/$$service/app" || exit 1; \
-	done
+lock:  ## Refaz o uv.lock e os requirements de cada serviço
+	@for dir in $(SERVICES); do ci/service.sh lock $$dir || exit 1; done
 
 down:  ## Pára tudo, mantendo os dados
 	$(COMPOSE) down
