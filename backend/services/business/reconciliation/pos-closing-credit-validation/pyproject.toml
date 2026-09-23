@@ -12,6 +12,9 @@ dependencies = [
     "alembic>=1.14",
     "pydantic>=2.9",
     "pydantic-settings>=2.6",
+    # Ler é com o calamine (Rust) e escrever é com o openpyxl: o relatório precisa
+    # de estilos, imagens e formatação condicional, que o calamine não escreve.
+    "python-calamine>=0.3",
     "openpyxl>=3.1",
     # O openpyxl só insere imagens (o logótipo do relatório) com o Pillow instalado.
     "pillow>=11.0",
@@ -31,8 +34,8 @@ dev = [
     # em todos os serviços; aqui declara-se só que o serviço os instala.
     "ruff>=0.8",
     "mypy>=1.13",
-    # O openpyxl não traz tipos; sem os stubs o mypy não vê a folha nem a célula
-    # e a camada que lê os ficheiros ficava por verificar.
+    # O openpyxl não traz tipos; sem os stubs o gerador do relatório ficava por
+    # verificar. O calamine traz os seus.
     "types-openpyxl>=3.1",
 ]
 
