@@ -72,7 +72,7 @@ cross=$(docker compose exec -T postgres psql -U "${POSTGRES_USER:-postgres}" -tA
   || fail "isolamento cruzado falhou (has_database_privilege devolveu '${cross:-?}')"
 
 # ─── Identidade ─────────────────────────────────────────────────────────────
-# O MozaOps não tem servidor de identidade próprio (ADR 0009): autentica contra
+# O MozaOps não tem servidor de identidade próprio: autentica contra
 # o GEEA e valida os tokens dele localmente. O que se verifica aqui é a cadeia
 # inteira — o mock emite, o `auth-service` troca credenciais por sessão, e a
 # automação recusa quem não traz token.
@@ -91,7 +91,7 @@ sessao=$(curl -fsS --max-time 10 -X POST   -H 'Content-Type: application/json'  
 
 if grep -q '"accessToken"' <<<"$sessao"; then
   ok "o login devolve sessão (credenciais → GEEA → token)"
-  grep -q '"areas"' <<<"$sessao"     && ok "a sessão traz as áreas do MozaOps (ADR 0010)"     || fail "a sessão não traz 'areas' — o mapa AUTH_AREAS não foi lido"
+  grep -q '"areas"' <<<"$sessao"     && ok "a sessão traz as áreas do MozaOps"     || fail "a sessão não traz 'areas' — o mapa AUTH_AREAS não foi lido"
 else
   fail "o login em http://${DOMAIN}/api/auth-service/sessions não devolveu sessão"
 fi

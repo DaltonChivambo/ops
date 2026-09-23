@@ -33,4 +33,3 @@ organiza-se por área, porque é o que o `service.yaml` e o `AUTH_AREAS` declara
 | `backend/libs/` | Plataforma | Só utilitários técnicos — nunca tabelas, nunca regra de negócio. Hoje: `auth` (tokens do GEEA e mapa de áreas), partilhado pelos dois serviços. |
 | `backend/Dockerfile`, `backend/pyproject.toml`, `backend/uv.lock` | Plataforma | Servem todos os serviços; qualquer PR exige revisão da Plataforma. |
 | `infra/`, `docker-compose*.yml` | Plataforma / DevOps | |
-| `docs/adr/` | Arquitetura | Alteração estrutural exige ADR novo. Um ADR aceite não se reescreve — substitui-se. |

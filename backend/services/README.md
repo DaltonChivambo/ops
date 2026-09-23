@@ -53,7 +53,7 @@ monitorização (fraude, alertas), cadastro.
 |---|---|
 | `service.yaml` | contrato legível por máquina — ver o esquema abaixo |
 | `README.md` | o que faz, como se organiza, como se corre, e a tabela de responsabilidade |
-| `app/` | as cinco camadas ([ADR 0008](../../docs/adr/0008-cinco-camadas-por-servico.md)) |
+| `app/` | as cinco camadas — ver o `ARCHITECTURE.md` |
 | `migrations/` | Alembic |
 | `tests/` | |
 

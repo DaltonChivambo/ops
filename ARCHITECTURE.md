@@ -1,10 +1,7 @@
 # Arquitetura — MozaOps
 
-> Documento de referência do monorepo. Descreve **o que** o sistema é; o **porquê** de cada
-> escolha, e as alternativas rejeitadas, está nos ADR em [`docs/adr/`](docs/adr/README.md).
->
-> Alterações estruturais refletem-se aqui **e** dão origem a um ADR novo — os ADR existentes
-> não se reescrevem, substituem-se.
+> Documento de referência do monorepo: **o que** o sistema é, e o **porquê** das escolhas
+> que não se deduzem do código. Alterações estruturais refletem-se aqui.
 
 ---
 
@@ -80,8 +77,14 @@ confiança de quem lê — a mesma regra que o catálogo do frontend segue.
 
 Cinco camadas irmãs, num só sentido: **`controllers → services → repositories →
 infrastructure`**, com o `domain/` no meio a não depender de ninguém. O controlador nunca toca
-na base de dados; o repositório nunca decide regra de negócio. Ver
-[ADR 0008](docs/adr/0008-cinco-camadas-por-servico.md).
+na base de dados; o repositório nunca decide regra de negócio.
+
+Ficaram de fora, e a ausência de cada um é decisão com gatilho de entrada declarado:
+`ports/` com `Protocol` nos repositórios, no dia em que houver um segundo adaptador;
+`mappers.py` domínio ↔ ORM, nunca por gosto — traz a terceira representação do mesmo
+dado; `value_objects/`, numa invariante que os `StrEnum` e os schemas não cubram;
+`unit_of_work.py`, numa transacção que a sessão-por-pedido não cubra. Pela mesma razão
+não há testes de repositório: entram com o primeiro bug de SQL que os peça.
 
 ```
 backend/services/business/reconciliation/pos-closing-credit-validation/
@@ -145,8 +148,7 @@ ops/
 │   ├── postgres/initdb/       cria base + role por serviço, com REVOKE cruzado
 │   ├── traefik/               configuração estática (as rotas são labels no compose)
 │   └── otel/                  collector
-├── scripts/verify-m0.sh
-└── docs/adr/
+└── scripts/verify-m0.sh
 ```
 
 **Um Dockerfile para todos os serviços.** O workspace `uv` resolve `libs/` por caminho, o
@@ -317,8 +319,7 @@ reais, e o JSON fica camelCase porque é o que o `models.ts` do SPA consome.
 
 Corolário prático: quando uma chave em camelCase aparece numa *string* de código Python, ou é
 um nome de coluna, ou uma chave do documento JSONB, ou um campo de formulário — nunca um
-atributo. Foi essa a regra que guiou a passagem a PEP 8, e está registada na
-[ADR 0008](docs/adr/0008-cinco-camadas-por-servico.md).
+atributo. Foi essa a regra que guiou a passagem a PEP 8.
 
 Glossário do domínio: `fecho → closing`, `caso → case`, `chave → key`,
 `comerciante → merchant`, `execução → execution`,

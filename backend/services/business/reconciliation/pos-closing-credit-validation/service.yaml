@@ -1,7 +1,7 @@
 # Contrato do serviço, legível por máquina. Alimenta o OWNERS.md.
 #
 # `area` é METADADO, não estrutura de pastas: as áreas mudam mais depressa que o
-# código. A pasta diz o DEPARTAMENTO (Meios de Pagamentos e Canais — ADR 0004),
+# código. A pasta diz o DEPARTAMENTO (Meios de Pagamentos e Canais),
 # que muda devagar; a área é mais fina do que o departamento — ver a nota
 # abaixo — e quem se organiza por departamento/ilha é o frontend, porque é a
 # navegação que o operador vê.

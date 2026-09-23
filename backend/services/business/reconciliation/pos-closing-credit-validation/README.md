@@ -49,8 +49,8 @@ duplicados — persiste o resultado e gera o relatório em Excel.
 
 ## Organização
 
-Cinco camadas, num só sentido — ver a
-[ADR 0008](../../../../../docs/adr/0008-cinco-camadas-por-servico.md).
+Cinco camadas, num só sentido — ver o
+[`ARCHITECTURE.md`](../../../../../ARCHITECTURE.md).
 
 ```
 app/

@@ -7,8 +7,7 @@ Substitui o fecho manual em Excel — exportar do Portal SIMO, do Banka e do MIS
 com `VLOOKUP` — por execuções auditáveis e persistidas. Cada processo do departamento é uma
 **automação**: um módulo com a sua página, as suas regras e as suas tabelas.
 
-- **[`ARCHITECTURE.md`](ARCHITECTURE.md)** — o que o sistema é: camadas, decomposição, infraestrutura.
-- **[`docs/adr/`](docs/adr/README.md)** — as decisões que custaram a tomar, e porquê.
+- **[`ARCHITECTURE.md`](ARCHITECTURE.md)** — o que o sistema é, e porquê: camadas, decomposição, infraestrutura.
 - **[`OWNERS.md`](OWNERS.md)** — quem é dono de quê.
 
 ## Arquitectura, em cinco linhas

@@ -25,8 +25,7 @@ levanta-se à parte.
 Para o resto da plataforma:
 
 - **[`../README.md`](../README.md)** — arrancar tudo, backend incluído
-- **[`../ARCHITECTURE.md`](../ARCHITECTURE.md)** — o que o sistema é
-- **[`../docs/adr/`](../docs/adr/README.md)** — as decisões que custaram a tomar
+- **[`../ARCHITECTURE.md`](../ARCHITECTURE.md)** — o que o sistema é, e porquê
 
 Angular 22 em modo *standalone*, com *signals* e sem zone.js. Não há
 `NgModule`, e a detecção de alterações é reactiva: o que muda o ecrã é um sinal

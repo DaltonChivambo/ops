@@ -13,17 +13,16 @@ diff com o código. Estes PNG ficam como registo do ponto de partida.
 ## Nota sobre `camadas_microservice.png`
 
 O diagrama mostra `controllers → services → (domain/ + infrastructure/) → repositories`, e é
-**essencialmente o desenho vigente**: a [ADR 0008](../adr/0008-cinco-camadas-por-servico.md)
-adoptou estas cinco camadas, com os nomes que aqui estão.
+**essencialmente o desenho vigente**: são estas as cinco camadas, com os nomes que aqui
+estão.
 
 Duas diferenças, ambas deliberadas:
 
 **A dependência não foi invertida.** O diagrama põe `services → domain → repositories`, o que
-faz o domínio depender para baixo. A [ADR 0003](../adr/0003-estrutura-enxuta-em-vez-de-hexagonal.md)
-e esta nota diziam que, no dia em que houvesse `domain/`, o domínio devia passar a definir as
-interfaces e a infraestrutura a implementá-las. Há `domain/`, e decidiu-se **não** inverter: há
+faz o domínio depender para baixo. Esta nota dizia que, no dia em que houvesse `domain/`, o
+domínio devia passar a definir as interfaces e a infraestrutura a implementá-las. Há `domain/`, e decidiu-se **não** inverter: há
 um adaptador por repositório e nenhum segundo candidato, portanto o *port* seria uma interface
-escrita para um implementador só. O gatilho está registado na 0008 — entra quando existir o
+escrita para um implementador só. O gatilho está no `ARCHITECTURE.md` — entra quando existir o
 segundo adaptador. Na prática o domínio não depende de ninguém: são os serviços e os
 repositórios que dependem dele.
 

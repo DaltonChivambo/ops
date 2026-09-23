@@ -1,7 +1,7 @@
 [project]
 name = "mozaops-libs"
 version = "0.0.0"
-description = "Utilitários técnicos partilhados entre serviços — hoje, a validação de tokens do GEEA."
+description = "Utilitários técnicos partilhados entre serviços — como por exemplo a validação de tokens do GEEA."
 requires-python = ">=3.12"
 dependencies = [
     "pyjwt[crypto]>=2.9",

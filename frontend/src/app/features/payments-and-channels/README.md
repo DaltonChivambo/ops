@@ -1,7 +1,7 @@
 # Meios de Pagamentos e Canais
 
 **Departamento** — a pasta é a dele, por ser o agrupamento estável que o organigrama do
-banco usa (ADR 0004). Não é, ele próprio, a unidade de acesso: dentro dele há unidades
+banco usa. Não é, ele próprio, a unidade de acesso: dentro dele há unidades
 orgânicas reais e distintas, e é a essas que o MozaOps dá acesso — a **área**, no
 vocabulário do catálogo (`core/navigation.ts`: `AreaId`, `AREAS`, `NavModule.area`).
 
