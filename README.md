@@ -37,7 +37,7 @@ Há duas máquinas possíveis, e os passos que mudam entre elas dizem-no:
 | Configuração | `.env.example` | `.env.prod` |
 | Imagens | Docker Hub | Harbor |
 | Pacotes Python | PyPI | Nexus |
-| GEEA | o simulado | o do QAS |
+| GEEA e Keycloak | o simulado (faz de ambos) | os do QAS |
 
 Os comandos abaixo são de `docker compose`, que funcionam em qualquer terminal. O `make` é só
 um atalho, onde existir.
@@ -278,7 +278,7 @@ docker compose --profile observability up -d   # collector e Jaeger: http://jaeg
 | O que aparece | Porquê | O que fazer |
 |---|---|---|
 | `x509: certificate signed by unknown authority` ao construir | o Docker não confia no certificado do Harbor | passo 1 de [«Instalar no computador da rede do banco»](#instalar-no-computador-da-rede-do-banco); e construir sem `--pull` |
-| «Não foi possível contactar o GEEA para validar as credenciais» | o contentor não chega a um dos servidores do GEEA (no log: `SSOLogin inacessível: ConnectError`) | correr `scripts\check-geea.ps1` e seguir o que diz; quase sempre falta `GEEA_HOSTNAME`/`GEEA_IP` ou `GEEA_ISSUER_HOSTNAME`/`GEEA_ISSUER_IP` no `.env` |
+| «Não foi possível contactar o GEEA para validar as credenciais» | o contentor não chega ao GEEA ou ao Keycloak (no log: `SSOLogin inacessível: ConnectError`) | correr `scripts\check-geea.ps1` e seguir o que diz; quase sempre falta `GEEA_HOSTNAME`/`GEEA_IP` ou `KEYCLOAK_HOSTNAME`/`KEYCLOAK_IP` no `.env` |
 | O login entra, mas as automações respondem 401 | o `AUTH_ISSUER` não é igual ao `iss` dos tokens | ler o `iss` de um token e pô-lo no `AUTH_ISSUER`, com o `AUTH_JWKS_URL` e o `GEEA_TOKEN_URL` do mesmo servidor |
 | Mudei o `.env` e nada mudou | os contentores só lêem o `.env` quando são criados | `docker compose up -d` |
 | O `npm ci` falha na rede do banco | o npm vai ao registo público | `npm config set registry <URL do repositório npm do Nexus>` |
@@ -288,14 +288,17 @@ docker compose --profile observability up -d   # collector e Jaeger: http://jaeg
 Nenhum endereço está escrito no código nem nos Dockerfiles. Tudo se troca no `.env`, a partir
 do [`.env.example`](.env.example), ou nas variáveis da pipeline.
 
-**GEEA:**
+**Identidade.** São dois servidores: o **GEEA** faz o login, e o **Keycloak** emite, assina e
+renova os tokens.
 
-| O quê | Variáveis |
-|---|---|
-| O login | `GEEA_SSOLOGIN_URL`, `GEEA_REALM` |
-| O Keycloak que emite os tokens | `AUTH_ISSUER` (o `iss` dos tokens), `AUTH_JWKS_URL`, `GEEA_TOKEN_URL` |
-| O cliente do MozaOps | `GEEA_CLIENT_ID`, `GEEA_CLIENT_SECRET`, `AUTH_ALLOWED_AZP`, `AUTH_CLIENT_ID` |
-| O IP de cada servidor, quando o nome não resolve nos contentores | `GEEA_HOSTNAME`/`GEEA_IP` (login), `GEEA_ISSUER_HOSTNAME`/`GEEA_ISSUER_IP` (tokens) |
+| Servidor | Para quê | Variáveis |
+|---|---|---|
+| GEEA | o login (recebe o utilizador e a password) | `GEEA_SSOLOGIN_URL`, `GEEA_REALM` |
+| GEEA | o IP, quando o nome não resolve nos contentores | `GEEA_HOSTNAME`, `GEEA_IP` |
+| Keycloak | quem emite os tokens (o `iss`) e onde estão as chaves | `AUTH_ISSUER`, `AUTH_JWKS_URL` |
+| Keycloak | a renovação da sessão | `GEEA_TOKEN_URL` (tem GEEA no nome, mas é do Keycloak) |
+| Keycloak | o IP, quando o nome não resolve nos contentores | `KEYCLOAK_HOSTNAME`, `KEYCLOAK_IP` |
+| os dois | o cliente do MozaOps | `GEEA_CLIENT_ID`, `GEEA_CLIENT_SECRET`, `AUTH_ALLOWED_AZP`, `AUTH_CLIENT_ID` |
 
 **O resto:**
 
@@ -340,29 +343,30 @@ Jaeger só com os perfis `proxy` e `observability`.
 - as senhas;
 - o GEEA do QAS, como no ponto 4.
 
-**4. O GEEA do QAS.** No bloco «GEEA» do `.env`, comentar as quatro linhas do simulado e
-descomentar as do QAS:
+**4. O GEEA e o Keycloak do QAS.** No bloco «Identidade» do `.env`, comentar as quatro linhas
+do simulado e descomentar as do QAS:
 
 ```bash
+GEEA_SSOLOGIN_URL=http://<host do GEEA>/geea/idmUtils/SSOLogin
 AUTH_ISSUER=http://<host do Keycloak>/auth/realms/QAS
 AUTH_JWKS_URL=http://<host do Keycloak>/auth/realms/QAS/protocol/openid-connect/certs
-GEEA_SSOLOGIN_URL=http://<host do login>/geea/idmUtils/SSOLogin
 GEEA_TOKEN_URL=http://<host do Keycloak>/auth/realms/QAS/protocol/openid-connect/token
 GEEA_CLIENT_SECRET=<segredo do qa-mozaops>
 ```
 
-O login e o Keycloak que emite os tokens estão em servidores diferentes. O do Keycloak é o do
-campo `iss` de um token: tira-se um pelo Postman, com o mesmo pedido de login, e lê-se o `iss`.
+O GEEA (o login) e o Keycloak (os tokens) estão em servidores diferentes. O do Keycloak é o do
+campo `iss` de um token: tira-se um pelo Postman, com o mesmo pedido de login ao GEEA, e lê-se o
+`iss`.
 O `AUTH_ISSUER` é esse valor, tal e qual.
 
 Os contentores não resolvem os nomes curtos dos servidores, que o Windows completa com o
 domínio da rede. Dá-se-lhes o IP de cada um, que o `ping <host>` mostra na primeira linha:
 
 ```bash
-GEEA_HOSTNAME=<host do login, sem porta>
+GEEA_HOSTNAME=<host do GEEA, sem porta>
 GEEA_IP=<IP dele>
-GEEA_ISSUER_HOSTNAME=<host do Keycloak, sem porta>
-GEEA_ISSUER_IP=<IP dele>
+KEYCLOAK_HOSTNAME=<host do Keycloak, sem porta>
+KEYCLOAK_IP=<IP dele>
 ```
 
 Estes nomes também entram sozinhos no `NO_PROXY` dos contentores, para o proxy do banco não se

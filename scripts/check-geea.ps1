@@ -1,11 +1,11 @@
-﻿# Diagnóstico da ligação dos contentores ao GEEA. Corre-se na raiz do repositório:
+﻿# Diagnóstico da ligação dos contentores ao GEEA e ao Keycloak. Corre-se na raiz do repositório:
 #
 #   powershell -ExecutionPolicy Bypass -File scripts\check-geea.ps1
 #
 # Não muda nada: só lê o .env, o compose e o que os contentores vêem.
 #
-# O GEEA pode estar em dois servidores: o do login (GEEA_SSOLOGIN_URL) e o
-# Keycloak que emite os tokens (AUTH_ISSUER, AUTH_JWKS_URL, GEEA_TOKEN_URL).
+# São dois servidores: o GEEA, que faz o login (GEEA_SSOLOGIN_URL), e o Keycloak,
+# que emite os tokens (AUTH_ISSUER, AUTH_JWKS_URL, GEEA_TOKEN_URL).
 
 $ErrorActionPreference = 'Continue'
 $falhas = 0
@@ -15,7 +15,7 @@ function Nota($texto)   { Write-Host "           $texto" }
 
 Set-Location (Join-Path $PSScriptRoot '..')
 Write-Host ''
-Write-Host 'Ligação ao GEEA'
+Write-Host 'Ligação ao GEEA e ao Keycloak'
 Write-Host ''
 
 # 1. O .env existe com esse nome exacto, e não .env.txt.
@@ -34,14 +34,14 @@ Get-Content -LiteralPath '.env' | Where-Object { $_ -match '^\s*[A-Z_]+=' } | Fo
 
 $login = $env_['GEEA_SSOLOGIN_URL']; $chaves = $env_['AUTH_JWKS_URL']; $issuer = $env_['AUTH_ISSUER']
 if (-not $login -or -not $chaves -or -not $issuer) { Falha 'faltam GEEA_SSOLOGIN_URL, AUTH_JWKS_URL ou AUTH_ISSUER no .env'; exit 1 }
-Nota "login:   $login"
-Nota "tokens:  $issuer"
+Nota "GEEA (login):       $login"
+Nota "Keycloak (tokens):  $issuer"
 if (-not $chaves.StartsWith($issuer)) { Falha 'o AUTH_JWKS_URL não começa pelo AUTH_ISSUER: os dois são do mesmo servidor' }
 
 # 2. Os pares nome e IP, cada um completo ou vazio.
 $pares = @(
-    @{ Nome = 'GEEA_HOSTNAME'; Ip = 'GEEA_IP'; Para = 'servidor do login' },
-    @{ Nome = 'GEEA_ISSUER_HOSTNAME'; Ip = 'GEEA_ISSUER_IP'; Para = 'servidor dos tokens' }
+    @{ Nome = 'GEEA_HOSTNAME'; Ip = 'GEEA_IP'; Para = 'GEEA (login)' },
+    @{ Nome = 'KEYCLOAK_HOSTNAME'; Ip = 'KEYCLOAK_IP'; Para = 'Keycloak (tokens)' }
 )
 $mapeados = @()
 foreach ($par in $pares) {
@@ -78,21 +78,21 @@ $teste = "import sys, urllib.request as u, urllib.error as e`ntry:`n    print(u.
 function Pedido($url) { (docker exec mozaops-auth-service python -c $teste $url 2>&1 | Out-String).Trim() }
 
 $resposta = Pedido ($login -split '\?')[0]
-if ($resposta -match '^\d{3}$') { Ok "o contentor chega ao servidor do login (responde $resposta)" }
-else { Falha "o contentor não chega ao servidor do login: $resposta" }
+if ($resposta -match '^\d{3}$') { Ok "o contentor chega ao GEEA (responde $resposta)" }
+else { Falha "o contentor não chega ao GEEA: $resposta" }
 
 $resposta = Pedido $chaves
-if ($resposta -eq '200') { Ok 'o contentor chega às chaves dos tokens (200)' }
-elseif ($resposta -match '^\d{3}$') { Falha "as chaves dos tokens respondem ${resposta}: o AUTH_JWKS_URL está errado (tem de ser o iss dos tokens + /protocol/openid-connect/certs)" }
-else { Falha "o contentor não chega ao servidor dos tokens: $resposta" }
+if ($resposta -eq '200') { Ok 'o contentor chega ao Keycloak, às chaves dos tokens (200)' }
+elseif ($resposta -match '^\d{3}$') { Falha "o Keycloak responde ${resposta} nas chaves: o AUTH_JWKS_URL está errado (tem de ser o iss dos tokens + /protocol/openid-connect/certs)" }
+else { Falha "o contentor não chega ao Keycloak: $resposta" }
 
 if ($falhas -gt 0) {
     Nota ''
     Nota 'Se o Postman chega e o contentor não: confirmar os pontos acima, e no Docker Desktop,'
-    Nota 'Settings > Resources > Proxies, pôr os hosts e os IPs do GEEA nas excepções.'
+    Nota 'Settings > Resources > Proxies, pôr os hosts e os IPs do GEEA e do Keycloak nas excepções.'
 }
 
 Write-Host ''
-if ($falhas -eq 0) { Write-Host 'Tudo certo: os contentores chegam ao GEEA.' -ForegroundColor Green }
+if ($falhas -eq 0) { Write-Host 'Tudo certo: os contentores chegam ao GEEA e ao Keycloak.' -ForegroundColor Green }
 else { Write-Host "$falhas problema(s) por resolver." -ForegroundColor Red }
 Write-Host ''

@@ -101,8 +101,8 @@ Nada neste serviço tem um endereço escrito. Tudo se mete em `ops/.env` (a part
 
 Este é o único serviço que fala com o GEEA para fazer login, por isso o contentor tem de chegar
 ao host do GEEA. Se o nome não resolver dentro do Docker (no log: `SSOLogin inacessível:
-ConnectError`), dar-lhe o IP no `ops/.env`: `GEEA_HOSTNAME` e `GEEA_IP` para o login, `GEEA_ISSUER_HOSTNAME` e
-`GEEA_ISSUER_IP` para o Keycloak que emite os tokens.
+ConnectError`), dar-lhe o IP no `ops/.env`: `GEEA_HOSTNAME` e `GEEA_IP` para o GEEA (o login), `KEYCLOAK_HOSTNAME` e
+`KEYCLOAK_IP` para o Keycloak (os tokens).
 
 Construir só este serviço, a partir do Harbor e do Nexus, dentro desta pasta:
 

@@ -118,8 +118,8 @@ Nada neste serviço tem um endereço escrito. Tudo se mete em `ops/.env` (a part
 
 Este serviço não faz login: só valida os tokens. Mas vai buscar as chaves ao `AUTH_JWKS_URL`,
 por isso o contentor tem de chegar ao host do GEEA. Se o nome não resolver dentro do Docker,
-dar-lhe o IP no `ops/.env`: `GEEA_HOSTNAME` e `GEEA_IP` para o login, `GEEA_ISSUER_HOSTNAME` e
-`GEEA_ISSUER_IP` para o Keycloak que emite os tokens.
+dar-lhe o IP no `ops/.env`: `GEEA_HOSTNAME` e `GEEA_IP` para o GEEA (o login), `KEYCLOAK_HOSTNAME` e
+`KEYCLOAK_IP` para o Keycloak (os tokens).
 
 Construir só este serviço, a partir do Harbor e do Nexus, dentro desta pasta:
 
