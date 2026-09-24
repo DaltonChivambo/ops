@@ -109,7 +109,7 @@ docker compose config | grep image:   # todas começam pelo host do Harbor, exce
 Igual nas duas máquinas:
 
 ```bash
-make up          # constrói as imagens e sobe traefik, postgres, auth-service, a automação, otel e jaeger
+make up          # constrói as imagens e sobe o postgres, o auth-service e a automação
 make migrate     # cria as tabelas da automação (Alembic)
 ```
 
@@ -206,8 +206,14 @@ O `Makefile` exige `bash`, que corre em Git Bash ou WSL. Em PowerShell, os equiv
 | API da automação POS | http://localhost:8101 (docs em `/docs`) |
 | API do `auth-service` | http://localhost:8010 |
 | GEEA simulado | http://127.0.0.1:8100 |
-| Jaeger | http://jaeger.mozaops.localhost |
-| Painel do Traefik | http://127.0.0.1:8080 |
+
+O Traefik (entrada única) e a observabilidade (collector e Jaeger) não são usados pelo código e
+ficam desligados por omissão. Para os ligar:
+
+```bash
+docker compose --profile proxy up -d           # Traefik: http://mozaops.localhost, painel em http://127.0.0.1:8080
+docker compose --profile observability up -d   # collector e Jaeger: http://jaeger.mozaops.localhost (precisa do proxy)
+```
 
 ## Onde se troca cada endereço
 
@@ -232,7 +238,7 @@ acompanhar, porque é contra ele que se valida o `iss` de cada token.
 
 | O quê | Variáveis |
 |---|---|
-| Harbor: todas as imagens (Python, postgres, traefik, otel, jaeger) | `IMAGE_REGISTRY`, `IMAGE_NAMESPACE` |
+| Harbor: as imagens (Python e PostgreSQL) | `IMAGE_REGISTRY`, `IMAGE_NAMESPACE` |
 | Nexus: os pacotes Python | `PYPI_INDEX_URL`, e `PYPI_TRUSTED_HOST` se servir em HTTP |
 | Harbor: para onde vai a imagem construída | `DOCKER_REGISTRY` |
 | Nexus: onde se publica o `mozaops-libs` | `PYPI_PUBLISH_URL` |
@@ -250,10 +256,10 @@ banco, e não estão escritos no repositório.
 | Imagem | Para quê |
 |---|---|
 | `python:3.14-slim-trixie` | base dos serviços e do GEEA simulado |
-| `postgres:18-alpine` | base de dados |
-| `traefik:v3.6` | entrada |
-| `opentelemetry-collector-contrib:0.144.0` | observabilidade |
-| `jaeger:2.12.0` | observabilidade |
+| `postgres:18.6-trixie` | base de dados |
+
+O Traefik, o collector e o Jaeger só são precisos se se ligarem os perfis `proxy` e
+`observability`, que ficam desligados por omissão.
 
 Se alguma tiver outro nome no Harbor, é esse o nome a pedir que se espelhe, ou a mudar no
 `docker-compose.yml`.

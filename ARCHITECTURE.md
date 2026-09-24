@@ -45,9 +45,9 @@ testa em dev é a topologia que corre em produção.
 | Pacotes | `uv`, um lock por serviço; a imagem instala com `pip` e hashes |
 | ORM / Migrações | SQLAlchemy 2 (async, asyncpg), Alembic |
 | Base de dados | PostgreSQL 18 |
-| Entrada / routing | Traefik v3 |
+| Entrada / routing | Traefik v3 (perfil `proxy`, desligado por omissão em desenvolvimento) |
 | Identidade | GEEA — o Keycloak corporativo, já federado com o AD |
-| Observabilidade | OpenTelemetry Collector → Jaeger |
+| Observabilidade | OpenTelemetry Collector → Jaeger (perfil `observability`, desligado por omissão) |
 | Contentores | Docker Engine, Docker Compose |
 
 ---
@@ -388,7 +388,7 @@ os dois lados da reconciliação.
 
 ```bash
 cp .env.example .env     # ajustar as senhas
-make up                  # traefik, postgres, auth-service, otel, jaeger e os serviços
+make up                  # postgres, auth-service e os serviços
 # o GEEA simulado sobe à parte — não é um serviço nosso:
 docker compose -f external-services/geea-keycloak/docker-compose.yml up -d
 make migrate             # alembic upgrade head
@@ -405,8 +405,8 @@ O workflow invoca o `make` e o `npm` em vez de repetir os comandos: duas defini�
 | Frontend (dev) | `cd frontend && npm start` → http://localhost:4200 |
 | API (dev, direto) | http://localhost:8101 |
 | GEEA (mock) | http://127.0.0.1:8100 |
-| Jaeger | http://jaeger.mozaops.localhost |
-| Painel do Traefik | http://127.0.0.1:8080 |
+| Jaeger (perfil `observability`) | http://jaeger.mozaops.localhost |
+| Painel do Traefik (perfil `proxy`) | http://127.0.0.1:8080 |
 
 A ligação ponta a ponta prova-se pelo proxy do frontend, que é o caminho que o browser faz:
 

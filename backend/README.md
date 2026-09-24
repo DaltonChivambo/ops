@@ -120,7 +120,7 @@ mesmas variáveis vêm da configuração dela. Nunca nos Dockerfiles nem no cód
 | O quê | Variáveis no `ops/.env` | Quem usa |
 |---|---|---|
 | Harbor: imagem base do Python | `IMAGE_REGISTRY`, `IMAGE_NAMESPACE` | o `Dockerfile` de cada serviço, no build |
-| Harbor: postgres, traefik, otel, jaeger | `IMAGE_REGISTRY`, `IMAGE_NAMESPACE` | o `docker-compose.yml` |
+| Harbor: postgres | `IMAGE_REGISTRY`, `IMAGE_NAMESPACE` | o `docker-compose.yml` |
 | Nexus: pacotes Python | `PYPI_INDEX_URL`, `PYPI_TRUSTED_HOST` | o `pip` do `Dockerfile` de cada serviço |
 | GEEA: validar tokens | `AUTH_ISSUER`, `AUTH_JWKS_URL` | todos os serviços |
 | GEEA: login | `GEEA_SSOLOGIN_URL`, `GEEA_TOKEN_URL`, `GEEA_REALM`, `GEEA_CLIENT_ID`, `GEEA_CLIENT_SECRET` | só o `auth-service` |

@@ -8,7 +8,6 @@ set -uo pipefail
 cd "$(dirname "$0")/.."
 [[ -f .env ]] && set -a && source .env && set +a
 
-DOMAIN="${DOMAIN:-mozaops.localhost}"
 # As credenciais do mock do GEEA. Em produção não há aqui login nenhum a fazer:
 # este script é do ambiente local, e é o único sítio onde uma password de mock
 # é aceitável.
@@ -51,7 +50,7 @@ else fail "Docker inacessível — falta 'sudo usermod -aG docker \$USER' e volt
 # ─── Containers ─────────────────────────────────────────────────────────────
 echo
 echo "Containers"
-for service in traefik postgres auth-service otel-collector jaeger; do
+for service in postgres auth-service pos-closing-credit-validation; do
   state=$(docker compose ps --format '{{.State}}' "$service" 2>/dev/null | head -1)
   [[ "$state" == "running" ]] && ok "$service" || fail "$service (estado: ${state:-ausente})"
 done
@@ -87,26 +86,19 @@ else
   fail "o mock do GEEA não responde — 'docker compose -f external-services/geea-keycloak/docker-compose.yml up -d'"
 fi
 
-# Login de ponta a ponta, pela porta pública: browser → Traefik → auth-service → GEEA.
-sessao=$(curl -fsS --max-time 10 -X POST   -H 'Content-Type: application/json'   -d "{\"username\":\"${GEEA_USER}\",\"password\":\"${GEEA_PASS}\"}"   "http://${DOMAIN}/api/auth-service/sessions" 2>/dev/null)
+# Login de ponta a ponta, pela porta que o `ng serve` usa: auth-service → GEEA.
+sessao=$(curl -fsS --max-time 10 -X POST   -H 'Content-Type: application/json'   -d "{\"username\":\"${GEEA_USER}\",\"password\":\"${GEEA_PASS}\"}"   "http://localhost:8010/auth-service/sessions" 2>/dev/null)
 
 if grep -q '"accessToken"' <<<"$sessao"; then
   ok "o login devolve sessão (credenciais → GEEA → token)"
   grep -q '"areas"' <<<"$sessao"     && ok "a sessão traz as áreas do MozaOps"     || fail "a sessão não traz 'areas' — o mapa AUTH_AREAS não foi lido"
 else
-  fail "o login em http://${DOMAIN}/api/auth-service/sessions não devolveu sessão"
+  fail "o login em http://localhost:8010/auth-service/sessions não devolveu sessão"
 fi
 
 # A porta fechada é metade do trabalho; provar que está fechada é a outra.
-estado=$(curl -s -o /dev/null -w '%{http_code}' --max-time 10          "http://${DOMAIN}/api/pos/validacao-credito-fecho/execucoes/ultima" 2>/dev/null)
+estado=$(curl -s -o /dev/null -w '%{http_code}' --max-time 10          "http://localhost:8101/pos/validacao-credito-fecho/execucoes/ultima" 2>/dev/null)
 [[ "$estado" == "401" ]]   && ok "a automação recusa quem não traz token (401)"   || fail "a automação respondeu ${estado:-?} sem token — devia ser 401"
-
-# ─── Observabilidade ────────────────────────────────────────────────────────
-echo
-echo "Observabilidade"
-curl -fsS --max-time 10 "http://jaeger.${DOMAIN}/" >/dev/null 2>&1 \
-  && ok "Jaeger acessível em http://jaeger.${DOMAIN}" \
-  || fail "Jaeger não responde em http://jaeger.${DOMAIN}"
 
 echo
 if (( failures == 0 )); then
