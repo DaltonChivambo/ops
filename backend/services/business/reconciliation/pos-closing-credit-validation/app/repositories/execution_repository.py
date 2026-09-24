@@ -25,13 +25,13 @@ INSERT_BATCH = 5_000
 
 VALIDATION_STATES = frozenset(Validation)
 
-# Ordem de leitura do operador, a mesma dos casos e do relatório: incorrecto,
-# não creditado, períodos repetidos, linha repetida na SIMO, confere, zerado.
+# Ordem de leitura do operador na tabela de fechos: não creditado, incorrecto,
+# períodos repetidos, linha repetida na SIMO, confere, zerado.
 # Não é a ordem de declaração do enum `Validation`.
 # Vive numa coluna (`sortRank`) porque uma expressão no `ORDER BY` não é indexável.
 _RANK_BY_VALIDATION = {
-    Validation.MISMATCH: 0,
-    Validation.MISSING: 1,
+    Validation.MISSING: 0,
+    Validation.MISMATCH: 1,
     Validation.DUPLICATED: 2,
     Validation.MATCH: 4,
     Validation.ZERO: 5,

@@ -16,8 +16,8 @@ NEITHER = {"simo_duplicate": False, "has_simo_duplicate": False}
 @pytest.mark.parametrize(
     ("validation", "expected"),
     [
-        (Validation.MISMATCH, 0),
-        (Validation.MISSING, 1),
+        (Validation.MISSING, 0),
+        (Validation.MISMATCH, 1),
         (Validation.DUPLICATED, 2),
         (Validation.MATCH, 4),
         (Validation.ZERO, 5),
@@ -44,8 +44,8 @@ def test_what_needs_work_wins_over_the_repeated_mark(validation, mark):
 
 def test_the_order_is_the_one_the_operator_reads():
     states = [
-        Validation.MISMATCH,
         Validation.MISSING,
+        Validation.MISMATCH,
         Validation.DUPLICATED,
         Validation.MATCH,
         Validation.ZERO,

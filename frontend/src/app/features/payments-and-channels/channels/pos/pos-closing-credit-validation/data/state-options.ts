@@ -13,24 +13,23 @@ export const STATE_OPTIONS: Array<{
   dot: string;
   count: (c: DetailCounts) => number;
 }> = [
-  // Incorrecto e não creditado à frente: são os dois casos onde há dinheiro
-  // errado ou dinheiro em falta, e é por eles que o operador começa. Períodos
-  // repetidos a seguir (ambiguidade a desfazer, não divergência), confere
-  // depois, e zerado por último, que não pede nada a ninguém. É a mesma ordem
-  // do relatório, para o ecrã e o Excel se lerem da mesma maneira.
-  {
-    id: 'mismatch',
-    label: 'Incorrecto',
-    validations: ['mismatch'],
-    dot: 'bg-alert-500',
-    count: (c) => c.mismatch,
-  },
+  // Não creditado e incorrecto à frente, por esta ordem: é a da tabela de
+  // fechos, e é por eles que o operador começa. Períodos repetidos a seguir
+  // (ambiguidade a desfazer, não divergência), confere depois, e zerado por
+  // último, que não pede nada a ninguém.
   {
     id: 'missing',
     label: 'Não creditado',
     validations: ['missing'],
     dot: 'bg-moza-500',
     count: (c) => c.missing,
+  },
+  {
+    id: 'mismatch',
+    label: 'Incorrecto',
+    validations: ['mismatch'],
+    dot: 'bg-alert-500',
+    count: (c) => c.mismatch,
   },
   {
     id: 'duplicated',
