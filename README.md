@@ -169,18 +169,69 @@ cd frontend && npm test && npm run build   # frontend: testes unitários e build
 
 São os mesmos que o CI corre em cada push.
 
-### 7. Parar e actualizar
+### 7. Parar, reinstalar e actualizar
+
+Todos os comandos na raiz do repositório. Os de `docker compose` funcionam em qualquer
+terminal, com ou sem `make`.
+
+**Parar e voltar a subir**, mantendo os dados:
 
 ```bash
-make down        # pára tudo, mantendo os dados
-git pull         # código novo
-make up          # reconstrói o que mudou
-make migrate     # se vieram migrações novas
-cd frontend && npm ci   # se o package-lock.json mudou
+docker compose down        # pára e remove os contentores (make down)
+docker compose up -d       # volta a subir (make up)
+docker compose restart     # só reinicia, sem recriar
 ```
 
-> **`make clean` apaga os volumes.** A base local pode ter execuções reais do departamento.
-> Não é comando para correr por hábito.
+O GEEA simulado pára-se à parte:
+
+```bash
+docker compose -f external-services/geea-keycloak/docker-compose.yml down
+```
+
+**Depois de mudar o `.env`**, os contentores só lêem os valores novos se forem recriados:
+
+```bash
+docker compose up -d       # recria os que mudaram
+```
+
+**Reinstalar os contentores**, reconstruindo as imagens do zero e mantendo a base de dados.
+Serve quando uma imagem ficou estragada ou se quer ter a certeza de que tudo vem de novo do
+Harbor e do Nexus:
+
+```bash
+docker compose down
+docker compose build --no-cache --pull
+docker compose up -d
+docker compose run --rm pos-closing-credit-validation alembic upgrade head
+```
+
+**Reinstalar tudo do zero, apagando a base de dados.** Apaga todas as execuções e casos:
+
+```bash
+docker compose down -v     # o -v apaga o volume da base (make clean)
+docker compose up -d --build
+docker compose run --rm pos-closing-credit-validation alembic upgrade head
+```
+
+> **O `-v` e o `make clean` apagam os dados.** A base local pode ter execuções reais do
+> departamento. Não é comando para correr por hábito.
+
+**Actualizar para código novo:**
+
+```bash
+git pull                   # ou descarregar de novo o ZIP do GitHub, e copiar o .env para lá
+docker compose up -d --build
+docker compose run --rm pos-closing-credit-validation alembic upgrade head   # se vieram migrações
+cd frontend && npm ci      # se o package-lock.json mudou
+```
+
+**Ver o que se passa:**
+
+```bash
+docker compose ps                              # estado de cada contentor
+docker compose logs -f auth-service            # log de um serviço, a seguir
+docker logs mozaops-auth-service --tail 50     # as últimas 50 linhas
+```
 
 ### Windows, sem `make`
 
