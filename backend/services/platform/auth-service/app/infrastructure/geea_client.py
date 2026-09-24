@@ -20,6 +20,7 @@ class GeeaClient:
         client_id: str,
         client_secret: str,
         timeout: float = 10.0,
+        transport: httpx.AsyncBaseTransport | None = None,
     ):
         self._ssologin_url = ssologin_url
         self._token_url = token_url
@@ -27,9 +28,14 @@ class GeeaClient:
         self._client_id = client_id
         self._client_secret = client_secret
         self._timeout = timeout
+        self._transport = transport
 
     async def login(self, username: str, password: str, client_ip: str) -> dict[str, Any]:
-        """Troca credenciais por tokens. Devolve o bloco `output` do GEEA."""
+        """Troca credenciais por tokens. Devolve o bloco `output` do GEEA.
+
+        POST com os parâmetros na query string e o corpo vazio: é o contrato do
+        GEEA real, que recusa GET com 500 («Request method 'GET' not supported»).
+        """
         params = {
             "realm": self._realm,
             "username": username,
@@ -40,8 +46,10 @@ class GeeaClient:
         }
 
         try:
-            async with httpx.AsyncClient(timeout=self._timeout) as client:
-                response = await client.get(self._ssologin_url, params=params)
+            async with httpx.AsyncClient(
+                timeout=self._timeout, transport=self._transport
+            ) as client:
+                response = await client.post(self._ssologin_url, params=params)
         except httpx.HTTPError as exc:
             # Sem `exc`: o httpx põe o URL na mensagem, e o URL leva a password.
             logger.warning("SSOLogin inacessível em %s: %s", self._ssologin_url, type(exc).__name__)
@@ -65,7 +73,9 @@ class GeeaClient:
         }
 
         try:
-            async with httpx.AsyncClient(timeout=self._timeout) as client:
+            async with httpx.AsyncClient(
+                timeout=self._timeout, transport=self._transport
+            ) as client:
                 response = await client.post(self._token_url, data=form)
         except httpx.HTTPError as exc:
             logger.warning(

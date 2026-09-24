@@ -1,7 +1,7 @@
 """GEEA_KEYCLOAK — serviço externo simulado.
 
 Mock standalone da fonte de dados organizacionais do GEEA: replica o
-contrato do `SSOLogin` real (GET com credenciais na query string, corpo de
+contrato do `SSOLogin` real (POST com credenciais na query string, corpo de
 resposta com `accessToken`/`idToken`/`output`) e devolve a lista de
 unidades organizacionais depois de login bem-sucedido. Não faz parte da
 aplicação MozaOps — vive fora de `backend/` de propósito, para não se
@@ -265,7 +265,7 @@ def _refresh_claims(
     }
 
 
-@app.get("/geea/idmUtils/SSOLogin")
+@app.post("/geea/idmUtils/SSOLogin")
 def sso_login(
     realm: str,
     username: str,

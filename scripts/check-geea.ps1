@@ -77,10 +77,11 @@ if ($proxy) {
 else { Ok 'o contentor não tem proxy configurado' }
 
 # 6. O contentor chega aos dois servidores.
-$teste = "import sys, urllib.request as u, urllib.error as e`ntry:`n    print(u.urlopen(sys.argv[1], timeout=10).status)`nexcept e.HTTPError as x:`n    print(x.code)`nexcept Exception as x:`n    print(type(x).__name__, x)"
-function Pedido($url) { (docker exec mozaops-auth-service python -c $teste $url 2>&1 | Out-String).Trim() }
+$teste = "import sys, urllib.request as u, urllib.error as e`nmetodo = sys.argv[2]`ncorpo = b'' if metodo == 'POST' else None`ntry:`n    print(u.urlopen(u.Request(sys.argv[1], data=corpo, method=metodo), timeout=10).status)`nexcept e.HTTPError as x:`n    print(x.code)`nexcept Exception as x:`n    print(type(x).__name__, x)"
+function Pedido($url, $metodo = 'GET') { (docker exec mozaops-auth-service python -c $teste $url $metodo 2>&1 | Out-String).Trim() }
 
-$resposta = Pedido ($login -split '\?')[0]
+# O login é POST, como o MozaOps o faz; sem parâmetros o GEEA responde um erro, mas responde.
+$resposta = Pedido ($login -split '\?')[0] 'POST'
 if ($resposta -match '^\d{3}$') { Ok "o contentor chega ao GEEA (responde $resposta)" }
 else { Falha "o contentor não chega ao GEEA: $resposta" }
 

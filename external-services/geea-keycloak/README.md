@@ -5,7 +5,7 @@ lista de unidades organizacionais do banco. Não é parte da aplicação
 MozaOps — existe fora de `backend/` porque simula um sistema de terceiros
 que a aplicação vai consumir, não um serviço nosso.
 
-O login segue o mesmo contrato do `SSOLogin` real (GET com credenciais na
+O login segue o mesmo contrato do `SSOLogin` real (POST com credenciais na
 query string, corpo de resposta com `accessToken`/`idToken`/`output`),
 para o resto da aplicação poder ser testado contra este mock sem mudar
 nada quando trocar para o serviço real.
@@ -53,13 +53,13 @@ só Canais, e as outras nem aparecem.
 
 ## Endpoints
 
-### `GET /geea/idmUtils/SSOLogin`
+### `POST /geea/idmUtils/SSOLogin`
 
 Query params: `realm`, `username`, `password`, `clientId`, `clientSecret`,
 `clientIpAdress` (opcional).
 
 ```
-GET /geea/idmUtils/SSOLogin?realm=QAS&username=m001926&password=mude-me-em-producao&clientId=qa-mozaops&clientSecret=mude-me-em-producao&clientIpAdress=127.0.0.1
+POST /geea/idmUtils/SSOLogin?realm=QAS&username=m001926&password=mude-me-em-producao&clientId=qa-mozaops&clientSecret=mude-me-em-producao&clientIpAdress=127.0.0.1
 ```
 
 Resposta (forma real replicada — `accessToken`/`idToken` com as claims
@@ -116,7 +116,7 @@ Sem autenticação — só para healthcheck.
 ## Exemplo completo
 
 ```bash
-TOKEN=$(curl -s "http://localhost:8100/geea/idmUtils/SSOLogin?realm=QAS&username=m001926&password=mude-me-em-producao&clientId=qa-mozaops&clientSecret=mude-me-em-producao&clientIpAdress=127.0.0.1" \
+TOKEN=$(curl -s -X POST "http://localhost:8100/geea/idmUtils/SSOLogin?realm=QAS&username=m001926&password=mude-me-em-producao&clientId=qa-mozaops&clientSecret=mude-me-em-producao&clientIpAdress=127.0.0.1" \
   | jq -r .output.accessToken)
 
 curl -s http://localhost:8100/departamentos \
