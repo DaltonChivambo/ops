@@ -26,73 +26,139 @@ Meios de Pagamento e Canais.
 | Canais ATM e Quiosques | por fazer — serviços próprios, independentes do POS |
 | Serviço `cases` | por fazer |
 
-## Pré-requisitos
+## Instalar e correr, do zero
 
-| | Versão | Notas |
-|---|---|---|
-| Docker | ≥ 25, com Compose v2 | traz o `uv` e o Python — não é preciso instalá-los |
-| Node | ≥ 22.22.3 (usamos 24 LTS) | só para o frontend. O Angular 22 não instala com menos |
+Numa máquina com Internet. Numa máquina da rede do banco, fazer primeiro os passos de
+[«Instalar no computador da rede do banco»](#instalar-no-computador-da-rede-do-banco).
 
-## Arrancar
+### 1. Instalar as ferramentas
 
-Tudo a partir desta pasta (a raiz do repo — onde está este ficheiro, o
-`docker-compose.yml` e o `.env.example`; não de dentro de `backend/` nem de
-`frontend/`).
+| Ferramenta | Versão | Onde | Para quê |
+|---|---|---|---|
+| **Git** | qualquer recente | [git-scm.com](https://git-scm.com/downloads). No Windows traz o **Git Bash** | obter o código, e o `bash` dos scripts |
+| **Docker Desktop** | Docker ≥ 25, Compose v2 | [docker.com](https://www.docker.com/products/docker-desktop/). No Windows, com o WSL 2 | o backend inteiro: Python, dependências e base de dados vêm nas imagens |
+| **Node.js** | 24 LTS (aceita `^22.22.3`, `^24.15.0`, `>= 26`) | [nodejs.org](https://nodejs.org/), ou `nvm install 24` | só o frontend. O npm vem com ele |
+| **make** | opcional | Linux e macOS já trazem. No Windows, usar os comandos de [«Windows, sem `make`»](#windows-sem-make) | atalhos para os comandos abaixo |
 
-```bash
-cp .env.example .env     # ajustar as senhas
-make up                  # traefik, postgres, auth-service, otel, jaeger e os serviços
-make migrate             # alembic upgrade head
+Não é preciso instalar Python, `uv`, PostgreSQL nem o Angular CLI: o backend corre em
+contentores, e o frontend usa o CLI local do projecto.
 
-# Em desenvolvimento o GEEA é simulado, e sobe à parte — não é um serviço nosso:
-docker compose -f external-services/geea-keycloak/docker-compose.yml up -d
-```
-
-### Windows, sem `make`
-
-O `Makefile` exige `bash` (`SHELL := /bin/bash`) — corre em Git Bash ou WSL. Em
-PowerShell nativo, sem `make`, o equivalente é:
-
-```powershell
-Copy-Item .env.example .env      # ajustar as senhas
-docker compose up -d --build     # traefik, postgres, auth-service, otel, jaeger e os serviços
-docker compose run --rm pos-closing-credit-validation alembic upgrade head
-docker compose -f external-services/geea-keycloak/docker-compose.yml up -d
-```
-
-O `make down` e os outros alvos do compose têm equivalente directo em `docker compose`.
-Ver os alvos no [`Makefile`](Makefile) para o comando exacto de cada um. O `make check`
-chama os scripts de `ci/`, que correm em Git Bash:
-`bash ci/service.sh check backend/services/platform/auth-service`.
-
-E o frontend, noutro terminal:
+Confirmar:
 
 ```bash
-cd frontend && npm install && npm start   # http://localhost:4200
+git --version
+docker --version && docker compose version
+node -v          # v24.x
+npm -v
 ```
 
-`*.localhost` resolve para 127.0.0.1 sem tocar no `/etc/hosts`:
+O Docker Desktop tem de estar aberto antes dos passos seguintes.
 
-| | |
-|---|---|
-| Aplicação (dev) | http://localhost:4200 |
-| API (dev, direto) | http://localhost:8101 |
-| GEEA (mock) | http://127.0.0.1:8100 |
-| Jaeger | http://jaeger.mozaops.localhost |
-| Painel do Traefik | http://127.0.0.1:8080 |
-
-Para entrar, o mock do GEEA tem dois utilizadores de teste, um que abre todas as áreas e outro
-só Canais. As credenciais estão em
-[`external-services/geea-keycloak/README.md`](external-services/geea-keycloak/README.md).
+### 2. Obter o código
 
 ```bash
-make            # lista os comandos
-make check      # lock, ruff, mypy e testes, serviço a serviço
-make down       # pára, mantendo os dados
+git clone https://github.com/DaltonChivambo/ops.git
+cd ops
+```
+
+Todos os comandos a seguir correm desta pasta, a raiz do repositório, salvo quando dizem
+`cd frontend`.
+
+### 3. Configurar
+
+```bash
+cp .env.example .env
+```
+
+Abrir o `.env` e trocar as senhas (`POSTGRES_PASSWORD`, `DB_*_PASSWORD`). Para desenvolvimento,
+o resto pode ficar como vem: o GEEA simulado, e tudo da Internet.
+
+### 4. Backend
+
+```bash
+make up          # constrói as imagens e sobe traefik, postgres, auth-service, a automação, otel e jaeger
+make migrate     # cria as tabelas da automação (Alembic)
+```
+
+As dependências Python instalam-se **dentro das imagens**, a partir do `requirements.txt` de
+cada serviço, no `make up`. Não há `pip install` a fazer na máquina. A primeira vez demora uns
+minutos; as seguintes vêm da cache.
+
+O GEEA simulado, para se poder entrar sem o GEEA real:
+
+```bash
+docker compose -f external-services/geea-keycloak/docker-compose.yml --env-file .env up -d
+```
+
+Confirmar que está tudo de pé:
+
+```bash
+make status      # todos os contentores Up, e os serviços (healthy)
+make verify-m0   # infraestrutura, isolamento das bases e login ponta a ponta
+```
+
+### 5. Frontend
+
+Noutro terminal:
+
+```bash
+cd frontend
+npm ci           # instala as dependências exactamente como estão no package-lock.json
+npm start        # http://localhost:4200
+```
+
+Abrir http://localhost:4200 e entrar com um dos utilizadores do GEEA simulado (as credenciais
+estão em [`external-services/geea-keycloak/README.md`](external-services/geea-keycloak/README.md)).
+O `npm start` encaminha o `/api` para o backend do passo 4, por isso os dois têm de estar de pé.
+
+### 6. Testes
+
+```bash
+make check                          # backend: lock em dia, ruff, mypy --strict e pytest
+cd frontend && npm test && npm run build   # frontend: testes unitários e build de produção
+```
+
+São os mesmos que o CI corre em cada push.
+
+### 7. Parar e actualizar
+
+```bash
+make down        # pára tudo, mantendo os dados
+git pull         # código novo
+make up          # reconstrói o que mudou
+make migrate     # se vieram migrações novas
+cd frontend && npm ci   # se o package-lock.json mudou
 ```
 
 > **`make clean` apaga os volumes.** A base local pode ter execuções reais do departamento.
 > Não é comando para correr por hábito.
+
+### Windows, sem `make`
+
+O `Makefile` exige `bash`, que corre em Git Bash ou WSL. Em PowerShell, os equivalentes:
+
+| Com `make` | Sem `make` |
+|---|---|
+| `cp .env.example .env` | `Copy-Item .env.example .env` |
+| `make up` | `docker compose up -d --build` |
+| `make migrate` | `docker compose run --rm pos-closing-credit-validation alembic upgrade head` |
+| `make status` | `docker compose ps` |
+| `make verify-m0` | `bash scripts/verify-m0.sh` (no Git Bash) |
+| `make check` | `bash ci/service.sh check <pasta do serviço>` (no Git Bash) |
+| `make down` | `docker compose down` |
+
+### Endereços em desenvolvimento
+
+`*.localhost` resolve para 127.0.0.1 sem tocar no `/etc/hosts`.
+
+| | |
+|---|---|
+| Aplicação | http://localhost:4200 |
+| API da automação POS | http://localhost:8101 (docs em `/docs`) |
+| API do `auth-service` | http://localhost:8010 |
+| GEEA simulado | http://127.0.0.1:8100 |
+| Jaeger | http://jaeger.mozaops.localhost |
+| Painel do Traefik | http://127.0.0.1:8080 |
 
 ## Onde se troca cada endereço
 

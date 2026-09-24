@@ -14,31 +14,50 @@ backend/
 
 ## Correr
 
-A partir da raiz do monorepo — o backend não se arranca de dentro de `backend/`.
-Se estiveres nesta pasta, sai primeiro: `cd ..`.
+O percurso completo, desde instalar as ferramentas até abrir a aplicação, está em
+[«Instalar e correr, do zero»](../README.md#instalar-e-correr-do-zero), no README da raiz. Do
+lado do backend resume-se a isto, sempre a partir da raiz do repositório (se estiveres nesta
+pasta, `cd ..` primeiro):
 
 ```bash
-cp .env.example .env     # ajustar as senhas
-make up                  # traefik, postgres, auth-service, otel, jaeger e os serviços
-make migrate             # alembic upgrade head
-
-# Em desenvolvimento o GEEA é simulado, e sobe à parte — não é um serviço nosso:
-docker compose -f external-services/geea-keycloak/docker-compose.yml up -d
+cp .env.example .env     # e trocar as senhas
+make up                  # constrói as imagens e sobe tudo
+make migrate             # cria as tabelas (Alembic)
+docker compose -f external-services/geea-keycloak/docker-compose.yml --env-file .env up -d
+make verify-m0           # confirma que está tudo de pé
 ```
+
+**Só é preciso o Docker.** O Python, o `uv` e as dependências vêm nas imagens: o `make up`
+constrói cada serviço a partir do `Dockerfile` dele, e o `pip` instala o `requirements.txt`
+lá dentro. Na máquina não se instala nada de Python.
 
 ```bash
 make            # lista os comandos
 make check      # por pacote e serviço: lock, ruff, mypy --strict e pytest
-make lock       # refaz o uv.lock e os requirements de cada serviço
+make lock       # refaz o uv.lock e os requirements de cada serviço (precisa de Internet)
 make down       # pára, mantendo os dados
 ```
 
 > **`make clean` apaga os volumes.** A base local pode ter execuções reais do
 > departamento. Não é comando para correr por hábito.
 
-Ver a tabela de portas em [«Arrancar» da raiz](../README.md#arrancar) para os
-endereços em desenvolvimento, e o README de cada serviço abaixo para o correr
-isoladamente.
+### Ambiente local para o editor (opcional)
+
+Para o editor reconhecer os imports e correr os testes fora do Docker, cada serviço pode ter o
+seu `.venv`. Precisa do [`uv`](https://docs.astral.sh/uv/getting-started/installation/), que
+instala sozinho a versão de Python que o serviço pede:
+
+```bash
+cd backend/services/platform/auth-service
+uv sync              # cria o .venv com as dependências do uv.lock
+uv run pytest -q     # os testes, sem Docker
+```
+
+É o mesmo em qualquer serviço e no `backend/packages/mozaops-libs`. Na rede do banco, o
+`uv sync` só funciona se o `uv` apontar ao Nexus (`UV_DEFAULT_INDEX`); o Docker não precisa disto.
+
+Ver os [endereços em desenvolvimento](../README.md#endereços-em-desenvolvimento) no README da
+raiz, e o README de cada serviço abaixo para o correr isoladamente.
 
 ### Só a primeira automação (reconciliação POS)
 
@@ -73,7 +92,7 @@ e a secção [«Correr»](#correr) acima.
 | [`business/reconciliation/pos-closing-credit-validation`](services/business/reconciliation/pos-closing-credit-validation/README.md) | `business/reconciliation` | `/api/pos/validacao-credito-fecho` | 8101 |
 
 Cada linha aponta para o README do serviço — o que faz, como se organiza, e como
-correr só esse. Para subir tudo junto, ver o [«Arrancar» da raiz](../README.md#arrancar).
+correr só esse. Para subir tudo junto, ver o [«Instalar e correr, do zero»](../README.md#instalar-e-correr-do-zero).
 
 ## Pacotes internos
 

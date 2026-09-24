@@ -40,6 +40,13 @@ Só é preciso Node. Nada de Angular CLI global, nada de Docker, nada de backend
 | **Node** | `^22.22.3`, `^24.15.0` ou `>= 26` | é o que o próprio Angular 22 exige; abaixo disso o `npm install` recusa. Recomendado o **24 LTS**: `nvm install 24` |
 | **npm** | ≥ 8 | vem com o Node |
 
+Instalar o Node:
+
+- **Windows:** o instalador LTS de [nodejs.org](https://nodejs.org/), ou o
+  [nvm-windows](https://github.com/coreybutler/nvm-windows) e depois
+  `nvm install 24` e `nvm use 24`.
+- **Linux e macOS:** o [nvm](https://github.com/nvm-sh/nvm) e depois `nvm install 24`.
+
 Verificar o que se tem:
 
 ```bash
@@ -56,9 +63,17 @@ escrever `ng ...` à mão instala-o com `npm i -g @angular/cli@22`.
 A partir desta pasta (`frontend/`):
 
 ```bash
-npm install        # primeira vez, ou quando o package-lock.json mudar
+npm ci             # instala as dependências exactamente como no package-lock.json
 npm start          # ng serve, já com o proxy do proxy.conf.json
 ```
+
+O `npm ci` volta a correr-se sempre que o `package-lock.json` mudar, por exemplo depois de um
+`git pull`. O `npm install <pacote>` fica só para acrescentar uma dependência nova, e muda o
+`package-lock.json`, que vai no commit.
+
+Na rede do banco o `npm` tem de ir ao Nexus: `npm config set registry <URL do repositório
+npm do Nexus>`, uma vez por máquina. Ver [«Instalar no computador da rede do
+banco»](../README.md#instalar-no-computador-da-rede-do-banco).
 
 Depois abrir **http://localhost:4200/**. A raiz encaminha para a automação dos
 fechos de POS. O servidor recompila e recarrega sozinho a cada alteração aos
@@ -81,6 +96,7 @@ Com o backend de pé (`make up` na raiz do monorepo), o `ng serve` reencaminha:
 
 | Prefixo | Destino | |
 |---|---|---|
+| `/api/auth-service` | `localhost:8010` | serviço `auth-service`: login e sessão |
 | `/api/pos/validacao-credito-fecho` | `localhost:8101` | serviço `pos-closing-credit-validation` |
 
 O browser fala só com o `localhost:4200`, tal como em produção fala só com o
