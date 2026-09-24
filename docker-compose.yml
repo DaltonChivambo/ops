@@ -22,6 +22,13 @@ name: mozaops
 x-geea-host: &geea-host
   - "${GEEA_HOSTNAME:-geea-host-not-set}:${GEEA_IP:-127.0.0.1}"
 
+# O que nunca passa pelo proxy corporativo: os contentores entre si e o GEEA.
+# Sem isto, um Docker Desktop configurado com proxy manda o pedido ao GEEA para o
+# proxy, que não o alcança, e o login falha com ConnectError.
+x-no-proxy: &no-proxy
+  NO_PROXY: localhost,127.0.0.1,postgres,auth-service,pos-closing-credit-validation,geea-keycloak,${GEEA_HOSTNAME:-},${GEEA_IP:-}
+  no_proxy: localhost,127.0.0.1,postgres,auth-service,pos-closing-credit-validation,geea-keycloak,${GEEA_HOSTNAME:-},${GEEA_IP:-}
+
 x-build-args: &build-args
   IMAGE_REGISTRY: ${IMAGE_REGISTRY:-docker.io}
   IMAGE_NAMESPACE: ${IMAGE_NAMESPACE:-library}
@@ -64,6 +71,7 @@ services:
     container_name: mozaops-pos-closing-credit-validation
     restart: unless-stopped
     environment:
+      <<: *no-proxy
       DATABASE_URL: postgresql+asyncpg://${DB_RECONCILIATION_USER}:${DB_RECONCILIATION_PASSWORD}@postgres:5432/mozaops_pos_closing_credit_validation
       LOG_LEVEL: ${LOG_LEVEL}
       # Com default: um `.env` sem a variável daria string vazia num campo inteiro.
@@ -102,6 +110,7 @@ services:
     container_name: mozaops-auth-service
     restart: unless-stopped
     environment:
+      <<: *no-proxy
       LOG_LEVEL: ${LOG_LEVEL}
       AUTH_ISSUER: ${AUTH_ISSUER}
       AUTH_JWKS_URL: ${AUTH_JWKS_URL}

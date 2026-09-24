@@ -342,6 +342,18 @@ Dois cuidados:
 
   Depois, `docker compose up -d` para os contentores lerem o `.env` novo.
 
+  Se o Docker Desktop estiver configurado com o proxy do banco, os contentores já não o usam
+  para o GEEA: o `GEEA_HOSTNAME` e o `GEEA_IP` entram sozinhos no `NO_PROXY` deles.
+
+  Para ver de uma vez onde está o problema, na raiz do repositório:
+
+  ```powershell
+  powershell -ExecutionPolicy Bypass -File scripts\check-geea.ps1
+  ```
+
+  Confirma o `.env`, o que o compose lê, o que o contentor vê e se chega ao GEEA, e diz o que
+  corrigir em cada passo que falhe.
+
 Com o GEEA do QAS, o simulado não se sobe.
 
 **5. Confirmar de onde vem cada imagem**, antes de construir:
