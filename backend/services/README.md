@@ -35,7 +35,8 @@ serviço a prometer servir os três canais.
 
 **Numa (sub)categoria existente**, é criar a pasta lá dentro, com o `Dockerfile` e o
 `pyproject.toml` do serviço mais parecido como ponto de partida. O `make check` descobre-o
-pelo `Dockerfile`, sem editar nada fora da pasta.
+pelo `Dockerfile`, sem editar nada fora da pasta. No `docker-compose.yml`, o bloco do serviço leva
+`extra_hosts: *geea-host`, como os outros: é o que o deixa chegar ao GEEA na rede do banco.
 
 **Categoria nova** só quando houver um processo que não caiba em nenhuma —
 e com pelo menos um serviço a entrar já. Uma pasta de categoria vazia, ou com um
