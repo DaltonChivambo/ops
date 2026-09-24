@@ -44,25 +44,25 @@ export interface Stat {
   template: `
     @let s = stat();
 
-    <section appCard class="flex h-full flex-col gap-3">
-      <div class="flex items-start justify-between gap-2">
-        <p class="min-w-0 truncate text-base text-gray-600">{{ s.label }}</p>
+    <section appCard compact class="flex h-full flex-col gap-2">
+      <div class="flex items-center justify-between gap-2">
+        <p class="min-w-0 truncate text-sm text-gray-600">{{ s.label }}</p>
 
         <span
-          class="inline-flex size-11 shrink-0 items-center justify-center rounded-xl bg-moza-100 text-moza-700"
+          class="inline-flex size-9 shrink-0 items-center justify-center rounded-lg bg-moza-100 text-moza-700"
         >
           @switch (s.icon) {
             @case ('file-check') {
-              <svg lucideFileCheckCorner [size]="20" [strokeWidth]="1.8"></svg>
+              <svg lucideFileCheckCorner [size]="18" [strokeWidth]="1.8"></svg>
             }
             @case ('percent') {
-              <svg lucidePercent [size]="20" [strokeWidth]="1.8"></svg>
+              <svg lucidePercent [size]="18" [strokeWidth]="1.8"></svg>
             }
             @case ('banknote') {
-              <svg lucideBanknote [size]="20" [strokeWidth]="1.8"></svg>
+              <svg lucideBanknote [size]="18" [strokeWidth]="1.8"></svg>
             }
             @case ('alert-triangle') {
-              <svg lucideTriangleAlert [size]="20" [strokeWidth]="1.8"></svg>
+              <svg lucideTriangleAlert [size]="18" [strokeWidth]="1.8"></svg>
             }
           }
         </span>
@@ -75,7 +75,7 @@ export interface Stat {
       <p [class]="valueClass()">{{ displayValue()
       }}@if (s.unit) {<span class="ml-1 text-[0.55em] font-normal text-gray-400">{{ s.unit }}</span>}</p>
 
-      <p class="mt-auto flex items-center gap-1.5 text-sm">
+      <p class="mt-auto flex items-center gap-1.5 text-[0.8125rem]">
         @if (s.changePercent !== undefined) {
           <span
             class="inline-flex items-center gap-0.5 font-semibold"
