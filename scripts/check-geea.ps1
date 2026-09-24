@@ -31,6 +31,9 @@ Get-Content -LiteralPath '.env' | Where-Object { $_ -match '^\s*[A-Z_]+=' } | Fo
     $nome, $valor = $_ -split '=', 2
     $env_[$nome.Trim()] = $valor.Trim().Trim('"')
 }
+# O nome antigo do par do Keycloak, que o compose também aceita.
+if (-not $env_['KEYCLOAK_HOSTNAME']) { $env_['KEYCLOAK_HOSTNAME'] = $env_['GEEA_ISSUER_HOSTNAME'] }
+if (-not $env_['KEYCLOAK_IP']) { $env_['KEYCLOAK_IP'] = $env_['GEEA_ISSUER_IP'] }
 
 $login = $env_['GEEA_SSOLOGIN_URL']; $chaves = $env_['AUTH_JWKS_URL']; $issuer = $env_['AUTH_ISSUER']
 if (-not $login -or -not $chaves -or -not $issuer) { Falha 'faltam GEEA_SSOLOGIN_URL, AUTH_JWKS_URL ou AUTH_ISSUER no .env'; exit 1 }

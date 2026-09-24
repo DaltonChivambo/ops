@@ -19,17 +19,17 @@ name: mozaops
 # Nome e IP do GEEA (o login) e do Keycloak (emite os tokens), para quando o nome
 # não resolve dentro dos contentores (o Windows completa-o com o domínio da rede,
 # o Docker não). Vai em todos os contentores, e num serviço novo também. Sem as
-# variáveis, é inofensivo.
+# variáveis, é inofensivo. O Keycloak aceita também o nome antigo, GEEA_ISSUER_*.
 x-geea-host: &geea-host
   - "${GEEA_HOSTNAME:-geea-host-not-set}:${GEEA_IP:-127.0.0.1}"
-  - "${KEYCLOAK_HOSTNAME:-keycloak-host-not-set}:${KEYCLOAK_IP:-127.0.0.1}"
+  - "${KEYCLOAK_HOSTNAME:-${GEEA_ISSUER_HOSTNAME:-keycloak-host-not-set}}:${KEYCLOAK_IP:-${GEEA_ISSUER_IP:-127.0.0.1}}"
 
 # O que nunca passa pelo proxy corporativo: os contentores entre si e o GEEA.
 # Sem isto, um Docker Desktop configurado com proxy manda o pedido ao GEEA para o
 # proxy, que não o alcança, e o login falha com ConnectError.
 x-no-proxy: &no-proxy
-  NO_PROXY: localhost,127.0.0.1,postgres,auth-service,pos-closing-credit-validation,geea-keycloak,${GEEA_HOSTNAME:-},${GEEA_IP:-},${KEYCLOAK_HOSTNAME:-},${KEYCLOAK_IP:-}
-  no_proxy: localhost,127.0.0.1,postgres,auth-service,pos-closing-credit-validation,geea-keycloak,${GEEA_HOSTNAME:-},${GEEA_IP:-},${KEYCLOAK_HOSTNAME:-},${KEYCLOAK_IP:-}
+  NO_PROXY: localhost,127.0.0.1,postgres,auth-service,pos-closing-credit-validation,geea-keycloak,${GEEA_HOSTNAME:-},${GEEA_IP:-},${KEYCLOAK_HOSTNAME:-${GEEA_ISSUER_HOSTNAME:-}},${KEYCLOAK_IP:-${GEEA_ISSUER_IP:-}}
+  no_proxy: localhost,127.0.0.1,postgres,auth-service,pos-closing-credit-validation,geea-keycloak,${GEEA_HOSTNAME:-},${GEEA_IP:-},${KEYCLOAK_HOSTNAME:-${GEEA_ISSUER_HOSTNAME:-}},${KEYCLOAK_IP:-${GEEA_ISSUER_IP:-}}
 
 x-build-args: &build-args
   IMAGE_REGISTRY: ${IMAGE_REGISTRY:-docker.io}
