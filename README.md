@@ -84,8 +84,8 @@ cd frontend && npm install && npm start   # http://localhost:4200
 | Jaeger | http://jaeger.mozaops.localhost |
 | Painel do Traefik | http://127.0.0.1:8080 |
 
-Para entrar, o mock do GEEA tem dois utilizadores: `m001926` (Dalton Chivambo, abre todas as
-áreas) e `m002000` (John Doe, só Canais). As credenciais estão em
+Para entrar, o mock do GEEA tem dois utilizadores de teste, um que abre todas as áreas e outro
+só Canais. As credenciais estão em
 [`external-services/geea-keycloak/README.md`](external-services/geea-keycloak/README.md).
 
 ```bash
@@ -127,32 +127,6 @@ acompanhar, porque é contra ele que se valida o `iss` de cada token.
 | Harbor: imagem do uv, para o `mozaops-libs` | `UV_IMAGE` |
 
 As duas primeiras linhas são as que decidem a máquina. As outras três só servem para publicar.
-
-### Com Internet, ou na rede do banco
-
-O comando é o mesmo nas duas máquinas: `make up` (ou `docker compose up -d --build`). O que
-muda é o `.env`.
-
-- **Com Internet:** deixa-se a secção «De onde vêm as imagens e os pacotes» do `.env`
-  comentada. Tudo vem do Docker Hub e do PyPI.
-- **Na rede do banco**, onde só o Harbor e o Nexus são alcançáveis: descomenta-se e
-  preenche-se essa secção. O build dos serviços, o postgres, o traefik, o otel e o jaeger passam
-  a vir do Harbor, e os pacotes Python do Nexus. O GEEA simulado também, se se subir com o
-  `.env` da raiz:
-  `docker compose -f external-services/geea-keycloak/docker-compose.yml --env-file .env up -d`.
-  O passo a passo está em [«Instalar no computador da rede do banco»](#instalar-no-computador-da-rede-do-banco).
-
-Numa pipeline, as mesmas variáveis vêm da configuração dela, e o `ci/service.sh` usa-as:
-
-```bash
-ci/service.sh build backend/services/platform/auth-service
-ci/service.sh push  backend/services/platform/auth-service
-```
-
-**Uma coisa só se faz com Internet: mudar dependências.** O `ci/service.sh lock` resolve as
-versões contra o PyPI, e recusa correr com `PYPI_INDEX_URL` definido. Contra o Nexus o uv
-resolveria tudo de novo, e o lock deixava de servir à outra máquina. O que o lock produz
-(`requirements.txt`, com hashes) instala-se igual das duas maneiras.
 
 ### Instalar no computador da rede do banco
 
@@ -207,12 +181,12 @@ No mesmo `.env`, trocar as senhas.
    # GEEA_SSOLOGIN_URL=http://geea-keycloak:8000/geea/idmUtils/SSOLogin
    # GEEA_TOKEN_URL=http://geea-keycloak:8000/auth/realms/QAS/protocol/openid-connect/token
    ```
-2. Descomentar as quatro do QAS, logo abaixo:
+2. Descomentar as quatro do QAS, logo abaixo, e pôr o host do GEEA do QAS:
    ```bash
-   AUTH_ISSUER=http://svdcpapq51:8083/auth/realms/QAS
-   AUTH_JWKS_URL=http://svdcpapq51:8083/auth/realms/QAS/protocol/openid-connect/certs
-   GEEA_SSOLOGIN_URL=http://svdcpapq51:8083/geea/idmUtils/SSOLogin
-   GEEA_TOKEN_URL=http://svdcpapq51:8083/auth/realms/QAS/protocol/openid-connect/token
+   AUTH_ISSUER=http://<host do GEEA do QAS>/auth/realms/QAS
+   AUTH_JWKS_URL=http://<host do GEEA do QAS>/auth/realms/QAS/protocol/openid-connect/certs
+   GEEA_SSOLOGIN_URL=http://<host do GEEA do QAS>/geea/idmUtils/SSOLogin
+   GEEA_TOKEN_URL=http://<host do GEEA do QAS>/auth/realms/QAS/protocol/openid-connect/token
    ```
 3. Pôr o segredo real do cliente, pedido a quem gere o GEEA:
    ```bash
@@ -223,7 +197,7 @@ No mesmo `.env`, trocar as senhas.
 Dois cuidados:
 - O `AUTH_ISSUER` tem de ser igual ao `iss` dos tokens do QAS. Se não for, o login entra mas
   as automações respondem 401.
-- Os contentores têm de chegar ao `svdcpapq51`. Se o nome curto não resolver dentro do Docker,
+- Os contentores têm de chegar ao host do GEEA. Se o nome curto não resolver dentro do Docker,
   usar o nome completo, com o domínio, nas quatro linhas.
 
 Com o GEEA do QAS, o simulado não se sobe.
