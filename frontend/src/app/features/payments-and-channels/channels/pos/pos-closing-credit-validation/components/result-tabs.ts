@@ -331,16 +331,11 @@ export class ResultTabsComponent {
   }
 
   protected readonly dataQuality = computed(() => {
-    const { keyCollisions, unregisteredPos, bankaRepeatedMovements, bankaDuplicatesDiscarded } =
-      this.result().summary;
+    const { keyCollisions, unregisteredPos, bankaDuplicatesDiscarded } = this.result().summary;
     const notes: string[] = [];
     // Os duplicados na SIMO não são aviso: contam e ficam marcados na tabela.
-    // Os do Banka vão para análise; nas execuções antigas fundiam-se num só.
-    if (bankaRepeatedMovements) {
-      notes.push(
-        `${this.n(bankaRepeatedMovements)} créditos repetidos no Banka, enviados para análise`,
-      );
-    } else if (bankaDuplicatesDiscarded) {
+    // O Banka repetido conta uma vez, e diz-se quantos.
+    if (bankaDuplicatesDiscarded) {
       notes.push(
         `${this.n(bankaDuplicatesDiscarded)} movimentos repetidos no Banka, contados uma vez`,
       );

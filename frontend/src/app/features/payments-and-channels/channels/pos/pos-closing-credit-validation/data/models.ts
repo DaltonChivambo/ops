@@ -192,10 +192,8 @@ export interface ClosingSummary {
   /** O operador mandou contar esse dinheiro na reconciliação de montantes.
    *  Ausente nas execuções antigas. */
   countSimoDuplicates?: boolean;
-  /** Créditos do Banka com N_DOCUMENTO repetido em fechos da SIMO. Contam, e o
-   *  fecho vai para análise. Ausente nas execuções anteriores a esta regra. */
-  bankaRepeatedMovements?: number;
-  /** Execuções antigas: os repetidos fundiam-se num só e contavam-se aqui. */
+  /** Movimentos repetidos no extracto do Banka (o mesmo N_DOCUMENTO), descartados
+   *  antes de somar. Ausente nas execuções gravadas antes de se contar. */
   bankaDuplicatesDiscarded?: number;
   /** Chaves que agregam >1 período por colisão em `período % 1000` (falsa divergência). */
   keyCollisions: number;

@@ -486,11 +486,11 @@ const posLabel = (item: PendingCase): string => `POS ${item.posId} · período $
 
 /**
  * O resumo de uma execução acabada: os números que dizem como correu, cada um na
- * sua linha. Um crédito repetido no Banka não pára a execução: o fecho vai para
- * análise, e o operador tem de saber quantos vieram assim.
+ * sua linha. Um extracto do Banka com movimentos repetidos não pára a execução —
+ * descartam-se —, mas o operador tem de saber que o ficheiro vinha assim.
  */
 function executionToast({ reportName, summary }: ValidationResult): Toast {
-  const repeated = summary.bankaRepeatedMovements ?? 0;
+  const repeated = summary.bankaDuplicatesDiscarded ?? 0;
   const simoRepeated = summary.duplicatesDiscarded;
   return {
     title: 'Validação concluída',
@@ -517,7 +517,7 @@ function executionToast({ reportName, summary }: ValidationResult): Toast {
       ...(repeated > 0
         ? [
             {
-              label: 'Créditos repetidos no Banka (análise)',
+              label: 'Movimentos repetidos ignorados (Banka)',
               value: count(repeated),
               tone: 'warning' as const,
             },

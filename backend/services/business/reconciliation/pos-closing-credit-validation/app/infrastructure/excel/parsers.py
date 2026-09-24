@@ -188,15 +188,8 @@ def parse_simo_closings(stream: IO[bytes], filename: str) -> list[SimoClosing]:
     return closings
 
 
-def parse_banka_credits(
-    stream: IO[bytes], filename: str
-) -> tuple[dict[str, BankaCredit], dict[str, int]]:
-    """Créditos do Banka (MIS) agregados por chave «POS ID vs. Período».
-
-    Um movimento com N_DOCUMENTO repetido não se funde: pode ser o mesmo crédito
-    exportado duas vezes ou um crédito em dobro, e só a análise o decide. Soma à
-    chave como os outros, e devolve-se quantos havia em cada chave.
-    """
+def parse_banka_credits(stream: IO[bytes], filename: str) -> tuple[dict[str, BankaCredit], int]:
+    """Créditos do Banka (MIS) agregados por chave «POS ID vs. Período»."""
     sheet = _open_sheet(stream, UploadSlot.BANKA_CREDITS, filename, "FECHO_POS")
     header, rows = _header_and_rows(
         sheet,
@@ -217,7 +210,7 @@ def parse_banka_credits(
 
     credits: dict[str, BankaCredit] = {}
     seen: set[object] = set()
-    repeated: dict[str, int] = {}
+    discarded = 0
     for row in rows:
         description = cell_text(_value(row, desc_col)) if desc_col is not None else ""
         key = key_from_description(description) if description else ""
@@ -229,7 +222,8 @@ def parse_banka_credits(
         # Sem documento a identidade é a linha inteira, e o leitor entrega-a como lista.
         identity: object = ("doc", document) if document else ("row", tuple(row))
         if identity in seen:
-            repeated[key] = repeated.get(key, 0) + 1
+            discarded += 1
+            continue
         seen.add(identity)
 
         credit_date = cell_date(_value(row, date_col)) if date_col is not None else None
@@ -249,4 +243,4 @@ def parse_banka_credits(
                 description=description or None,
                 movements=[movement],
             )
-    return credits, repeated
+    return credits, discarded
