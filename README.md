@@ -219,7 +219,21 @@ Se o Harbor usar um certificado da CA interna, o Docker tem de confiar nela prim
 Docker Desktop: *Settings → Docker Engine*, e acrescentar o host a `insecure-registries`, ou
 instalar a CA no Windows.
 
-**3. Criar o `.env`** e preencher a secção «De onde vêm as imagens e os pacotes»:
+**3. Criar o `.env`.** Há duas maneiras:
+
+- **Com o `.env.prod`** (recomendado). É um ficheiro com os endereços reais do Harbor, do Nexus
+  e do GEEA do QAS já preenchidos. **Não está no git**, porque tem endereços internos do banco:
+  pede-se a quem mantém o MozaOps e leva-se para a máquina por um canal interno. Depois, na raiz
+  do repositório:
+
+  ```bash
+  cp .env.prod .env
+  ```
+
+  Faltam só os valores entre `<>`: as senhas e o `GEEA_CLIENT_SECRET`. Com o `.env.prod`, os
+  passos 3 e 4 ficam feitos, e segue-se para o 5.
+
+- **À mão**, a partir do modelo, preenchendo a secção «De onde vêm as imagens e os pacotes»:
 
 ```bash
 cp .env.example .env
