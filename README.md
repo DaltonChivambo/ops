@@ -1,22 +1,19 @@
 # MozaOps
 
-Plataforma de automações operacionais do **Moza Banco** — Departamento de Meios de Pagamento
-e Canais (DOP).
+Plataforma de automação de processos operacionais do **Moza Banco**, para a **Direcção de
+Operações**.
 
-Substitui o fecho manual em Excel — exportar do Portal SIMO, do Banka e do MIS e cruzar à mão
-com `VLOOKUP` — por execuções auditáveis e persistidas. Cada processo do departamento é uma
-**automação**: um módulo com a sua página, as suas regras e as suas tabelas.
+Leva para um só sítio o trabalho que hoje se faz à mão em folhas de cálculo: cruzar ficheiros
+de vários sistemas, encontrar o que não bate e acompanhar cada caso até ficar resolvido. Cada
+processo passa a ser uma **automação**, com a sua página e as suas regras. Cada execução fica
+gravada, com o relatório e os casos por tratar, e cada pessoa entra com a conta do banco e vê
+só as áreas em que trabalha.
+
+A primeira automação é a validação de crédito de valores de fecho de POS, do departamento de
+Meios de Pagamento e Canais.
 
 - **[`ARCHITECTURE.md`](ARCHITECTURE.md)** — o que o sistema é, e porquê: camadas, decomposição, infraestrutura.
 - **[`OWNERS.md`](OWNERS.md)** — quem é dono de quê.
-
-## Arquitectura, em cinco linhas
-
-Monorepo. Backend FastAPI em serviços independentes, cada um com o seu Dockerfile, a sua versão
-de Python e o seu lock, e com uma base de dados e um role próprios, sem acesso à do outro. Frontend Angular 22. Traefik como entrada única — o que faz com que o SPA e
-a API partilhem origem e não exista CORS nenhum para configurar. Identidade no GEEA — o
-Keycloak corporativo, já federado com o AD — e acesso por área, não por papel. Tudo em Docker
-Compose.
 
 ## Estado
 

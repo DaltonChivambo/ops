@@ -2,14 +2,14 @@
 
 ## O que é a plataforma
 
-O **MozaOps** é a plataforma de automações operacionais do **Moza Banco**, do
-Departamento de Meios de Pagamento e Canais (DOP).
+O **MozaOps** é a plataforma de automação de processos operacionais do **Moza
+Banco**, para a **Direcção de Operações**.
 
-Substitui o fecho manual em Excel — exportar do Portal SIMO, do Banka e do MIS e
-cruzar à mão com `VLOOKUP` — por execuções auditáveis e persistidas. Cada
-processo do departamento é uma **automação**: um módulo com a sua página, as
-suas regras e as suas tabelas. Hoje existe uma construída, a validação de
-crédito de valores de fecho de POS.
+Leva para um só sítio o trabalho que hoje se faz à mão em folhas de cálculo:
+cruzar ficheiros de vários sistemas, encontrar o que não bate e acompanhar cada
+caso até ficar resolvido. Cada processo é uma **automação**, com a sua página e
+as suas regras. Hoje existe uma construída, a validação de crédito de valores de
+fecho de POS, do departamento de Meios de Pagamento e Canais.
 
 O monorepo tem duas metades que falam uma com a outra: um backend em FastAPI,
 com uma base de dados por serviço, e este frontend. Entre o browser e os

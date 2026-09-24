@@ -7,10 +7,11 @@
 
 ## 1. Visão geral
 
-Plataforma de automações operacionais do Moza Banco. Substitui o fecho manual em Excel —
-exportar do Portal SIMO, do Banka e do MIS e cruzar à mão com `VLOOKUP` — por execuções
-auditáveis e persistidas. Cada processo do departamento é uma **automação**: um módulo com a
-sua página, as suas regras e as suas tabelas.
+Plataforma de automação de processos operacionais do Moza Banco, para a Direcção de
+Operações. Leva para um só sítio o trabalho que hoje se faz à mão em folhas de cálculo: cruzar
+ficheiros de vários sistemas, encontrar o que não bate e acompanhar cada caso até ficar
+resolvido. Cada processo é uma **automação**: um serviço com a sua página, as suas regras e as
+suas tabelas.
 
 ```mermaid
 flowchart LR
