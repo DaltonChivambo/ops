@@ -263,19 +263,3 @@ Se o Nexus não tiver repositório npm, o frontend corre numa máquina com Inter
 **O que não se faz nesta máquina:** mudar dependências Python (`ci/service.sh lock`). Precisa do
 PyPI, e recusa correr com `PYPI_INDEX_URL` definido. Faz-se na máquina com Internet, faz-se
 commit do `uv.lock` e dos `requirements*.txt`, e esta máquina instala-os pelo Nexus.
-
-## Convenções
-
-**Tudo em inglês, excepto o que o operador lê.** Pastas, ficheiros, classes, funções,
-variáveis de ambiente e tabelas são ingleses. Fica em português apenas o **conteúdo**: as
-mensagens que o operador lê, os rótulos do relatório, os textos da interface e a documentação
-— comentários incluídos. Nomes próprios não se traduzem: `SIMO`, `Banka`, `POS`, `eTicket`,
-`MZN`.
-
-As **rotas** são a excepção herdada: `/pos/validacao-credito-fecho` mantém os segmentos em
-português do MozaOps v1, porque é o contrato que o frontend já consome.
-
-## Aviso
-
-Os ficheiros `.xlsx` do departamento são **dados bancários reais** e estão excluídos do
-controlo de versões (`.gitignore`). Não os commitar, em circunstância nenhuma.
