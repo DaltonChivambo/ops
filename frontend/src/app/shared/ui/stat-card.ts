@@ -73,7 +73,7 @@ export interface Stat {
            Tudo colado: aqui o espaço em branco do template é texto. -->
       <!-- prettier-ignore -->
       <p
-        class="font-display leading-none font-bold whitespace-nowrap tabular-nums text-[length:min(1.75rem,var(--fit))] 2xl:text-[length:min(2rem,var(--fit))]"
+        class="font-display leading-none font-bold whitespace-nowrap tabular-nums text-[length:min(1.5rem,var(--fit))] 2xl:text-[length:min(1.625rem,var(--fit))]"
         [style.--fit]="fit()"
       >{{ displayValue()
       }}@if (s.unit) {<span class="ml-1 text-[0.55em] font-normal text-gray-400">{{ s.unit }}</span>}</p>
