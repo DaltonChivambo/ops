@@ -15,8 +15,8 @@ organiza-se por área, porque é o que o `service.yaml` e o `AUTH_AREAS` declara
 
 | Serviço | Contexto | Área | Owner | Porta | Base de dados |
 |---|---|---|---|---|---|
-| `business/reconciliation/pos-closing-credit-validation` | Validação de crédito de valores de fecho do POS | Canais | Dalton Chivambo | 8000 (8001 em dev) | `mozaops_pos_closing_credit_validation` |
-| `platform/auth-service` | Sessões e áreas — autenticação contra o GEEA | — (transversal) | Dalton Chivambo | 8000 (8002 em dev) | — |
+| `business/reconciliation/pos-closing-credit-validation` | Validação de crédito de valores de fecho do POS | Canais | Dalton Chivambo | 8000 (8101 em dev) | `mozaops_pos_closing_credit_validation` |
+| `platform/auth-service` | Sessões e áreas — autenticação contra o GEEA | — (transversal) | Dalton Chivambo | 8000 (8010 em dev) | — |
 
 ## Frontend
 

@@ -12,11 +12,11 @@ services:
   # está: quem entra é o Traefik, pela rede interna.
   pos-closing-credit-validation:
     ports:
-      - "127.0.0.1:8001:8000"
+      - "127.0.0.1:8101:8000"
 
   auth-service:
     ports:
-      - "127.0.0.1:8002:8000"
+      - "127.0.0.1:8010:8000"
 
   postgres:
     ports:

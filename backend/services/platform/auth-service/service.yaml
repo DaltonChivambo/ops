@@ -7,7 +7,7 @@ category: platform
 context: Sessões e áreas — autenticação contra o GEEA
 
 port: 8000
-dev_port: 8002
+dev_port: 8010
 
 # Sem `area`: é este serviço que diz quais são as de cada pessoa, e toda a
 # gente que se autentica lhe chega.

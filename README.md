@@ -79,7 +79,7 @@ cd frontend && npm install && npm start   # http://localhost:4200
 | | |
 |---|---|
 | Aplicação (dev) | http://localhost:4200 |
-| API (dev, direto) | http://localhost:8001 |
+| API (dev, direto) | http://localhost:8101 |
 | GEEA (mock) | http://127.0.0.1:8100 |
 | Jaeger | http://jaeger.mozaops.localhost |
 | Painel do Traefik | http://127.0.0.1:8080 |

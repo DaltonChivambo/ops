@@ -54,10 +54,10 @@ docker compose run --rm pos-closing-credit-validation alembic upgrade head
 
 | | |
 |---|---|
-| API | http://localhost:8001 |
+| API | http://localhost:8101 |
 | Rotas | `/api/pos/validacao-credito-fecho` |
-| Docs (OpenAPI) | http://localhost:8001/docs |
-| Health | http://localhost:8001/health |
+| Docs (OpenAPI) | http://localhost:8101/docs |
+| Health | http://localhost:8101/health |
 
 Sem o `auth-service` nem o GEEA mock, as rotas protegidas por sessão devolvem 401 —
 serve para ver o serviço a responder, não para testar o fluxo com autenticação.
@@ -69,8 +69,8 @@ e a secção [«Correr»](#correr) acima.
 
 | Serviço | Categoria | Rotas | Porta (dev) |
 |---|---|---|---|
-| [`platform/auth-service`](services/platform/auth-service/README.md) | `platform` | `/api/auth-service` | 8002 |
-| [`business/reconciliation/pos-closing-credit-validation`](services/business/reconciliation/pos-closing-credit-validation/README.md) | `business/reconciliation` | `/api/pos/validacao-credito-fecho` | 8001 |
+| [`platform/auth-service`](services/platform/auth-service/README.md) | `platform` | `/api/auth-service` | 8010 |
+| [`business/reconciliation/pos-closing-credit-validation`](services/business/reconciliation/pos-closing-credit-validation/README.md) | `business/reconciliation` | `/api/pos/validacao-credito-fecho` | 8101 |
 
 Cada linha aponta para o README do serviço — o que faz, como se organiza, e como
 correr só esse. Para subir tudo junto, ver o [«Arrancar» da raiz](../README.md#arrancar).

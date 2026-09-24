@@ -8,13 +8,13 @@
     "Serviços novos entram aqui quando existirem — o `cases` ainda não existe."
   ],
   "/api/auth-service": {
-    "target": "http://localhost:8002",
+    "target": "http://localhost:8010",
     "pathRewrite": { "^/api": "" },
     "changeOrigin": true,
     "secure": false
   },
   "/api/pos/validacao-credito-fecho": {
-    "target": "http://localhost:8001",
+    "target": "http://localhost:8101",
     "pathRewrite": { "^/api": "" },
     "changeOrigin": true,
     "secure": false

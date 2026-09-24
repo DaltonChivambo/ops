@@ -402,7 +402,7 @@ O workflow invoca o `make` e o `npm` em vez de repetir os comandos: duas definiÃ
 | | |
 |---|---|
 | Frontend (dev) | `cd frontend && npm start` â†’ http://localhost:4200 |
-| API (dev, direto) | http://localhost:8001 |
+| API (dev, direto) | http://localhost:8101 |
 | GEEA (mock) | http://127.0.0.1:8100 |
 | Jaeger | http://jaeger.mozaops.localhost |
 | Painel do Traefik | http://127.0.0.1:8080 |

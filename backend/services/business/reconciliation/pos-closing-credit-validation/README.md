@@ -14,7 +14,7 @@ próprios serviços em vez de partilhar este.
 | Categoria | `business/reconciliation` |
 | Departamento | Meios de Pagamentos e Canais (DOP) |
 | Canal | POS |
-| Porta | 8000 no contentor · 8001 publicada em desenvolvimento |
+| Porta | 8000 no contentor · 8101 publicada em desenvolvimento |
 | Rotas | `/api/pos/validacao-credito-fecho` |
 
 ## Responsabilidade
@@ -107,5 +107,5 @@ O último **salta-se sozinho** sem os ficheiros do departamento — são dados
 bancários e não são versionados. Para o correr, pô-los em `tests/fixtures/` como
 `pos-list.xlsx`, `simo-closings.xlsx` e `banka-credits.xlsx`.
 
-Em desenvolvimento o serviço escuta em `localhost:8001`, que é para onde o
+Em desenvolvimento o serviço escuta em `localhost:8101`, que é para onde o
 proxy do frontend reencaminha `/api/pos/validacao-credito-fecho`.

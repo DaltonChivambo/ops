@@ -16,10 +16,10 @@ category: business/reconciliation
 context: Validação de crédito de valores de fecho do POS
 
 # `port` é a que o contentor escuta — a mesma do EXPOSE, do gunicorn e do
-# `loadbalancer.server.port` do Traefik. A 8001 é só a publicação em
+# `loadbalancer.server.port` do Traefik. A 8101 é só a publicação em
 # desenvolvimento (`docker-compose.override.yml`), para o `ng serve` lhe chegar.
 port: 8000
-dev_port: 8001
+dev_port: 8101
 
 area: channels
 channels: [POS]
