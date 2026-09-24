@@ -28,7 +28,9 @@ Meios de Pagamento e Canais.
 
 ## Instalar e correr, do zero
 
-Numa máquina com Internet. Numa máquina da rede do banco, fazer primeiro os passos de
+Serve para as duas máquinas: a que tem Internet e a da rede do banco, onde só o Harbor e o Nexus
+são alcançáveis. Os passos que mudam dizem-no. O detalhe da rede do banco (as imagens que o
+Harbor tem de ter, certificados, o GEEA do QAS) está em
 [«Instalar no computador da rede do banco»](#instalar-no-computador-da-rede-do-banco).
 
 ### 1. Instalar as ferramentas
@@ -66,14 +68,56 @@ Todos os comandos a seguir correm desta pasta, a raiz do repositório, salvo qua
 
 ### 3. Configurar
 
+O `.env` é o único ficheiro que muda entre máquinas. Há dois pontos de partida:
+
+| | Máquina com Internet | Máquina na rede do banco |
+|---|---|---|
+| Ficheiro de partida | `.env.example` (está no git) | `.env.prod` (**não** está no git) |
+| Imagens | Docker Hub | Harbor |
+| Pacotes Python | PyPI | Nexus |
+| GEEA | o simulado | o do QAS |
+
+**Com Internet**, a partir do exemplo:
+
 ```bash
 cp .env.example .env
 ```
 
-Abrir o `.env` e trocar as senhas (`POSTGRES_PASSWORD`, `DB_*_PASSWORD`). Para desenvolvimento,
-o resto pode ficar como vem: o GEEA simulado, e tudo da Internet.
+Abrir o `.env` e trocar as senhas (`POSTGRES_PASSWORD`, `DB_*_PASSWORD`). O resto fica como vem.
+
+**Na rede do banco**, a partir dos dados de produção. O `.env.prod` já traz os endereços reais
+do Harbor, do Nexus e do GEEA do QAS. Pede-se a quem mantém o MozaOps e copia-se para a raiz do
+repositório por um canal interno, porque tem endereços internos do banco e por isso não está no
+git. Depois:
+
+```bash
+cp .env.prod .env
+```
+
+Abrir o `.env` e preencher o que está entre `<>`:
+
+```bash
+POSTGRES_PASSWORD="<senha forte>"
+DB_RECONCILIATION_PASSWORD="<senha forte>"
+DB_CASES_PASSWORD="<senha forte>"
+GEEA_CLIENT_SECRET="<segredo do qa-mozaops, pedido a quem gere o GEEA>"
+```
+
+E entrar no Harbor, uma vez por máquina, com o host que está em `IMAGE_REGISTRY`:
+
+```bash
+docker login <host do Harbor>
+```
+
+Antes de construir, confirmar que nenhuma imagem vem do Docker Hub:
+
+```bash
+docker compose config | grep image:   # todas começam pelo host do Harbor, excepto as mozaops/…:local
+```
 
 ### 4. Backend
+
+Igual nas duas máquinas:
 
 ```bash
 make up          # constrói as imagens e sobe traefik, postgres, auth-service, a automação, otel e jaeger
@@ -81,14 +125,16 @@ make migrate     # cria as tabelas da automação (Alembic)
 ```
 
 As dependências Python instalam-se **dentro das imagens**, a partir do `requirements.txt` de
-cada serviço, no `make up`. Não há `pip install` a fazer na máquina. A primeira vez demora uns
-minutos; as seguintes vêm da cache.
+cada serviço, no `make up`: do PyPI com Internet, do Nexus na rede do banco. Não há
+`pip install` a fazer na máquina. A primeira vez demora uns minutos; as seguintes vêm da cache.
 
-O GEEA simulado, para se poder entrar sem o GEEA real:
+**Só com Internet**, o GEEA simulado, para se poder entrar sem o GEEA real:
 
 ```bash
 docker compose -f external-services/geea-keycloak/docker-compose.yml --env-file .env up -d
 ```
+
+Na rede do banco não se sobe: o `.env.prod` aponta ao GEEA do QAS.
 
 Confirmar que está tudo de pé:
 
@@ -97,9 +143,19 @@ make status      # todos os contentores Up, e os serviços (healthy)
 make verify-m0   # infraestrutura, isolamento das bases e login ponta a ponta
 ```
 
+Na rede do banco, a parte «Identidade» do `verify-m0` falha: faz o login com os utilizadores do
+GEEA simulado, que o GEEA do QAS não conhece. O resto tem de passar. O login verifica-se
+entrando na aplicação com uma conta real.
+
 ### 5. Frontend
 
-Noutro terminal:
+**Só na rede do banco**, uma vez por máquina, apontar o npm ao repositório npm do Nexus:
+
+```bash
+npm config set registry <URL do repositório npm do Nexus>
+```
+
+Depois, igual nas duas máquinas, noutro terminal:
 
 ```bash
 cd frontend
@@ -107,8 +163,12 @@ npm ci           # instala as dependências exactamente como estão no package-l
 npm start        # http://localhost:4200
 ```
 
-Abrir http://localhost:4200 e entrar com um dos utilizadores do GEEA simulado (as credenciais
-estão em [`external-services/geea-keycloak/README.md`](external-services/geea-keycloak/README.md)).
+Abrir http://localhost:4200 e entrar:
+
+- **com Internet**, com um dos utilizadores do GEEA simulado (as credenciais estão em
+  [`external-services/geea-keycloak/README.md`](external-services/geea-keycloak/README.md));
+- **na rede do banco**, com a conta do banco, a mesma do domínio.
+
 O `npm start` encaminha o `/api` para o backend do passo 4, por isso os dois têm de estar de pé.
 
 ### 6. Testes
