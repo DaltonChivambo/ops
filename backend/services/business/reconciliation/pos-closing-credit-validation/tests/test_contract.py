@@ -167,7 +167,7 @@ def test_summary_indicators_are_the_dashboard_ones() -> None:
         "duplicatedPeriods",
         "duplicatesDiscarded",
         "countSimoDuplicates",
-        "bankaDuplicatesDiscarded",
+        "bankaRepeatedMovements",
         "keyCollisions",
         "unregisteredPos",
         "simoAmountMatched",

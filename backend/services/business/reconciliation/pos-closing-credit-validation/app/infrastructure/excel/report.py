@@ -277,7 +277,8 @@ def _add_summary_sheet(
     styles.summary_row(sheet, block_total_row, 3, total=True)
 
     # As linhas dos ficheiros e as repetidas. As da SIMO contam como fecho; as do
-    # Banka contam uma vez.
+    # Banka vão para análise. As execuções antigas fundiam as do Banka numa só,
+    # e guardaram-nas noutro campo.
     lines_title_row = block_total_row + 4
     sheet.merge_cells(f"B{lines_title_row}:D{lines_title_row}")
     sheet[f"B{lines_title_row}"] = "Linhas dos ficheiros"
@@ -286,12 +287,24 @@ def _add_summary_sheet(
     _write_header(sheet, lines_header_row, ["Descrição", "N° Linhas"])
     processed = int(summary.get("processed", 0))
     simo_repeated = int(summary.get("duplicatesDiscarded", 0))
-    banka_repeated = int(summary.get("bankaDuplicatesDiscarded", 0))
     lines = [
         ("Fechos no ficheiro da SIMO", processed),
         ("Dos quais repetidos", simo_repeated),
-        ("Movimentos repetidos no Banka, contados uma vez", banka_repeated),
     ]
+    if "bankaDuplicatesDiscarded" in summary:
+        lines.append(
+            (
+                "Movimentos repetidos no Banka, contados uma vez",
+                int(summary["bankaDuplicatesDiscarded"]),
+            )
+        )
+    else:
+        lines.append(
+            (
+                "Créditos repetidos no Banka, enviados para análise",
+                int(summary.get("bankaRepeatedMovements", 0)),
+            )
+        )
     for offset, (label, value) in enumerate(lines, start=1):
         _write_row(sheet, lines_header_row + offset, [label, value])
         styles.summary_row(sheet, lines_header_row + offset, 2)

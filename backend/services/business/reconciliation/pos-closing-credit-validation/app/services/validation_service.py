@@ -222,10 +222,13 @@ def _parse_and_reconcile(
     with _timed("leitura dos fechos SIMO"):
         closings = parsers.parse_simo_closings(*files[UploadSlot.SIMO_CLOSINGS])
     with _timed("leitura dos créditos Banka"):
-        credits, banka_discarded = parsers.parse_banka_credits(*files[UploadSlot.BANKA_CREDITS])
+        credits, banka_repeated = parsers.parse_banka_credits(*files[UploadSlot.BANKA_CREDITS])
     # O `NoClosingsError` já traz a mensagem em português: sobe tal como está.
     with _timed("reconciliação"):
         result = reconcile(pos_list, closings, credits)
-    # Quem sabe dos repetidos é o parser; o domínio só recebe créditos limpos.
-    result.summary.banka_duplicates_discarded = banka_discarded
+    # Só interessam os repetidos de chaves com fecho: o resto do extracto não se valida.
+    simo_keys = {detail.key for detail in result.details}
+    result.summary.banka_repeated_movements = sum(
+        count for key, count in banka_repeated.items() if key in simo_keys
+    )
     return result

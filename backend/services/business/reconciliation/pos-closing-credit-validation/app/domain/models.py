@@ -123,8 +123,10 @@ class ClosingSummary:
     banka_amount_duplicate_rows: Decimal = Decimal(0)
     # Decisão da execução inteira: não mexe em estados, casos nem taxa.
     count_simo_duplicates: bool = False
-    # Movimentos com N_DOCUMENTO repetido, descartados antes de somar a chave.
-    banka_duplicates_discarded: int = 0
+    # Movimentos com N_DOCUMENTO repetido em chaves com fecho SIMO. Contam como
+    # créditos, e a chave vai para análise. As execuções antigas guardaram em vez
+    # disto `bankaDuplicatesDiscarded`, quando os repetidos se fundiam num só.
+    banka_repeated_movements: int = 0
     # Sinais de qualidade dos ficheiros de entrada (não bloqueiam a execução):
     #   keyCollisions — chaves que agregam >1 período bruto por colisão em % 1000.
     #   unregisteredPos — POS com fechos mas sem linha na Lista de POS (comerciante '—').

@@ -7,9 +7,9 @@ posições fixas, um export deslocado uma casa lia «Id Comerciante» como POS I
 (nenhum casava com a Lista de POS) e «Período POS» como data — e um período como
 4920, lido como serial do Excel, dava uma data de 1913.
 
-Do lado do Banka, o que pode partir é o próprio extracto: juntado a partir de
-dois que se sobrepõem, traz o dia da junção duas vezes, e cada movimento desse
-dia somava a dobrar.
+Do lado do Banka, um movimento pode vir duas vezes: extracto juntado de dois que
+se sobrepõem, ou crédito em dobro. Não se distingue pelo ficheiro, por isso não
+se funde: conta, e diz-se que se repetiu, para ir para análise.
 
 Sem `.xlsx` de lado nenhum: as folhas são construídas aqui, célula a célula.
 """
@@ -85,7 +85,7 @@ def test_real_excel_serial_is_still_a_date() -> None:
     assert cell_date(46254) == date(2026, 8, 20)
 
 
-# ─── Créditos do Banka: cada movimento uma vez ───────────────────────────────
+# ─── Créditos do Banka: os repetidos contam e vão para análise ───────────────
 
 BANKA_HEADERS = ["DATA_SISTEMA", "N_DOCUMENTO", "DESCRITIVO_MOV", "VALOR_TRANSACAO"]
 DESCRIPTION = "P24-Fecho TPA 0000221337 - 486"
@@ -110,15 +110,16 @@ def _banka_sheet(rows: list[list[Any]], headers: list[str] = BANKA_HEADERS) -> B
     return stream
 
 
-def test_repeated_movement_in_extract_counts_once() -> None:
-    """O mesmo N_DOCUMENTO duas vezes é o mesmo movimento — o dia juntado a dobrar."""
+def test_repeated_document_is_kept_and_counted_for_analysis() -> None:
+    """O mesmo N_DOCUMENTO duas vezes não se funde: em dobro ou exportado a
+    dobrar, quem decide é a análise. Conta como dois, e diz-se que se repetiu."""
     row = ["19/08/2026", 761076120, DESCRIPTION, 2278]
 
-    credits, discarded = parse_banka_credits(_banka_sheet([row, list(row)]), "banka.xlsx")
+    credits, repeated = parse_banka_credits(_banka_sheet([row, list(row)]), "banka.xlsx")
 
-    assert discarded == 1
-    assert len(credits[KEY].movements) == 1
-    assert credits[KEY].amount == Decimal("2278")
+    assert repeated == {KEY: 1}
+    assert len(credits[KEY].movements) == 2
+    assert credits[KEY].amount == Decimal("4556")
 
 
 def test_equal_movements_with_different_documents_are_two_credits() -> None:
@@ -128,14 +129,14 @@ def test_equal_movements_with_different_documents_are_two_credits() -> None:
         ["19/08/2026", 761076121, DESCRIPTION, 2278],
     ]
 
-    credits, discarded = parse_banka_credits(_banka_sheet(rows), "banka.xlsx")
+    credits, repeated = parse_banka_credits(_banka_sheet(rows), "banka.xlsx")
 
-    assert discarded == 0
+    assert repeated == {}
     assert len(credits[KEY].movements) == 2
     assert credits[KEY].amount == Decimal("4556")
 
 
-def test_without_document_number_only_identical_rows_collapse() -> None:
+def test_without_document_number_only_identical_rows_count_as_repeated() -> None:
     headers = ["DATA_SISTEMA", "DESCRITIVO_MOV", "VALOR_TRANSACAO"]
     rows = [
         ["19/08/2026", DESCRIPTION, 2278],
@@ -143,7 +144,11 @@ def test_without_document_number_only_identical_rows_collapse() -> None:
         ["20/08/2026", DESCRIPTION, 2278],  # outro dia: outro movimento
     ]
 
-    credits, discarded = parse_banka_credits(_banka_sheet(rows, headers), "banka.xlsx")
+    credits, repeated = parse_banka_credits(_banka_sheet(rows, headers), "banka.xlsx")
 
-    assert discarded == 1
-    assert [m.date for m in credits[KEY].movements] == [date(2026, 8, 19), date(2026, 8, 20)]
+    assert repeated == {KEY: 1}
+    assert [m.date for m in credits[KEY].movements] == [
+        date(2026, 8, 19),
+        date(2026, 8, 19),
+        date(2026, 8, 20),
+    ]

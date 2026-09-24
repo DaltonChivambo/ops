@@ -125,6 +125,16 @@ def test_single_closing_many_banka_movements_is_duplicated_not_mismatch() -> Non
     assert r.summary.duplicated_periods == 1
 
 
+def test_one_closing_credited_twice_with_its_value_goes_to_analysis() -> None:
+    """Dois créditos iguais ao fecho: em dobro ou exportado duas vezes, decide a análise."""
+    r = reconcile(pos(), [closing(total="100.00")], {"200001101": credit("100.00", "100.00")})
+
+    assert r.details[0].validation is Validation.DUPLICATED
+    assert r.cases[0].type is CaseType.DUPLICATED
+    assert r.cases[0].banka_amount == Decimal("200.00")
+    assert r.summary.matched == 0
+
+
 def test_one_closing_one_movement_not_equal_is_mismatch() -> None:
     """Só conta «incorrecto» a chave com uma linha só de cada lado."""
     r = reconcile(pos(), [closing(total="2599.00")], {"200001101": credit("9240.00")})
