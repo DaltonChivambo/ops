@@ -142,6 +142,7 @@ muda é o `.env`.
   a vir do Harbor, e os pacotes Python do Nexus. O GEEA simulado também, se se subir com o
   `.env` da raiz:
   `docker compose -f external-services/geea-keycloak/docker-compose.yml --env-file .env up -d`.
+  O passo a passo está em [«Instalar no computador da rede do banco»](#instalar-no-computador-da-rede-do-banco).
 
 Numa pipeline, as mesmas variáveis vêm da configuração dela, e o `ci/service.sh` usa-as:
 
@@ -154,6 +155,85 @@ ci/service.sh push  backend/services/platform/auth-service
 versões contra o PyPI, e recusa correr com `PYPI_INDEX_URL` definido. Contra o Nexus o uv
 resolveria tudo de novo, e o lock deixava de servir à outra máquina. O que o lock produz
 (`requirements.txt`, com hashes) instala-se igual das duas maneiras.
+
+### Instalar no computador da rede do banco
+
+Passo a passo, numa máquina que só chega ao Harbor e ao Nexus. Os valores entre `<>` são os do
+banco, e não estão escritos no repositório.
+
+**1. Confirmar que o Harbor tem as imagens.** Todas no mesmo projecto, com estes nomes e tags:
+
+| Imagem | Para quê |
+|---|---|
+| `python:3.14-slim-trixie` | base dos serviços e do GEEA simulado |
+| `postgres:18-alpine` | base de dados |
+| `traefik:v3.6` | entrada |
+| `opentelemetry-collector-contrib:0.144.0` | observabilidade |
+| `jaeger:2.12.0` | observabilidade |
+
+Se alguma tiver outro nome no Harbor, é esse o nome a pedir que se espelhe, ou a mudar no
+`docker-compose.yml`.
+
+**2. Entrar no Harbor.** Uma vez por máquina:
+
+```bash
+docker login <host do Harbor>
+```
+
+Se o Harbor usar um certificado da CA interna, o Docker tem de confiar nela primeiro. No
+Docker Desktop: *Settings → Docker Engine*, e acrescentar o host a `insecure-registries`, ou
+instalar a CA no Windows.
+
+**3. Criar o `.env`** e preencher a secção «De onde vêm as imagens e os pacotes»:
+
+```bash
+cp .env.example .env
+```
+
+```bash
+IMAGE_REGISTRY=<host do Harbor>
+IMAGE_NAMESPACE=<projecto do Harbor>
+PYPI_INDEX_URL=<URL do Nexus, terminado em /simple/>
+PYPI_TRUSTED_HOST=<host do Nexus>        # só se o Nexus servir em HTTP
+```
+
+No mesmo `.env`, trocar as senhas e, para usar o GEEA do QAS em vez do simulado, o bloco do
+GEEA (ver a tabela acima).
+
+**4. Confirmar de onde vem cada imagem**, antes de construir:
+
+```bash
+docker compose config | grep image:
+```
+
+Todas têm de começar pelo host do Harbor, excepto as `mozaops/…:local`, que são construídas
+na própria máquina.
+
+**5. Subir tudo:**
+
+```bash
+make up
+make migrate
+# GEEA simulado, só se não se usar o do QAS:
+docker compose -f external-services/geea-keycloak/docker-compose.yml --env-file .env up -d
+make verify-m0
+```
+
+Sem `make`, os mesmos comandos estão em [«Windows, sem `make`»](#windows-sem-make).
+
+**6. Frontend.** O `npm` também tem de ir ao Nexus, a um repositório npm. Configura-se na
+máquina, e não no repositório:
+
+```bash
+npm config set registry <URL do repositório npm do Nexus>
+cd frontend && npm ci && npm start
+```
+
+Se o Nexus não tiver repositório npm, o frontend corre numa máquina com Internet.
+
+**O que não se faz nesta máquina:** mudar dependências Python (`ci/service.sh lock`). Precisa do
+PyPI, e recusa correr com `PYPI_INDEX_URL` definido. Faz-se na máquina com Internet, faz-se
+commit do `uv.lock` e dos `requirements*.txt`, e esta máquina instala-os pelo Nexus.
 
 ## Convenções
 
