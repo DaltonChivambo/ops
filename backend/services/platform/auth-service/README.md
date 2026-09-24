@@ -76,6 +76,47 @@ O `AUTH_CLIENT_ID` diz de que cliente do realm se lêem os papéis. Não é o `a
 do token: admitir mais um cliente no `AUTH_ALLOWED_AZP` passa a ser admitir um
 cliente, e não delegar-lhe a atribuição dos nossos acessos.
 
+## Na rede do banco: onde se mexe
+
+Nada neste serviço tem um endereço escrito. Tudo se mete em `ops/.env` (a partir do
+`ops/.env.example`), ou nas variáveis da pipeline.
+
+**Para construir a imagem** (o `Dockerfile` desta pasta):
+
+| Variável | O que é |
+|---|---|
+| `IMAGE_REGISTRY`, `IMAGE_NAMESPACE` | Harbor: de onde vem a imagem `python:3.14-slim-trixie` |
+| `PYPI_INDEX_URL`, `PYPI_TRUSTED_HOST` | Nexus: de onde vêm os pacotes do `requirements.txt` |
+
+**Para correr** (o `app/settings.py`):
+
+| Variável | O que é |
+|---|---|
+| `GEEA_SSOLOGIN_URL`, `GEEA_TOKEN_URL`, `GEEA_REALM` | onde se faz o login no GEEA |
+| `GEEA_CLIENT_ID`, `GEEA_CLIENT_SECRET` | o cliente do MozaOps no GEEA; o segredo vem de quem gere o GEEA |
+| `AUTH_ISSUER`, `AUTH_JWKS_URL` | quem emite os tokens e onde estão as chaves; o `AUTH_ISSUER` tem de ser igual ao `iss` dos tokens |
+| `AUTH_ALLOWED_AZP`, `AUTH_CLIENT_ID` | que cliente conta; `qa-mozaops` no QAS |
+| `AUTH_AREAS`, `AUTH_AREA_USERS` | que unidades e pessoas abrem cada área |
+| `SESSION_COOKIE_SECURE`, `SESSION_COOKIE_PATH` | o cookie da sessão |
+
+Este é o único serviço que fala com o GEEA para fazer login, por isso o contentor tem de chegar
+ao host do GEEA (no QAS, `svdcpapq51:8083`). Se o nome curto não resolver dentro do Docker,
+usar o nome completo nas variáveis `GEEA_*` e `AUTH_*`.
+
+Construir só este serviço, a partir do Harbor e do Nexus, dentro desta pasta:
+
+```bash
+docker build \
+  --build-arg IMAGE_REGISTRY=<host do Harbor> \
+  --build-arg IMAGE_NAMESPACE=<projecto do Harbor> \
+  --build-arg PYPI_INDEX_URL=<URL do Nexus, terminado em /simple/> \
+  --build-arg PYPI_TRUSTED_HOST=<host do Nexus> \
+  -t auth-service:local .
+```
+
+Ou, a partir da raiz, `ci/service.sh build backend/services/platform/auth-service`, que lê os
+mesmos valores do `ops/.env`.
+
 ## Testes
 
 ```bash

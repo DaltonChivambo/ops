@@ -56,7 +56,7 @@ monitorização (fraude, alertas), cadastro.
 | `pyproject.toml` · `uv.lock` | dependências, versão do Python e configuração do ruff e do mypy |
 | `requirements.txt` · `requirements-dev.txt` | exportados do lock, com hashes: o que a imagem instala |
 | `wheels/` | os pacotes internos, na versão que o serviço usa |
-| `README.md` | o que faz, como se organiza, como se corre, e a tabela de responsabilidade |
+| `README.md` | o que faz, como se organiza, como se corre, a tabela de responsabilidade, e «Na rede do banco: onde se mexe» |
 | `app/` | as cinco camadas — ver o `ARCHITECTURE.md` |
 | `migrations/` | Alembic |
 | `tests/` | |

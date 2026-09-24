@@ -93,6 +93,46 @@ docker build --target test -t pos-closing-credit-validation:test .
 docker run --rm pos-closing-credit-validation:test
 ```
 
+## Na rede do banco: onde se mexe
+
+Nada neste serviço tem um endereço escrito. Tudo se mete em `ops/.env` (a partir do
+`ops/.env.example`), ou nas variáveis da pipeline.
+
+**Para construir a imagem** (o `Dockerfile` desta pasta):
+
+| Variável | O que é |
+|---|---|
+| `IMAGE_REGISTRY`, `IMAGE_NAMESPACE` | Harbor: de onde vem a imagem `python:3.14-slim-trixie` |
+| `PYPI_INDEX_URL`, `PYPI_TRUSTED_HOST` | Nexus: de onde vêm os pacotes do `requirements.txt` |
+
+**Para correr** (o `app/settings.py`):
+
+| Variável | O que é |
+|---|---|
+| `DATABASE_URL` | a base do serviço. O `docker-compose.yml` monta-a a partir de `DB_RECONCILIATION_USER` e `DB_RECONCILIATION_PASSWORD`; fora do compose, passa-se inteira |
+| `AUTH_ISSUER`, `AUTH_JWKS_URL` | quem emite os tokens do GEEA e onde estão as chaves; os mesmos valores do `auth-service` |
+| `AUTH_ALLOWED_AZP`, `AUTH_CLIENT_ID` | que cliente conta; `qa-mozaops` no QAS |
+| `AUTH_AREAS`, `AUTH_AREA_USERS` | que unidades e pessoas abrem cada área |
+| `AUTH_SERVICE_AREA`, `AUTH_SERVICE_ID` | a área desta automação e o id dela |
+| `MAX_UPLOAD_MB` | tamanho máximo de cada ficheiro carregado |
+
+Este serviço não faz login: só valida os tokens. Mas vai buscar as chaves ao `AUTH_JWKS_URL`,
+por isso o contentor tem de chegar ao host do GEEA (no QAS, `svdcpapq51:8083`).
+
+Construir só este serviço, a partir do Harbor e do Nexus, dentro desta pasta:
+
+```bash
+docker build \
+  --build-arg IMAGE_REGISTRY=<host do Harbor> \
+  --build-arg IMAGE_NAMESPACE=<projecto do Harbor> \
+  --build-arg PYPI_INDEX_URL=<URL do Nexus, terminado em /simple/> \
+  --build-arg PYPI_TRUSTED_HOST=<host do Nexus> \
+  -t pos-closing-credit-validation:local .
+```
+
+Ou, a partir da raiz, `ci/service.sh build backend/services/business/reconciliation/pos-closing-credit-validation`,
+que lê os mesmos valores do `ops/.env`.
+
 ## Testes
 
 | Ficheiro | O que cobre | Precisa de quê |

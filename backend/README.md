@@ -91,11 +91,31 @@ ci/package.sh vendor backend/packages/mozaops-libs backend/services/platform/aut
 
 O `vendor` copia o wheel da versão actual, acerta o `pyproject.toml` do serviço e refaz o lock.
 
-## Harbor, Nexus e GEEA
+## Harbor, Nexus, GEEA e os outros endereços
 
-Com Internet não se configura nenhum: as imagens vêm do Docker Hub, os pacotes do PyPI, e o
-GEEA é o simulado. Na rede do banco, o Harbor e o Nexus preenchem-se no `.env`. Onde se põe
-cada endereço está no [README da raiz](../README.md#onde-se-troca-cada-endereço).
+Com Internet não se configura nada: as imagens vêm do Docker Hub, os pacotes do PyPI, e o GEEA
+é o simulado. Na rede do banco, onde só o Harbor e o Nexus são alcançáveis, os endereços
+metem-se **num só ficheiro, `ops/.env`**, a partir do `ops/.env.example`. Numa pipeline, as
+mesmas variáveis vêm da configuração dela. Nunca nos Dockerfiles nem no código dos serviços.
+
+| O quê | Variáveis no `ops/.env` | Quem usa |
+|---|---|---|
+| Harbor: imagem base do Python | `IMAGE_REGISTRY`, `IMAGE_NAMESPACE` | o `Dockerfile` de cada serviço, no build |
+| Harbor: postgres, traefik, otel, jaeger | `IMAGE_REGISTRY`, `IMAGE_NAMESPACE` | o `docker-compose.yml` |
+| Nexus: pacotes Python | `PYPI_INDEX_URL`, `PYPI_TRUSTED_HOST` | o `pip` do `Dockerfile` de cada serviço |
+| GEEA: validar tokens | `AUTH_ISSUER`, `AUTH_JWKS_URL` | todos os serviços |
+| GEEA: login | `GEEA_SSOLOGIN_URL`, `GEEA_TOKEN_URL`, `GEEA_REALM`, `GEEA_CLIENT_ID`, `GEEA_CLIENT_SECRET` | só o `auth-service` |
+| GEEA: que cliente conta | `AUTH_ALLOWED_AZP`, `AUTH_CLIENT_ID` | todos os serviços |
+| PostgreSQL | `POSTGRES_*`, `DB_*` | o `postgres` e as automações com base de dados |
+| Harbor: publicar as imagens | `DOCKER_REGISTRY` | `ci/service.sh push` |
+| Nexus: publicar o `mozaops-libs` | `PYPI_PUBLISH_URL` | `ci/package.sh publish` |
+
+O que cada serviço lê em concreto está no README dele. O passo a passo para instalar numa
+máquina da rede do banco, incluindo a troca para o GEEA do QAS, está no
+[README da raiz](../README.md#instalar-no-computador-da-rede-do-banco).
+
+**Uma coisa só se faz com Internet: mudar dependências Python.** O `ci/service.sh lock` precisa
+do PyPI e recusa correr com `PYPI_INDEX_URL` definido.
 
 ## Dependências de um serviço
 
