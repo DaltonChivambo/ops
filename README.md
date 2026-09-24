@@ -19,63 +19,71 @@ Meios de Pagamento e Canais.
 
 | | |
 |---|---|
-| [`platform/auth-service`](backend/services/platform/auth-service/README.md) | construído — sessões contra o GEEA, com as rotas das automações fechadas |
-| Autenticação | ligada: credenciais do domínio, acesso por área |
-| CI | por fazer |
-| [`business/reconciliation/pos-closing-credit-validation`](backend/services/business/reconciliation/pos-closing-credit-validation/README.md) (POS) | construído — parse, reconciliação, persistência e relatório |
+| [`platform/auth-service`](backend/services/platform/auth-service/README.md) | construído — login contra o GEEA, sessões e acesso por área |
+| [`business/reconciliation/pos-closing-credit-validation`](backend/services/business/reconciliation/pos-closing-credit-validation/README.md) (POS) | construído — leitura dos ficheiros, reconciliação, casos e relatório |
+| Frontend | construído — Angular 22, com a página da automação POS |
+| CI | GitHub Actions em cada push: backend (lock, ruff, mypy, pytest) e frontend (testes e build) |
 | Canais ATM e Quiosques | por fazer — serviços próprios, independentes do POS |
-| Serviço `cases` | por fazer |
+| Traefik e observabilidade | configurados, mas desligados por omissão (não são usados pelo código) |
 
 ## Instalar e correr, do zero
 
-Serve para as duas máquinas: a que tem Internet e a da rede do banco, onde só o Harbor e o Nexus
-são alcançáveis. Os passos que mudam dizem-no. O detalhe da rede do banco (as imagens que o
-Harbor tem de ter, certificados, o GEEA do QAS) está em
-[«Instalar no computador da rede do banco»](#instalar-no-computador-da-rede-do-banco).
+Há duas máquinas possíveis, e os passos que mudam entre elas dizem-no:
+
+| | Máquina com Internet | Máquina na rede do banco |
+|---|---|---|
+| Código | `git clone` | ZIP do GitHub (o proxy não deixa usar o `git`) |
+| Terminal | qualquer, com ou sem `make` | PowerShell, sem `make` |
+| Configuração | `.env.example` | `.env.prod` |
+| Imagens | Docker Hub | Harbor |
+| Pacotes Python | PyPI | Nexus |
+| GEEA | o simulado | o do QAS |
+
+Os comandos abaixo são de `docker compose`, que funcionam em qualquer terminal. O `make` é só
+um atalho, onde existir.
 
 ### 1. Instalar as ferramentas
 
 | Ferramenta | Versão | Onde | Para quê |
 |---|---|---|---|
-| **Git** | qualquer recente | [git-scm.com](https://git-scm.com/downloads). No Windows traz o **Git Bash** | obter o código, e o `bash` dos scripts |
 | **Docker Desktop** | Docker ≥ 25, Compose v2 | [docker.com](https://www.docker.com/products/docker-desktop/). No Windows, com o WSL 2 | o backend inteiro: Python, dependências e base de dados vêm nas imagens |
 | **Node.js** | 24 LTS (aceita `^22.22.3`, `^24.15.0`, `>= 26`) | [nodejs.org](https://nodejs.org/), ou `nvm install 24` | só o frontend. O npm vem com ele |
-| **make** | opcional | Linux e macOS já trazem. No Windows, usar os comandos de [«Windows, sem `make`»](#windows-sem-make) | atalhos para os comandos abaixo |
+| **Git** | qualquer recente | [git-scm.com](https://git-scm.com/downloads). No Windows traz o **Git Bash** | obter o código e correr os scripts `.sh`. Na rede do banco não é preciso |
+| **make** | opcional | Linux e macOS já trazem | atalhos. Sem ele, ver [«Windows, sem `make`»](#windows-sem-make) |
 
 Não é preciso instalar Python, `uv`, PostgreSQL nem o Angular CLI: o backend corre em
 contentores, e o frontend usa o CLI local do projecto.
 
-Confirmar:
+Confirmar, com o Docker Desktop aberto:
 
 ```bash
-git --version
-docker --version && docker compose version
+docker --version
+docker compose version
 node -v          # v24.x
 npm -v
 ```
 
-O Docker Desktop tem de estar aberto antes dos passos seguintes.
+**Só na rede do banco**, antes de continuar, o Docker tem de confiar no certificado do Harbor e
+ter sessão aberta nele. Ver os passos 1 e 2 de
+[«Instalar no computador da rede do banco»](#instalar-no-computador-da-rede-do-banco).
 
 ### 2. Obter o código
+
+**Com Internet:**
 
 ```bash
 git clone https://github.com/DaltonChivambo/ops.git
 cd ops
 ```
 
-Todos os comandos a seguir correm desta pasta, a raiz do repositório, salvo quando dizem
-`cd frontend`.
+**Na rede do banco:** no GitHub, *Code → Download ZIP*, e descompactar. A pasta chama-se
+`ops-main`, e o nome não importa: os contentores, a rede e a base de dados chamam-se sempre
+`mozaops`.
+
+Todos os comandos a seguir correm na raiz do projecto, a pasta do `docker-compose.yml`, salvo
+quando dizem `cd frontend`.
 
 ### 3. Configurar
-
-O `.env` é o único ficheiro que muda entre máquinas. Há dois pontos de partida:
-
-| | Máquina com Internet | Máquina na rede do banco |
-|---|---|---|
-| Ficheiro de partida | `.env.example` (está no git) | `.env.prod` (**não** está no git) |
-| Imagens | Docker Hub | Harbor |
-| Pacotes Python | PyPI | Nexus |
-| GEEA | o simulado | o do QAS |
 
 **Com Internet**, a partir do exemplo:
 
@@ -85,37 +93,29 @@ cp .env.example .env
 
 Abrir o `.env` e trocar as senhas (`POSTGRES_PASSWORD`, `DB_*_PASSWORD`). O resto fica como vem.
 
-**Na rede do banco**, a partir do `.env.prod`. Pede-se a quem mantém o MozaOps e copia-se para a
-raiz do repositório por um canal interno. Depois:
+**Na rede do banco**, a partir do `.env.prod`, que se pede a quem mantém o MozaOps e se copia
+para a raiz do projecto por um canal interno:
 
-```bash
-cp .env.prod .env
+```powershell
+Copy-Item .env.prod .env
 ```
 
-E entrar no Harbor, uma vez por máquina, com o host que está em `IMAGE_REGISTRY`:
+No Windows, confirmar que o ficheiro se chama mesmo `.env`, e não `.env.txt`:
 
-```bash
-docker login <host do Harbor>
-```
-
-Antes de construir, confirmar que nenhuma imagem vem do Docker Hub:
-
-```bash
-docker compose config | grep image:   # todas começam pelo host do Harbor, excepto as mozaops/…:local
+```powershell
+Get-ChildItem -Force .env*
 ```
 
 ### 4. Backend
 
-Igual nas duas máquinas:
-
 ```bash
-make up          # constrói as imagens e sobe o postgres, o auth-service e a automação
-make migrate     # cria as tabelas da automação (Alembic)
+docker compose up -d --build     # constrói as imagens e sobe o postgres, o auth-service e a automação (make up)
+docker compose run --rm pos-closing-credit-validation alembic upgrade head   # cria as tabelas (make migrate)
 ```
 
 As dependências Python instalam-se **dentro das imagens**, a partir do `requirements.txt` de
-cada serviço, no `make up`: do PyPI com Internet, do Nexus na rede do banco. Não há
-`pip install` a fazer na máquina. A primeira vez demora uns minutos; as seguintes vêm da cache.
+cada serviço: do PyPI com Internet, do Nexus na rede do banco. Não há `pip install` a fazer na
+máquina. A primeira vez demora uns minutos; as seguintes vêm da cache.
 
 **Só com Internet**, o GEEA simulado, para se poder entrar sem o GEEA real:
 
@@ -123,18 +123,21 @@ cada serviço, no `make up`: do PyPI com Internet, do Nexus na rede do banco. N�
 docker compose -f external-services/geea-keycloak/docker-compose.yml --env-file .env up -d
 ```
 
-Na rede do banco não se sobe: o `.env.prod` aponta ao GEEA do QAS.
-
 Confirmar que está tudo de pé:
 
 ```bash
-make status      # todos os contentores Up, e os serviços (healthy)
-make verify-m0   # infraestrutura, isolamento das bases e login ponta a ponta
+docker compose ps        # o postgres, o auth-service e a automação Up (healthy)
 ```
 
-Na rede do banco, a parte «Identidade» do `verify-m0` falha: faz o login com os utilizadores do
-GEEA simulado, que o GEEA do QAS não conhece. O resto tem de passar. O login verifica-se
-entrando na aplicação com uma conta real.
+- **Com Internet:** `make verify-m0` (ou `bash scripts/verify-m0.sh`) confirma a infraestrutura,
+  o isolamento das bases e o login ponta a ponta.
+- **Na rede do banco:** o diagnóstico da ligação ao GEEA, que é onde costuma falhar:
+
+  ```powershell
+  powershell -ExecutionPolicy Bypass -File scripts\check-geea.ps1
+  ```
+
+  Tem de acabar em «Tudo certo». Se não, diz o que corrigir.
 
 ### 5. Frontend
 
@@ -144,7 +147,7 @@ entrando na aplicação com uma conta real.
 npm config set registry <URL do repositório npm do Nexus>
 ```
 
-Depois, igual nas duas máquinas, noutro terminal:
+Depois, noutro terminal:
 
 ```bash
 cd frontend
@@ -162,17 +165,16 @@ O `npm start` encaminha o `/api` para o backend do passo 4, por isso os dois tê
 
 ### 6. Testes
 
+Na máquina com Internet:
+
 ```bash
-make check                          # backend: lock em dia, ruff, mypy --strict e pytest
-cd frontend && npm test && npm run build   # frontend: testes unitários e build de produção
+make check                                  # backend: lock em dia, ruff, mypy --strict e pytest
+cd frontend && npm test && npm run build    # frontend: testes unitários e build de produção
 ```
 
 São os mesmos que o CI corre em cada push.
 
 ### 7. Parar, reinstalar e actualizar
-
-Todos os comandos na raiz do repositório. Os de `docker compose` funcionam em qualquer
-terminal, com ou sem `make`.
 
 **Parar e voltar a subir**, mantendo os dados:
 
@@ -191,19 +193,20 @@ docker compose -f external-services/geea-keycloak/docker-compose.yml down
 **Depois de mudar o `.env`**, os contentores só lêem os valores novos se forem recriados:
 
 ```bash
-docker compose up -d       # recria os que mudaram
+docker compose up -d
 ```
 
-**Reinstalar os contentores**, reconstruindo as imagens do zero e mantendo a base de dados.
-Serve quando uma imagem ficou estragada ou se quer ter a certeza de que tudo vem de novo do
-Harbor e do Nexus:
+**Reinstalar os contentores**, reconstruindo as imagens do zero e mantendo a base de dados:
 
 ```bash
 docker compose down
-docker compose build --no-cache --pull
+docker compose build --no-cache
 docker compose up -d
 docker compose run --rm pos-closing-credit-validation alembic upgrade head
 ```
+
+Sem `--pull`: com ele, o Docker volta a pedir a imagem base ao Harbor, e na rede do banco pode
+falhar no certificado (ver [«Problemas comuns»](#problemas-comuns)).
 
 **Reinstalar tudo do zero, apagando a base de dados.** Apaga todas as execuções e casos:
 
@@ -218,8 +221,13 @@ docker compose run --rm pos-closing-credit-validation alembic upgrade head
 
 **Actualizar para código novo:**
 
+- **Com Internet:** `git pull`.
+- **Na rede do banco:** descarregar o ZIP novo, descompactar, e copiar o `.env` da pasta antiga
+  para a nova. Depois deixar de usar a pasta antiga: as duas controlariam os mesmos contentores.
+
+E depois, nas duas:
+
 ```bash
-git pull                   # ou descarregar de novo o ZIP do GitHub, e copiar o .env para lá
 docker compose up -d --build
 docker compose run --rm pos-closing-credit-validation alembic upgrade head   # se vieram migrações
 cd frontend && npm ci      # se o package-lock.json mudou
@@ -243,13 +251,12 @@ O `Makefile` exige `bash`, que corre em Git Bash ou WSL. Em PowerShell, os equiv
 | `make up` | `docker compose up -d --build` |
 | `make migrate` | `docker compose run --rm pos-closing-credit-validation alembic upgrade head` |
 | `make status` | `docker compose ps` |
+| `make down` | `docker compose down` |
+| `make clean` | `docker compose down -v` (apaga a base) |
 | `make verify-m0` | `bash scripts/verify-m0.sh` (no Git Bash) |
 | `make check` | `bash ci/service.sh check <pasta do serviço>` (no Git Bash) |
-| `make down` | `docker compose down` |
 
 ### Endereços em desenvolvimento
-
-`*.localhost` resolve para 127.0.0.1 sem tocar no `/etc/hosts`.
 
 | | |
 |---|---|
@@ -266,182 +273,104 @@ docker compose --profile proxy up -d           # Traefik: http://mozaops.localho
 docker compose --profile observability up -d   # collector e Jaeger: http://jaeger.mozaops.localhost (precisa do proxy)
 ```
 
+## Problemas comuns
+
+| O que aparece | Porquê | O que fazer |
+|---|---|---|
+| `x509: certificate signed by unknown authority` ao construir | o Docker não confia no certificado do Harbor | passo 1 de [«Instalar no computador da rede do banco»](#instalar-no-computador-da-rede-do-banco); e construir sem `--pull` |
+| «Não foi possível contactar o GEEA para validar as credenciais» | o contentor não chega a um dos servidores do GEEA (no log: `SSOLogin inacessível: ConnectError`) | correr `scripts\check-geea.ps1` e seguir o que diz; quase sempre falta `GEEA_HOSTNAME`/`GEEA_IP` ou `GEEA_ISSUER_HOSTNAME`/`GEEA_ISSUER_IP` no `.env` |
+| O login entra, mas as automações respondem 401 | o `AUTH_ISSUER` não é igual ao `iss` dos tokens | ler o `iss` de um token e pô-lo no `AUTH_ISSUER`, com o `AUTH_JWKS_URL` e o `GEEA_TOKEN_URL` do mesmo servidor |
+| Mudei o `.env` e nada mudou | os contentores só lêem o `.env` quando são criados | `docker compose up -d` |
+| O `npm ci` falha na rede do banco | o npm vai ao registo público | `npm config set registry <URL do repositório npm do Nexus>` |
+
 ## Onde se troca cada endereço
 
-Nenhum endereço está escrito no código nem nos Dockerfiles. Mudam de host, de IP e de porta,
-e cada um tem um só sítio onde se troca.
+Nenhum endereço está escrito no código nem nos Dockerfiles. Tudo se troca no `.env`, a partir
+do [`.env.example`](.env.example), ou nas variáveis da pipeline.
 
-**A aplicação** (`.env`, a partir do [`.env.example`](.env.example)):
+**GEEA:**
 
 | O quê | Variáveis |
 |---|---|
-| GEEA: quem emite os tokens | `AUTH_ISSUER`, `AUTH_JWKS_URL` |
-| GEEA: login e troca de credenciais | `GEEA_SSOLOGIN_URL`, `GEEA_TOKEN_URL`, `GEEA_REALM` |
-| GEEA: o cliente do MozaOps | `GEEA_CLIENT_ID`, `GEEA_CLIENT_SECRET`, `AUTH_ALLOWED_AZP`, `AUTH_CLIENT_ID` |
-| Domínio público | `DOMAIN` |
-| PostgreSQL | `POSTGRES_*`, `DB_*` |
+| O login | `GEEA_SSOLOGIN_URL`, `GEEA_REALM` |
+| O Keycloak que emite os tokens | `AUTH_ISSUER` (o `iss` dos tokens), `AUTH_JWKS_URL`, `GEEA_TOKEN_URL` |
+| O cliente do MozaOps | `GEEA_CLIENT_ID`, `GEEA_CLIENT_SECRET`, `AUTH_ALLOWED_AZP`, `AUTH_CLIENT_ID` |
+| O IP de cada servidor, quando o nome não resolve nos contentores | `GEEA_HOSTNAME`/`GEEA_IP` (login), `GEEA_ISSUER_HOSTNAME`/`GEEA_ISSUER_IP` (tokens) |
 
-O `.env.example` traz o GEEA simulado activo e, comentadas por baixo, as mesmas linhas para o
-GEEA do QAS. Trocar de um para o outro é trocar esse bloco. O `AUTH_ISSUER` tem de
-acompanhar, porque é contra ele que se valida o `iss` de cada token.
-
-**De onde vêm as imagens e os pacotes** (também no `.env`):
+**O resto:**
 
 | O quê | Variáveis |
 |---|---|
 | Harbor: as imagens (Python e PostgreSQL) | `IMAGE_REGISTRY`, `IMAGE_NAMESPACE` |
 | Nexus: os pacotes Python | `PYPI_INDEX_URL`, e `PYPI_TRUSTED_HOST` se servir em HTTP |
-| Harbor: para onde vai a imagem construída | `DOCKER_REGISTRY` |
-| Nexus: onde se publica o `mozaops-libs` | `PYPI_PUBLISH_URL` |
-| Harbor: imagem do uv, para o `mozaops-libs` | `UV_IMAGE` |
-
-As duas primeiras linhas são as que decidem a máquina. As outras três só servem para publicar.
+| PostgreSQL | `POSTGRES_*`, `DB_*` |
+| Harbor: para onde vai a imagem construída | `DOCKER_REGISTRY` (só para publicar) |
+| Nexus: onde se publica o `mozaops-libs` | `PYPI_PUBLISH_URL` (só para publicar) |
 
 ### Instalar no computador da rede do banco
 
-Passo a passo, numa máquina que só chega ao Harbor e ao Nexus. Os valores entre `<>` são os do
-banco, e não estão escritos no repositório.
+O que é próprio da rede do banco, em complemento de [«Instalar e correr, do
+zero»](#instalar-e-correr-do-zero). Os valores entre `<>` são os do banco, e não estão escritos
+no repositório.
 
-**1. Confirmar que o Harbor tem as imagens.** Todas no mesmo projecto, com estes nomes e tags:
+**1. O Docker confiar no Harbor.** O Harbor usa um certificado da CA interna do banco. Uma de
+duas, no Docker Desktop:
 
-| Imagem | Para quê |
-|---|---|
-| `python:3.14-slim-trixie` | base dos serviços e do GEEA simulado |
-| `postgres:18.6-trixie` | base de dados |
+- instalar no Windows o certificado raiz do banco, em *Autoridades de Certificação de Raiz
+  Fidedignas*, e reiniciar o Docker Desktop (recomendado);
+- ou *Settings → Docker Engine*, acrescentar ao JSON
+  `"insecure-registries": ["<host do Harbor>"]`, e *Apply & restart*.
 
-O Traefik, o collector e o Jaeger só são precisos se se ligarem os perfis `proxy` e
-`observability`, que ficam desligados por omissão.
+**2. Entrar no Harbor**, uma vez por máquina, e confirmar que as imagens base estão lá:
 
-Se alguma tiver outro nome no Harbor, é esse o nome a pedir que se espelhe, ou a mudar no
-`docker-compose.yml`.
-
-**2. Entrar no Harbor.** Uma vez por máquina:
-
-```bash
+```powershell
 docker login <host do Harbor>
+docker pull <host do Harbor>/<projecto>/python:3.14-slim-trixie
+docker pull <host do Harbor>/<projecto>/postgres:18.6-trixie
 ```
 
-Se o Harbor usar um certificado da CA interna, o Docker tem de confiar nela primeiro. No
-Docker Desktop: *Settings → Docker Engine*, e acrescentar o host a `insecure-registries`, ou
-instalar a CA no Windows.
+São as duas únicas imagens de que o `docker compose up` precisa. O Traefik, o collector e o
+Jaeger só com os perfis `proxy` e `observability`.
 
-**3. Criar o `.env`.** Há duas maneiras:
+**3. O `.env`.** O `.env.prod` já vem preparado para a rede do banco. Sem ele, parte-se do
+`.env.example` e preenche-se:
 
-- **Com o `.env.prod`** (recomendado). Pede-se a quem mantém o MozaOps e leva-se para a máquina
-  por um canal interno. Depois, na raiz do repositório:
+- a secção «De onde vêm as imagens e os pacotes»: `IMAGE_REGISTRY`, `IMAGE_NAMESPACE`,
+  `PYPI_INDEX_URL` e `PYPI_TRUSTED_HOST`;
+- as senhas;
+- o GEEA do QAS, como no ponto 4.
 
-  ```bash
-  cp .env.prod .env
-  ```
-
-  Com o `.env.prod`, os passos 3 e 4 ficam feitos, e segue-se para o 5.
-
-- **À mão**, a partir do modelo, preenchendo a secção «De onde vêm as imagens e os pacotes»:
+**4. O GEEA do QAS.** No bloco «GEEA» do `.env`, comentar as quatro linhas do simulado e
+descomentar as do QAS:
 
 ```bash
-cp .env.example .env
+AUTH_ISSUER=http://<host do Keycloak>/auth/realms/QAS
+AUTH_JWKS_URL=http://<host do Keycloak>/auth/realms/QAS/protocol/openid-connect/certs
+GEEA_SSOLOGIN_URL=http://<host do login>/geea/idmUtils/SSOLogin
+GEEA_TOKEN_URL=http://<host do Keycloak>/auth/realms/QAS/protocol/openid-connect/token
+GEEA_CLIENT_SECRET=<segredo do qa-mozaops>
 ```
+
+O login e o Keycloak que emite os tokens estão em servidores diferentes. O do Keycloak é o do
+campo `iss` de um token: tira-se um pelo Postman, com o mesmo pedido de login, e lê-se o `iss`.
+O `AUTH_ISSUER` é esse valor, tal e qual.
+
+Os contentores não resolvem os nomes curtos dos servidores, que o Windows completa com o
+domínio da rede. Dá-se-lhes o IP de cada um, que o `ping <host>` mostra na primeira linha:
 
 ```bash
-IMAGE_REGISTRY=<host do Harbor>
-IMAGE_NAMESPACE=<projecto do Harbor>
-PYPI_INDEX_URL=<URL do Nexus, terminado em /simple/>
-PYPI_TRUSTED_HOST=<host do Nexus>        # só se o Nexus servir em HTTP
+GEEA_HOSTNAME=<host do login, sem porta>
+GEEA_IP=<IP dele>
+GEEA_ISSUER_HOSTNAME=<host do Keycloak, sem porta>
+GEEA_ISSUER_IP=<IP dele>
 ```
 
-No mesmo `.env`, trocar as senhas.
+Estes nomes também entram sozinhos no `NO_PROXY` dos contentores, para o proxy do banco não se
+meter pelo meio. Depois de mudar o `.env`, `docker compose up -d`, e confirmar com
+`scripts\check-geea.ps1`.
 
-**4. Apontar ao GEEA do QAS**, em vez do simulado. Tudo no mesmo ficheiro,
-`ops/.env`, na secção «GEEA»:
-
-1. Comentar as quatro linhas do simulado:
-   ```bash
-   # AUTH_ISSUER=http://geea-keycloak:8000/auth/realms/QAS
-   # AUTH_JWKS_URL=http://geea-keycloak:8000/auth/realms/QAS/protocol/openid-connect/certs
-   # GEEA_SSOLOGIN_URL=http://geea-keycloak:8000/geea/idmUtils/SSOLogin
-   # GEEA_TOKEN_URL=http://geea-keycloak:8000/auth/realms/QAS/protocol/openid-connect/token
-   ```
-2. Descomentar as quatro do QAS, logo abaixo, e pôr os hosts do GEEA do QAS. O login
-   (`GEEA_SSOLOGIN_URL`) e o Keycloak que emite os tokens (as outras três) podem estar em
-   servidores diferentes. O das outras três é o do campo `iss` de um token: tirar um pelo
-   Postman e ler o `iss`.
-   ```bash
-   AUTH_ISSUER=http://<host do GEEA do QAS>/auth/realms/QAS
-   AUTH_JWKS_URL=http://<host do GEEA do QAS>/auth/realms/QAS/protocol/openid-connect/certs
-   GEEA_SSOLOGIN_URL=http://<host do GEEA do QAS>/geea/idmUtils/SSOLogin
-   GEEA_TOKEN_URL=http://<host do GEEA do QAS>/auth/realms/QAS/protocol/openid-connect/token
-   ```
-3. Pôr o segredo real do cliente, pedido a quem gere o GEEA:
-   ```bash
-   GEEA_CLIENT_SECRET=<segredo do qa-mozaops>
-   ```
-   `GEEA_REALM`, `GEEA_CLIENT_ID`, `AUTH_ALLOWED_AZP` e `AUTH_CLIENT_ID` ficam como estão.
-
-Dois cuidados:
-- O `AUTH_ISSUER` tem de ser igual ao `iss` dos tokens do QAS. Se não for, o login entra mas
-  as automações respondem 401.
-- Os contentores têm de chegar ao host do GEEA. O Windows completa um nome curto com o domínio
-  da rede, mas os contentores não, e o login falha com «Não foi possível contactar o GEEA para
-  validar as credenciais» (no log do `auth-service`: `SSOLogin inacessível: ConnectError`).
-  Resolve-se dando o IP do host no mesmo `.env`, sem mexer nas quatro linhas:
-
-  ```bash
-  ping <host>                        # no Windows: a primeira linha mostra o IP
-  ```
-
-  ```bash
-  GEEA_HOSTNAME=<host do login, sem porta>
-  GEEA_IP=<IP que o ping mostrou>
-  GEEA_ISSUER_HOSTNAME=<host do Keycloak dos tokens, se for outro>
-  GEEA_ISSUER_IP=<IP que o ping mostrou>
-  ```
-
-  Depois, `docker compose up -d` para os contentores lerem o `.env` novo.
-
-  Se o Docker Desktop estiver configurado com o proxy do banco, os contentores já não o usam
-  para o GEEA: o `GEEA_HOSTNAME` e o `GEEA_IP` entram sozinhos no `NO_PROXY` deles.
-
-  Para ver de uma vez onde está o problema, na raiz do repositório:
-
-  ```powershell
-  powershell -ExecutionPolicy Bypass -File scripts\check-geea.ps1
-  ```
-
-  Confirma o `.env`, o que o compose lê, o que o contentor vê e se chega ao GEEA, e diz o que
-  corrigir em cada passo que falhe.
-
-Com o GEEA do QAS, o simulado não se sobe.
-
-**5. Confirmar de onde vem cada imagem**, antes de construir:
-
-```bash
-docker compose config | grep image:
-```
-
-Todas têm de começar pelo host do Harbor, excepto as `mozaops/…:local`, que são construídas
-na própria máquina.
-
-**6. Subir tudo:**
-
-```bash
-make up
-make migrate
-# GEEA simulado, só se não se usar o do QAS:
-docker compose -f external-services/geea-keycloak/docker-compose.yml --env-file .env up -d
-make verify-m0
-```
-
-Sem `make`, os mesmos comandos estão em [«Windows, sem `make`»](#windows-sem-make).
-
-**7. Frontend.** O `npm` também tem de ir ao Nexus, a um repositório npm. Configura-se na
-máquina, e não no repositório:
-
-```bash
-npm config set registry <URL do repositório npm do Nexus>
-cd frontend && npm ci && npm start
-```
-
-Se o Nexus não tiver repositório npm, o frontend corre numa máquina com Internet.
+Com o GEEA do QAS, o simulado não se sobe. O `verify-m0` também não serve aqui: faz o login com
+os utilizadores do simulado.
 
 **O que não se faz nesta máquina:** mudar dependências Python (`ci/service.sh lock`). Precisa do
 PyPI, e recusa correr com `PYPI_INDEX_URL` definido. Faz-se na máquina com Internet, faz-se
