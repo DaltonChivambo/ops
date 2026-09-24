@@ -100,8 +100,8 @@ Nada neste serviço tem um endereço escrito. Tudo se mete em `ops/.env` (a part
 | `SESSION_COOKIE_SECURE`, `SESSION_COOKIE_PATH` | o cookie da sessão |
 
 Este é o único serviço que fala com o GEEA para fazer login, por isso o contentor tem de chegar
-ao host do GEEA. Se o nome curto não resolver dentro do Docker,
-usar o nome completo nas variáveis `GEEA_*` e `AUTH_*`.
+ao host do GEEA. Se o nome não resolver dentro do Docker (no log: `SSOLogin inacessível:
+ConnectError`), dar-lhe o IP com `GEEA_HOSTNAME` e `GEEA_IP` no `ops/.env`.
 
 Construir só este serviço, a partir do Harbor e do Nexus, dentro desta pasta:
 

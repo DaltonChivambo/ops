@@ -326,8 +326,21 @@ No mesmo `.env`, trocar as senhas.
 Dois cuidados:
 - O `AUTH_ISSUER` tem de ser igual ao `iss` dos tokens do QAS. Se não for, o login entra mas
   as automações respondem 401.
-- Os contentores têm de chegar ao host do GEEA. Se o nome curto não resolver dentro do Docker,
-  usar o nome completo, com o domínio, nas quatro linhas.
+- Os contentores têm de chegar ao host do GEEA. O Windows completa um nome curto com o domínio
+  da rede, mas os contentores não, e o login falha com «Não foi possível contactar o GEEA para
+  validar as credenciais» (no log do `auth-service`: `SSOLogin inacessível: ConnectError`).
+  Resolve-se dando o IP do host no mesmo `.env`, sem mexer nas quatro linhas:
+
+  ```bash
+  nslookup <host do GEEA do QAS>     # no Windows: mostra o IP
+  ```
+
+  ```bash
+  GEEA_HOSTNAME=<host do GEEA do QAS, sem porta>
+  GEEA_IP=<IP que o nslookup mostrou>
+  ```
+
+  Depois, `docker compose up -d` para os contentores lerem o `.env` novo.
 
 Com o GEEA do QAS, o simulado não se sobe.
 

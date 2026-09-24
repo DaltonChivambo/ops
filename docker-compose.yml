@@ -16,6 +16,12 @@
 
 name: mozaops
 
+# Nome e IP do GEEA, para quando o nome não resolve dentro dos contentores (o
+# Windows completa-o com o domínio da rede, o Docker não). Sem as variáveis,
+# a entrada é inofensiva.
+x-geea-host: &geea-host
+  - "${GEEA_HOSTNAME:-geea-host-not-set}:${GEEA_IP:-127.0.0.1}"
+
 x-build-args: &build-args
   IMAGE_REGISTRY: ${IMAGE_REGISTRY:-docker.io}
   IMAGE_NAMESPACE: ${IMAGE_NAMESPACE:-library}
@@ -72,6 +78,7 @@ services:
       AUTH_SERVICE_AREA: ${AUTH_SERVICE_AREA:-channels}
       AUTH_SERVICE_ID: ${AUTH_SERVICE_ID:-pos-closing-credit-validation}
     networks: [mozaops]
+    extra_hosts: *geea-host
     depends_on:
       postgres:
         condition: service_healthy
@@ -111,6 +118,7 @@ services:
       SESSION_COOKIE_PATH: ${SESSION_COOKIE_PATH:-/api/auth-service}
       LOGIN_ATTEMPTS_PER_MINUTE: ${LOGIN_ATTEMPTS_PER_MINUTE:-10}
     networks: [mozaops]
+    extra_hosts: *geea-host
     labels:
       - traefik.enable=true
       - traefik.http.routers.auth-service.rule=Host(`${DOMAIN}`) && PathPrefix(`/api/auth-service`)

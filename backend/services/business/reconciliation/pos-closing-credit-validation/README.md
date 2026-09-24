@@ -117,7 +117,8 @@ Nada neste serviço tem um endereço escrito. Tudo se mete em `ops/.env` (a part
 | `MAX_UPLOAD_MB` | tamanho máximo de cada ficheiro carregado |
 
 Este serviço não faz login: só valida os tokens. Mas vai buscar as chaves ao `AUTH_JWKS_URL`,
-por isso o contentor tem de chegar ao host do GEEA.
+por isso o contentor tem de chegar ao host do GEEA. Se o nome não resolver dentro do Docker,
+dar-lhe o IP com `GEEA_HOSTNAME` e `GEEA_IP` no `ops/.env`.
 
 Construir só este serviço, a partir do Harbor e do Nexus, dentro desta pasta:
 
