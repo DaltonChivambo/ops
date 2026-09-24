@@ -85,19 +85,12 @@ cp .env.example .env
 
 Abrir o `.env` e trocar as senhas (`POSTGRES_PASSWORD`, `DB_*_PASSWORD`). O resto fica como vem.
 
-**Na rede do banco**, a partir dos dados de produção. O `.env.prod` já traz os endereços reais
-do Harbor, do Nexus e do GEEA do QAS. Pede-se a quem mantém o MozaOps e copia-se para a raiz do
-repositório por um canal interno, porque tem endereços internos do banco e por isso não está no
-git. Depois:
+**Na rede do banco**, a partir do `.env.prod`. Pede-se a quem mantém o MozaOps e copia-se para a
+raiz do repositório por um canal interno. Depois:
 
 ```bash
 cp .env.prod .env
 ```
-
-O ficheiro já vem completo. As senhas da base de dados (`POSTGRES_PASSWORD`, `DB_*_PASSWORD`)
-e o `GEEA_CLIENT_SECRET` vêm com o valor de desenvolvimento: trocam-se antes de uso real, e o
-`GEEA_CLIENT_SECRET` tem de ser o segredo verdadeiro do cliente `qa-mozaops` para o login no
-GEEA do QAS funcionar.
 
 E entrar no Harbor, uma vez por máquina, com o host que está em `IMAGE_REGISTRY`:
 
@@ -277,18 +270,14 @@ instalar a CA no Windows.
 
 **3. Criar o `.env`.** Há duas maneiras:
 
-- **Com o `.env.prod`** (recomendado). É um ficheiro com os endereços reais do Harbor, do Nexus
-  e do GEEA do QAS já preenchidos. **Não está no git**, porque tem endereços internos do banco:
-  pede-se a quem mantém o MozaOps e leva-se para a máquina por um canal interno. Depois, na raiz
-  do repositório:
+- **Com o `.env.prod`** (recomendado). Pede-se a quem mantém o MozaOps e leva-se para a máquina
+  por um canal interno. Depois, na raiz do repositório:
 
   ```bash
   cp .env.prod .env
   ```
 
-  Vem completo. As senhas e o `GEEA_CLIENT_SECRET` trazem o valor de desenvolvimento, e
-  trocam-se antes de uso real. Com o `.env.prod`, os passos 3 e 4 ficam feitos, e segue-se
-  para o 5.
+  Com o `.env.prod`, os passos 3 e 4 ficam feitos, e segue-se para o 5.
 
 - **À mão**, a partir do modelo, preenchendo a secção «De onde vêm as imagens e os pacotes»:
 
