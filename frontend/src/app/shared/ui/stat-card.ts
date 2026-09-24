@@ -44,38 +44,41 @@ export interface Stat {
   template: `
     @let s = stat();
 
-    <section appCard compact class="flex h-full flex-col gap-2">
+    <section appCard compact class="@container flex h-full flex-col gap-2 2xl:gap-2.5">
       <div class="flex items-center justify-between gap-2">
-        <p class="min-w-0 truncate text-sm text-gray-600">{{ s.label }}</p>
+        <p class="min-w-0 truncate text-sm text-gray-600 2xl:text-[0.9375rem]">{{ s.label }}</p>
 
         <span
-          class="inline-flex size-9 shrink-0 items-center justify-center rounded-lg bg-moza-100 text-moza-700"
+          class="inline-flex size-9 shrink-0 items-center justify-center rounded-lg bg-moza-100 text-moza-700 2xl:size-10"
         >
           @switch (s.icon) {
             @case ('file-check') {
-              <svg lucideFileCheckCorner [size]="18" [strokeWidth]="1.8"></svg>
+              <svg lucideFileCheckCorner [size]="18" [strokeWidth]="1.8" class="2xl:size-5"></svg>
             }
             @case ('percent') {
-              <svg lucidePercent [size]="18" [strokeWidth]="1.8"></svg>
+              <svg lucidePercent [size]="18" [strokeWidth]="1.8" class="2xl:size-5"></svg>
             }
             @case ('banknote') {
-              <svg lucideBanknote [size]="18" [strokeWidth]="1.8"></svg>
+              <svg lucideBanknote [size]="18" [strokeWidth]="1.8" class="2xl:size-5"></svg>
             }
             @case ('alert-triangle') {
-              <svg lucideTriangleAlert [size]="18" [strokeWidth]="1.8"></svg>
+              <svg lucideTriangleAlert [size]="18" [strokeWidth]="1.8" class="2xl:size-5"></svg>
             }
           }
         </span>
       </div>
 
-      <!-- O corpo desce conforme o número cresce, em vez de o cortar: cortar um
-           montante lê-se como outro montante.
+      <!-- O corpo encolhe até caber na largura do cartão, em vez de o cortar:
+           cortar um montante lê-se como outro montante.
            Tudo colado: aqui o espaço em branco do template é texto. -->
       <!-- prettier-ignore -->
-      <p [class]="valueClass()">{{ displayValue()
+      <p
+        class="font-display leading-none font-bold whitespace-nowrap tabular-nums text-[length:min(1.75rem,var(--fit))] 2xl:text-[length:min(2rem,var(--fit))]"
+        [style.--fit]="fit()"
+      >{{ displayValue()
       }}@if (s.unit) {<span class="ml-1 text-[0.55em] font-normal text-gray-400">{{ s.unit }}</span>}</p>
 
-      <p class="mt-auto flex items-center gap-1.5 text-[0.8125rem]">
+      <p class="mt-auto flex items-center gap-1.5 text-[0.8125rem] 2xl:text-sm">
         @if (s.changePercent !== undefined) {
           <span
             class="inline-flex items-center gap-0.5 font-semibold"
@@ -106,14 +109,16 @@ export class StatCardComponent {
   });
 
   /**
-   * O corpo desce por degraus: a 1 000 000 000 000,00 MZN ainda cabe inteiro a
-   * quatro cartões por linha. As classes vão por extenso porque o Tailwind lê o
-   * código-fonte e não geraria nada a partir de uma interpolação.
+   * O tamanho que faz o número caber na largura do cartão (`100cqi`). Conta-se
+   * o texto em larguras de letra, medidas na fonte do número: dígito 0,645em,
+   * espaço dos milhares e vírgula 0,27em, o resto (o `%`) até 0,95em, e a
+   * unidade com a margem 1,5em. Mais 4% de folga. O CSS fica com o menor entre
+   * isto e o tamanho máximo.
    */
-  protected readonly valueClass = computed(() => {
-    const chars = this.displayValue().length + (this.stat().unit?.length ?? 0);
-    const size =
-      chars <= 12 ? 'text-2xl' : chars <= 16 ? 'text-xl' : chars <= 21 ? 'text-lg' : 'text-base';
-    return `truncate font-display leading-none font-bold tabular-nums ${size}`;
+  protected readonly fit = computed(() => {
+    const glyph = (ch: string) => (/\d/.test(ch) ? 0.645 : /[\s,.]/.test(ch) ? 0.27 : 0.95);
+    const text = [...this.displayValue()].reduce((sum, ch) => sum + glyph(ch), 0);
+    const unit = this.stat().unit ? 1.5 : 0;
+    return `calc(100cqi / ${((text + unit) * 1.04).toFixed(3)})`;
   });
 }
