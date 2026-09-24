@@ -1,9 +1,11 @@
 # Sem argumentos, tudo vem da Internet. Na rede do banco os ARG apontam ao
-# Harbor e ao Nexus, como nos serviços do MozaOps.
+# Harbor e ao Nexus, como nos serviços do MozaOps. A imagem é a mesma deles,
+# para o Harbor só ter de guardar uma.
 ARG IMAGE_REGISTRY=docker.io
 ARG IMAGE_NAMESPACE=library
+ARG PYTHON_IMAGE=python:3.14-slim-trixie
 
-FROM ${IMAGE_REGISTRY}/${IMAGE_NAMESPACE}/python:3.12-slim
+FROM ${IMAGE_REGISTRY}/${IMAGE_NAMESPACE}/${PYTHON_IMAGE}
 ARG PYPI_INDEX_URL=
 ARG PYPI_TRUSTED_HOST=
 
