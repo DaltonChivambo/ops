@@ -361,7 +361,10 @@ No mesmo `.env`, trocar as senhas.
    # GEEA_SSOLOGIN_URL=http://geea-keycloak:8000/geea/idmUtils/SSOLogin
    # GEEA_TOKEN_URL=http://geea-keycloak:8000/auth/realms/QAS/protocol/openid-connect/token
    ```
-2. Descomentar as quatro do QAS, logo abaixo, e pôr o host do GEEA do QAS:
+2. Descomentar as quatro do QAS, logo abaixo, e pôr os hosts do GEEA do QAS. O login
+   (`GEEA_SSOLOGIN_URL`) e o Keycloak que emite os tokens (as outras três) podem estar em
+   servidores diferentes. O das outras três é o do campo `iss` de um token: tirar um pelo
+   Postman e ler o `iss`.
    ```bash
    AUTH_ISSUER=http://<host do GEEA do QAS>/auth/realms/QAS
    AUTH_JWKS_URL=http://<host do GEEA do QAS>/auth/realms/QAS/protocol/openid-connect/certs
@@ -383,12 +386,14 @@ Dois cuidados:
   Resolve-se dando o IP do host no mesmo `.env`, sem mexer nas quatro linhas:
 
   ```bash
-  nslookup <host do GEEA do QAS>     # no Windows: mostra o IP
+  ping <host>                        # no Windows: a primeira linha mostra o IP
   ```
 
   ```bash
-  GEEA_HOSTNAME=<host do GEEA do QAS, sem porta>
-  GEEA_IP=<IP que o nslookup mostrou>
+  GEEA_HOSTNAME=<host do login, sem porta>
+  GEEA_IP=<IP que o ping mostrou>
+  GEEA_ISSUER_HOSTNAME=<host do Keycloak dos tokens, se for outro>
+  GEEA_ISSUER_IP=<IP que o ping mostrou>
   ```
 
   Depois, `docker compose up -d` para os contentores lerem o `.env` novo.

@@ -3,6 +3,9 @@
 #   powershell -ExecutionPolicy Bypass -File scripts\check-geea.ps1
 #
 # Não muda nada: só lê o .env, o compose e o que os contentores vêem.
+#
+# O GEEA pode estar em dois servidores: o do login (GEEA_SSOLOGIN_URL) e o
+# Keycloak que emite os tokens (AUTH_ISSUER, AUTH_JWKS_URL, GEEA_TOKEN_URL).
 
 $ErrorActionPreference = 'Continue'
 $falhas = 0
@@ -29,29 +32,33 @@ Get-Content -LiteralPath '.env' | Where-Object { $_ -match '^\s*[A-Z_]+=' } | Fo
     $env_[$nome.Trim()] = $valor.Trim().Trim('"')
 }
 
-# 2. O nome e o IP do GEEA, juntos.
-$geeaHost = $env_['GEEA_HOSTNAME']; $geeaIp = $env_['GEEA_IP']
-if ($geeaHost -and $geeaIp) { Ok "GEEA_HOSTNAME=$geeaHost e GEEA_IP=$geeaIp no .env" }
-elseif ($geeaHost -or $geeaIp) { Falha 'só uma de GEEA_HOSTNAME e GEEA_IP está preenchida: são as duas, ou nenhuma' }
-else { Nota 'GEEA_HOSTNAME e GEEA_IP não estão no .env: o nome do GEEA tem de resolver sozinho dentro do Docker' }
+$login = $env_['GEEA_SSOLOGIN_URL']; $chaves = $env_['AUTH_JWKS_URL']; $issuer = $env_['AUTH_ISSUER']
+if (-not $login -or -not $chaves -or -not $issuer) { Falha 'faltam GEEA_SSOLOGIN_URL, AUTH_JWKS_URL ou AUTH_ISSUER no .env'; exit 1 }
+Nota "login:   $login"
+Nota "tokens:  $issuer"
+if (-not $chaves.StartsWith($issuer)) { Falha 'o AUTH_JWKS_URL não começa pelo AUTH_ISSUER: os dois são do mesmo servidor' }
 
-$url = $env_['AUTH_JWKS_URL']
-if (-not $url) { Falha 'AUTH_JWKS_URL não está no .env'; exit 1 }
-Nota "o GEEA configurado: $url"
-
-# 3. O compose lê-os.
-if ($geeaHost -and $geeaIp) {
-    $config = docker compose config 2>$null | Out-String
-    if ($config -match [regex]::Escape("$geeaHost=$geeaIp")) { Ok 'o docker compose lê o nome e o IP' }
-    else { Falha 'o docker compose não mostra o extra_hosts do GEEA: o docker-compose.yml é antigo?' }
+# 2. Os pares nome e IP, cada um completo ou vazio.
+$pares = @(
+    @{ Nome = 'GEEA_HOSTNAME'; Ip = 'GEEA_IP'; Para = 'servidor do login' },
+    @{ Nome = 'GEEA_ISSUER_HOSTNAME'; Ip = 'GEEA_ISSUER_IP'; Para = 'servidor dos tokens' }
+)
+$mapeados = @()
+foreach ($par in $pares) {
+    $h = $env_[$par.Nome]; $i = $env_[$par.Ip]
+    if ($h -and $i) { Ok "$($par.Nome)=$h e $($par.Ip)=$i ($($par.Para))"; $mapeados += @{ Host = $h; Ip = $i } }
+    elseif ($h -or $i) { Falha "só uma de $($par.Nome) e $($par.Ip) está preenchida: são as duas, ou nenhuma" }
+    else { Nota "$($par.Nome) e $($par.Ip) vazios: o nome do $($par.Para) tem de resolver sozinho no Docker" }
 }
 
-# 4. O contentor foi recriado com eles.
+# 3. O compose lê-os, e 4. o contentor foi recriado com eles.
+$config = docker compose config 2>$null | Out-String
 $hosts = docker exec mozaops-auth-service cat /etc/hosts 2>$null | Out-String
 if (-not $hosts) { Falha 'o contentor mozaops-auth-service não está a correr (docker compose up -d)'; exit 1 }
-if ($geeaHost -and $geeaIp) {
-    if ($hosts -match "$([regex]::Escape($geeaIp))\s+$([regex]::Escape($geeaHost))") { Ok "o contentor sabe que $geeaHost é $geeaIp" }
-    else { Falha 'o contentor não tem a entrada do GEEA: falta recriá-lo (docker compose up -d)' }
+foreach ($m in $mapeados) {
+    if ($config -notmatch [regex]::Escape("$($m.Host)=$($m.Ip)")) { Falha "o docker compose não mostra $($m.Host)=$($m.Ip): o docker-compose.yml é antigo?" }
+    elseif ($hosts -match "$([regex]::Escape($m.Ip))\s+$([regex]::Escape($m.Host))") { Ok "o contentor sabe que $($m.Host) é $($m.Ip)" }
+    else { Falha "o contentor não sabe onde está $($m.Host): falta recriá-lo (docker compose up -d)" }
 }
 
 # 5. Proxy dentro do contentor.
@@ -60,20 +67,29 @@ $proxy = $variaveis | Select-String -Pattern '^(HTTP|HTTPS)_PROXY=' -CaseSensiti
 if ($proxy) {
     $proxy | ForEach-Object { Nota "proxy no contentor: $($_.Line)" }
     $semProxy = ($variaveis | Select-String -Pattern '^NO_PROXY=' -CaseSensitive).Line
-    if ($geeaHost -and $semProxy -notmatch [regex]::Escape($geeaHost)) { Falha 'o GEEA não está no NO_PROXY do contentor' }
-    else { Ok "o GEEA passa ao lado do proxy ($semProxy)" }
+    foreach ($m in $mapeados) {
+        if ($semProxy -notmatch [regex]::Escape($m.Host)) { Falha "$($m.Host) não está no NO_PROXY do contentor" }
+    }
 }
 else { Ok 'o contentor não tem proxy configurado' }
 
-# 6. O contentor chega ao GEEA.
-$teste = "import sys, urllib.request as u`ntry:`n    print(u.urlopen(sys.argv[1], timeout=10).status)`nexcept Exception as e:`n    print(type(e).__name__, e)"
-$resposta = docker exec mozaops-auth-service python -c $teste $url 2>&1 | Out-String
-$resposta = $resposta.Trim()
-if ($resposta -eq '200') { Ok 'o contentor chega ao GEEA (200)' }
-else {
-    Falha "o contentor não chega ao GEEA: $resposta"
+# 6. O contentor chega aos dois servidores.
+$teste = "import sys, urllib.request as u, urllib.error as e`ntry:`n    print(u.urlopen(sys.argv[1], timeout=10).status)`nexcept e.HTTPError as x:`n    print(x.code)`nexcept Exception as x:`n    print(type(x).__name__, x)"
+function Pedido($url) { (docker exec mozaops-auth-service python -c $teste $url 2>&1 | Out-String).Trim() }
+
+$resposta = Pedido ($login -split '\?')[0]
+if ($resposta -match '^\d{3}$') { Ok "o contentor chega ao servidor do login (responde $resposta)" }
+else { Falha "o contentor não chega ao servidor do login: $resposta" }
+
+$resposta = Pedido $chaves
+if ($resposta -eq '200') { Ok 'o contentor chega às chaves dos tokens (200)' }
+elseif ($resposta -match '^\d{3}$') { Falha "as chaves dos tokens respondem ${resposta}: o AUTH_JWKS_URL está errado (tem de ser o iss dos tokens + /protocol/openid-connect/certs)" }
+else { Falha "o contentor não chega ao servidor dos tokens: $resposta" }
+
+if ($falhas -gt 0) {
+    Nota ''
     Nota 'Se o Postman chega e o contentor não: confirmar os pontos acima, e no Docker Desktop,'
-    Nota 'Settings > Resources > Proxies, pôr o host e o IP do GEEA nas excepções.'
+    Nota 'Settings > Resources > Proxies, pôr os hosts e os IPs do GEEA nas excepções.'
 }
 
 Write-Host ''
