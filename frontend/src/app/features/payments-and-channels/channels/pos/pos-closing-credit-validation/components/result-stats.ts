@@ -27,7 +27,7 @@ interface StatWithNote {
          Daí as duas regras. Sem a segunda, abrir a barra a 1280px espremia os
          quatro cartões para 226px e voltava a cortar os montantes. -->
     <div
-      class="grid grid-cols-2 gap-4 min-[1360px]:grid-cols-4 min-[1170px]:group-data-[sidebar=collapsed]/shell:grid-cols-4"
+      class="grid auto-rows-fr grid-cols-2 gap-4 min-[1360px]:grid-cols-4 min-[1170px]:group-data-[sidebar=collapsed]/shell:grid-cols-4"
     >
       @for (item of stats(); track item.stat.id) {
         <app-stat-card [stat]="item.stat" [periodLabel]="item.note" />

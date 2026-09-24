@@ -29,6 +29,9 @@ export interface Stat {
 @Component({
   selector: 'app-stat-card',
   changeDetection: ChangeDetectionStrategy.OnPush,
+  // Ocupa a célula inteira: uma nota em duas linhas não pode deixar um cartão
+  // mais alto que os vizinhos.
+  host: { class: 'block h-full' },
   imports: [
     CardComponent,
     LucideArrowDown,
@@ -41,7 +44,7 @@ export interface Stat {
   template: `
     @let s = stat();
 
-    <section appCard class="flex flex-col gap-3">
+    <section appCard class="flex h-full flex-col gap-3">
       <div class="flex items-start justify-between gap-2">
         <p class="min-w-0 truncate text-base text-gray-600">{{ s.label }}</p>
 
@@ -72,7 +75,7 @@ export interface Stat {
       <p [class]="valueClass()">{{ displayValue()
       }}@if (s.unit) {<span class="ml-1 text-[0.55em] font-normal text-gray-400">{{ s.unit }}</span>}</p>
 
-      <p class="flex items-center gap-1.5 text-sm">
+      <p class="mt-auto flex items-center gap-1.5 text-sm">
         @if (s.changePercent !== undefined) {
           <span
             class="inline-flex items-center gap-0.5 font-semibold"
