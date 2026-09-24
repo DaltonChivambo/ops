@@ -108,11 +108,10 @@ e cada um tem um só sítio onde se troca.
 | O quê | Variáveis |
 |---|---|
 | GEEA: quem emite os tokens | `AUTH_ISSUER`, `AUTH_JWKS_URL` |
-| GEEA: login e troca de credenciais | `GEEA_BASE`, `GEEA_SSOLOGIN_URL`, `GEEA_TOKEN_URL`, `GEEA_REALM` |
+| GEEA: login e troca de credenciais | `GEEA_SSOLOGIN_URL`, `GEEA_TOKEN_URL`, `GEEA_REALM` |
 | GEEA: o cliente do MozaOps | `GEEA_CLIENT_ID`, `GEEA_CLIENT_SECRET`, `AUTH_ALLOWED_AZP`, `AUTH_CLIENT_ID` |
 | Domínio público | `DOMAIN` |
 | PostgreSQL | `POSTGRES_*`, `DB_*` |
-| Observabilidade | `OTEL_EXPORTER_OTLP_ENDPOINT` |
 
 O `.env.example` traz o GEEA simulado activo e, comentadas por baixo, as mesmas linhas para o
 GEEA do QAS. Trocar de um para o outro é trocar esse bloco. O `AUTH_ISSUER` tem de
@@ -197,10 +196,40 @@ PYPI_INDEX_URL=<URL do Nexus, terminado em /simple/>
 PYPI_TRUSTED_HOST=<host do Nexus>        # só se o Nexus servir em HTTP
 ```
 
-No mesmo `.env`, trocar as senhas e, para usar o GEEA do QAS em vez do simulado, o bloco do
-GEEA (ver a tabela acima).
+No mesmo `.env`, trocar as senhas.
 
-**4. Confirmar de onde vem cada imagem**, antes de construir:
+**4. Apontar ao GEEA do QAS**, em vez do simulado. Tudo no mesmo ficheiro,
+`ops/.env`, na secção «GEEA»:
+
+1. Comentar as quatro linhas do simulado:
+   ```bash
+   # AUTH_ISSUER=http://geea-keycloak:8000/auth/realms/QAS
+   # AUTH_JWKS_URL=http://geea-keycloak:8000/auth/realms/QAS/protocol/openid-connect/certs
+   # GEEA_SSOLOGIN_URL=http://geea-keycloak:8000/geea/idmUtils/SSOLogin
+   # GEEA_TOKEN_URL=http://geea-keycloak:8000/auth/realms/QAS/protocol/openid-connect/token
+   ```
+2. Descomentar as quatro do QAS, logo abaixo:
+   ```bash
+   AUTH_ISSUER=http://svdcpapq51:8083/auth/realms/QAS
+   AUTH_JWKS_URL=http://svdcpapq51:8083/auth/realms/QAS/protocol/openid-connect/certs
+   GEEA_SSOLOGIN_URL=http://svdcpapq51:8083/geea/idmUtils/SSOLogin
+   GEEA_TOKEN_URL=http://svdcpapq51:8083/auth/realms/QAS/protocol/openid-connect/token
+   ```
+3. Pôr o segredo real do cliente, pedido a quem gere o GEEA:
+   ```bash
+   GEEA_CLIENT_SECRET=<segredo do qa-mozaops>
+   ```
+   `GEEA_REALM`, `GEEA_CLIENT_ID`, `AUTH_ALLOWED_AZP` e `AUTH_CLIENT_ID` ficam como estão.
+
+Dois cuidados:
+- O `AUTH_ISSUER` tem de ser igual ao `iss` dos tokens do QAS. Se não for, o login entra mas
+  as automações respondem 401.
+- Os contentores têm de chegar ao `svdcpapq51`. Se o nome curto não resolver dentro do Docker,
+  usar o nome completo, com o domínio, nas quatro linhas.
+
+Com o GEEA do QAS, o simulado não se sobe.
+
+**5. Confirmar de onde vem cada imagem**, antes de construir:
 
 ```bash
 docker compose config | grep image:
@@ -209,7 +238,7 @@ docker compose config | grep image:
 Todas têm de começar pelo host do Harbor, excepto as `mozaops/…:local`, que são construídas
 na própria máquina.
 
-**5. Subir tudo:**
+**6. Subir tudo:**
 
 ```bash
 make up
@@ -221,7 +250,7 @@ make verify-m0
 
 Sem `make`, os mesmos comandos estão em [«Windows, sem `make`»](#windows-sem-make).
 
-**6. Frontend.** O `npm` também tem de ir ao Nexus, a um repositório npm. Configura-se na
+**7. Frontend.** O `npm` também tem de ir ao Nexus, a um repositório npm. Configura-se na
 máquina, e não no repositório:
 
 ```bash
