@@ -91,6 +91,12 @@ ci/package.sh vendor backend/packages/mozaops-libs backend/services/platform/aut
 
 O `vendor` copia o wheel da versão actual, acerta o `pyproject.toml` do serviço e refaz o lock.
 
+## Harbor, Nexus e GEEA
+
+Em desenvolvimento não se configura nenhum: as imagens vêm do Docker Hub, os pacotes do PyPI,
+e o GEEA é o simulado. Onde se põe cada endereço de produção está no
+[README da raiz](../README.md#onde-se-troca-cada-endereço).
+
 ## Dependências de um serviço
 
 O `uv.lock` de cada serviço é a fonte. Dele saem o `requirements.txt` e o

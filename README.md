@@ -63,9 +63,10 @@ docker compose run --rm pos-closing-credit-validation alembic upgrade head
 docker compose -f external-services/geea-keycloak/docker-compose.yml up -d
 ```
 
-Os passos seguintes (`make check`, `make down`, etc.) também têm equivalente
-directo em `docker compose` — ver os alvos no [`Makefile`](Makefile) para o
-comando exacto de cada um.
+O `make down` e os outros alvos do compose têm equivalente directo em `docker compose`.
+Ver os alvos no [`Makefile`](Makefile) para o comando exacto de cada um. O `make check`
+chama os scripts de `ci/`, que correm em Git Bash:
+`bash ci/service.sh check backend/services/platform/auth-service`.
 
 E o frontend, noutro terminal:
 
@@ -96,6 +97,47 @@ make down       # pára, mantendo os dados
 
 > **`make clean` apaga os volumes.** A base local pode ter execuções reais do departamento.
 > Não é comando para correr por hábito.
+
+## Onde se troca cada endereço
+
+Nenhum endereço está escrito no código nem nos Dockerfiles. Mudam de host, de IP e de porta,
+e cada um tem um só sítio onde se troca.
+
+**Quando a aplicação corre** (`.env`, a partir do [`.env.example`](.env.example)):
+
+| O quê | Variáveis |
+|---|---|
+| GEEA: quem emite os tokens | `AUTH_ISSUER`, `AUTH_JWKS_URL` |
+| GEEA: login e troca de credenciais | `GEEA_BASE`, `GEEA_SSOLOGIN_URL`, `GEEA_TOKEN_URL`, `GEEA_REALM` |
+| GEEA: o cliente do MozaOps | `GEEA_CLIENT_ID`, `GEEA_CLIENT_SECRET`, `AUTH_ALLOWED_AZP`, `AUTH_CLIENT_ID` |
+| Domínio público | `DOMAIN` |
+| PostgreSQL | `POSTGRES_*`, `DB_*` |
+| Observabilidade | `OTEL_EXPORTER_OTLP_ENDPOINT` |
+
+O `.env.example` traz o GEEA simulado activo e, comentadas por baixo, as mesmas linhas para o
+GEEA do QAS. Trocar de um para o outro é trocar esse bloco. O `AUTH_ISSUER` tem de
+acompanhar, porque é contra ele que se valida o `iss` de cada token.
+
+**Quando se constrói a imagem** (produção: variáveis da pipeline; fora dela, `.env.build`, a
+partir do [`.env.build.example`](.env.build.example)):
+
+| O quê | Variáveis |
+|---|---|
+| Harbor: imagem base do Python | `PYTHON_BASE_REGISTRY`, `PYTHON_BASE_NAMESPACE`, e `PYTHON_IMAGE` se o nome diferir |
+| Harbor: para onde vai a imagem construída | `DOCKER_REGISTRY` |
+| Harbor: imagem do uv, para o `mozaops-libs` | `UV_IMAGE` |
+| Nexus: de onde vêm os pacotes Python | `PYPI_INDEX_URL`, e `PYPI_TRUSTED_HOST` se servir em HTTP |
+| Nexus: onde se publica o `mozaops-libs` | `PYPI_PUBLISH_URL` |
+
+Em desenvolvimento não se define nenhuma: tudo vem da Internet, e o `docker compose` não lê o
+`.env.build`. Em produção só o Harbor e o Nexus são alcançáveis, e com estas variáveis o build
+não vai a mais lado nenhum:
+
+```bash
+cp .env.build.example .env.build          # preencher com o Harbor e o Nexus
+ci/service.sh build backend/services/platform/auth-service
+ci/service.sh push  backend/services/platform/auth-service
+```
 
 ## Convenções
 

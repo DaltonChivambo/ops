@@ -8,13 +8,22 @@
 #   ci/service.sh lock  <pasta>   refaz o uv.lock e os requirements
 #
 # Todas opcionais. Sem elas, tudo vem da Internet:
-#   PYTHON_BASE_REGISTRY  PYTHON_BASE_NAMESPACE   origem da imagem base
-#   PYPI_INDEX_URL        PYPI_TRUSTED_HOST       índice dos pacotes Python
-#   DOCKER_REGISTRY                               destino do push
+#   PYTHON_BASE_REGISTRY  PYTHON_BASE_NAMESPACE   origem da imagem base (Harbor)
+#   PYTHON_IMAGE                                  nome:tag dela, se o Harbor usar outro
+#   PYPI_INDEX_URL        PYPI_TRUSTED_HOST       índice dos pacotes Python (Nexus)
+#   DOCKER_REGISTRY                               destino do push (Harbor)
 #   IMAGE_TAG                                     por omissão, a versão do pyproject
 #   UV_LOCK_ARGS                                  ex.: "--upgrade-package pyjwt"
+#
+# Com PYPI_INDEX_URL definido (produção), o build e o check só falam com o
+# Harbor e o Nexus: o uv não corre, e o `lock` recusa-se. O lock é resolvido
+# contra o PyPI, em desenvolvimento; contra outro índice o uv resolvia de novo.
 set -euo pipefail
 export MSYS_NO_PATHCONV=1
+
+# Numa pipeline as variáveis vêm do ambiente; fora dela, do .env.build na raiz.
+env_build="$(dirname "$0")/../.env.build"
+if [[ -f "$env_build" ]]; then set -a; source "$env_build"; set +a; fi
 
 command=${1:?"uso: $0 <check|build|push|lock> <pasta do serviço>"}
 dir=${2:?"falta a pasta do serviço"}
@@ -23,7 +32,7 @@ name=$(basename "$dir")
 version=$(sed -n 's/^version = "\(.*\)"$/\1/p' "$dir/pyproject.toml" | head -1)
 image="mozaops/$name:${IMAGE_TAG:-$version}"
 
-UV_IMAGE=ghcr.io/astral-sh/uv:0.12.1-python3.14-trixie-slim
+UV_IMAGE=${UV_IMAGE:-ghcr.io/astral-sh/uv:0.12.1-python3.14-trixie-slim}
 EXPORT_ARGS="--frozen --no-emit-project --no-header -q"
 
 uv() {
@@ -33,12 +42,16 @@ uv() {
 }
 
 build_args=()
-for var in PYTHON_BASE_REGISTRY PYTHON_BASE_NAMESPACE PYPI_INDEX_URL PYPI_TRUSTED_HOST; do
+for var in PYTHON_BASE_REGISTRY PYTHON_BASE_NAMESPACE PYTHON_IMAGE PYPI_INDEX_URL PYPI_TRUSTED_HOST; do
   if [[ -n "${!var:-}" ]]; then build_args+=(--build-arg "$var=${!var}"); fi
 done
 
 case "$command" in
   lock)
+    if [[ -n "${PYPI_INDEX_URL:-}" ]]; then
+      echo "o lock faz-se em desenvolvimento, sem PYPI_INDEX_URL" >&2
+      exit 1
+    fi
     uv "uv lock -q ${UV_LOCK_ARGS:-} \
       && uv export $EXPORT_ARGS --no-dev -o requirements.txt \
       && uv export $EXPORT_ARGS --all-groups -o requirements-dev.txt"
@@ -47,10 +60,12 @@ case "$command" in
     echo "── $name"
     # Os requirements são o que a imagem instala: se divergirem do lock, a
     # imagem não é a que se testou localmente.
-    uv "uv lock --check -q \
-      && uv export $EXPORT_ARGS --no-dev | cmp -s - requirements.txt \
-      && uv export $EXPORT_ARGS --all-groups | cmp -s - requirements-dev.txt" \
-      || { echo "uv.lock ou requirements desactualizados: ci/service.sh lock $dir" >&2; exit 1; }
+    if [[ -z "${PYPI_INDEX_URL:-}" ]]; then
+      uv "uv lock --check -q \
+        && uv export $EXPORT_ARGS --no-dev | cmp -s - requirements.txt \
+        && uv export $EXPORT_ARGS --all-groups | cmp -s - requirements-dev.txt" \
+        || { echo "uv.lock ou requirements desactualizados: ci/service.sh lock $dir" >&2; exit 1; }
+    fi
     docker build -q --target test "${build_args[@]}" -t "$name:test" "$dir" >/dev/null
     docker run --rm "$name:test"
     ;;

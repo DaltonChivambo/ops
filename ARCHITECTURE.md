@@ -156,8 +156,10 @@ Nenhum ficheiro fora da pasta entra na imagem. Um Dockerfile central com o nome 
 em argumento funcionava com dois; com cinquenta, qualquer mudança nele reconstrói e arrisca
 todos ao mesmo tempo, e nenhum pode divergir quando precisar.
 
-**A versão do Python é do serviço.** Está no `requires-python` do `pyproject.toml` e na tag
-do `FROM`, e as duas mudam juntas. O ambiente escolhe de onde vem a imagem; nunca qual é.
+**A versão do Python é do serviço.** Está no `requires-python` do `pyproject.toml` e no
+valor por omissão de `PYTHON_IMAGE` no Dockerfile, e as duas mudam juntas. O ambiente escolhe
+de onde vem a imagem; o `PYTHON_IMAGE` só se sobrepõe quando o Harbor dá outro nome à mesma
+versão.
 
 **O lock é a fonte; a imagem instala o que ele exporta.** O `uv.lock` gera o
 `requirements.txt` (execução) e o `requirements-dev.txt` (verificação), ambos com o hash de
@@ -181,10 +183,18 @@ desenvolvimento e não passa nenhuma. A produção passa-as ao build, pela pipel
 |---|---|---|
 | `PYTHON_BASE_REGISTRY` | registo da imagem base | `docker.io` |
 | `PYTHON_BASE_NAMESPACE` | caminho dentro do registo | `library` |
+| `PYTHON_IMAGE` | nome e tag da imagem, se o Harbor usar outros | o do Dockerfile |
 | `PYPI_INDEX_URL` | índice dos pacotes Python | PyPI |
 | `PYPI_TRUSTED_HOST` | host do índice, quando serve em HTTP | — |
 | `DOCKER_REGISTRY` | destino do `push` | sem push |
 | `PYPI_PUBLISH_URL` | onde publicar os pacotes internos | sem publicação |
+| `UV_IMAGE` | imagem do uv, só para os pacotes internos | a do `ghcr.io` |
+
+Em produção só o Harbor e o Nexus são alcançáveis. Com estas variáveis o build não vai a mais
+lado nenhum: os Dockerfiles não têm a linha `# syntax`, que faria o BuildKit ir buscar uma
+imagem ao Docker Hub, e o `ci/service.sh` não corre o uv. O lock resolve-se só em
+desenvolvimento: contra outro índice o uv resolveria tudo de novo, e o `lock` recusa-se quando
+há `PYPI_INDEX_URL`. Onde se põe cada valor está no [README](README.md#onde-se-troca-cada-endereço).
 
 Nenhum endereço corporativo está escrito no repositório: mudam de host, de IP e de porta, e
 uma mudança dessas tem de ser uma variável na pipeline, não um commit em cada serviço.

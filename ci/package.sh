@@ -14,6 +14,10 @@
 set -euo pipefail
 export MSYS_NO_PATHCONV=1
 
+# Numa pipeline as variáveis vêm do ambiente; fora dela, do .env.build na raiz.
+env_build="$(dirname "$0")/../.env.build"
+if [[ -f "$env_build" ]]; then set -a; source "$env_build"; set +a; fi
+
 command=${1:?"uso: $0 <check|build|vendor|publish> <pasta do pacote> [serviço]"}
 dir=${2:?"falta a pasta do pacote"}
 dir=${dir%/}
@@ -23,20 +27,28 @@ name=$(sed -n 's/^name = "\(.*\)"$/\1/p' "$dir/pyproject.toml" | head -1)
 version=$(sed -n 's/^version = "\(.*\)"$/\1/p' "$dir/pyproject.toml" | head -1)
 wheel="${name//-/_}-$version-py3-none-any.whl"
 
-UV_IMAGE=ghcr.io/astral-sh/uv:0.12.1-python3.14-trixie-slim
+UV_IMAGE=${UV_IMAGE:-ghcr.io/astral-sh/uv:0.12.1-python3.14-trixie-slim}
+
+# Com PYPI_INDEX_URL (produção) o uv vai ao Nexus e nunca descarrega
+# interpretadores. O lock foi resolvido contra o PyPI: aqui usa-se como está.
+uv_env=(-e UV_PROJECT_ENVIRONMENT=/tmp/venv -e UV_PUBLISH_USERNAME -e UV_PUBLISH_PASSWORD)
+lock_check="uv lock --check -q"
+if [[ -n "${PYPI_INDEX_URL:-}" ]]; then
+  uv_env+=(-e "UV_DEFAULT_INDEX=$PYPI_INDEX_URL" -e UV_PYTHON_DOWNLOADS=never -e UV_FROZEN=1)
+  if [[ -n "${PYPI_TRUSTED_HOST:-}" ]]; then uv_env+=(-e "UV_INSECURE_HOST=$PYPI_TRUSTED_HOST"); fi
+  lock_check="true"
+fi
 
 uv() {
   local host_dir
   host_dir=$(cd "$dir" && { pwd -W 2>/dev/null || pwd; })
-  docker run --rm -e UV_PROJECT_ENVIRONMENT=/tmp/venv \
-    -e UV_PUBLISH_USERNAME -e UV_PUBLISH_PASSWORD \
-    -v "$host_dir:/src" -w /src "$UV_IMAGE" sh -c "$1"
+  docker run --rm "${uv_env[@]}" -v "$host_dir:/src" -w /src "$UV_IMAGE" sh -c "$1"
 }
 
 case "$command" in
   check)
     echo "── $name"
-    uv "uv lock --check -q && uv run -q ruff check . && uv run -q ruff format --check . \
+    uv "$lock_check && uv run -q ruff check . && uv run -q ruff format --check . \
       && uv run -q mypy src && uv run -q pytest -q"
     ;;
   build)
