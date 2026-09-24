@@ -94,14 +94,10 @@ git. Depois:
 cp .env.prod .env
 ```
 
-Abrir o `.env` e preencher o que está entre `<>`:
-
-```bash
-POSTGRES_PASSWORD="<senha forte>"
-DB_RECONCILIATION_PASSWORD="<senha forte>"
-DB_CASES_PASSWORD="<senha forte>"
-GEEA_CLIENT_SECRET="<segredo do qa-mozaops, pedido a quem gere o GEEA>"
-```
+O ficheiro já vem completo. As senhas da base de dados (`POSTGRES_PASSWORD`, `DB_*_PASSWORD`)
+e o `GEEA_CLIENT_SECRET` vêm com o valor de desenvolvimento: trocam-se antes de uso real, e o
+`GEEA_CLIENT_SECRET` tem de ser o segredo verdadeiro do cliente `qa-mozaops` para o login no
+GEEA do QAS funcionar.
 
 E entrar no Harbor, uma vez por máquina, com o host que está em `IMAGE_REGISTRY`:
 
@@ -290,8 +286,9 @@ instalar a CA no Windows.
   cp .env.prod .env
   ```
 
-  Faltam só os valores entre `<>`: as senhas e o `GEEA_CLIENT_SECRET`. Com o `.env.prod`, os
-  passos 3 e 4 ficam feitos, e segue-se para o 5.
+  Vem completo. As senhas e o `GEEA_CLIENT_SECRET` trazem o valor de desenvolvimento, e
+  trocam-se antes de uso real. Com o `.env.prod`, os passos 3 e 4 ficam feitos, e segue-se
+  para o 5.
 
 - **À mão**, a partir do modelo, preenchendo a secção «De onde vêm as imagens e os pacotes»:
 
