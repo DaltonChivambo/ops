@@ -175,14 +175,16 @@ serviço lê `../packages`. Subir de versão é um passo por serviço
 ritmo. O wheel é reproduzível: publicado mais tarde num repositório, tem o mesmo hash, e basta
 tirar a linha de `[tool.uv.sources]` e refazer o lock.
 
-**Desenvolvimento e produção diferem só em variáveis.** Sem nenhuma, tudo vem da Internet:
-imagem base do Docker Hub, pacotes do PyPI, imagem local. O `docker-compose.yml` é só de
-desenvolvimento e não passa nenhuma. A produção passa-as ao build, pela pipeline:
+**Com Internet ou na rede do banco, a diferença está só em variáveis.** Sem nenhuma, tudo vem
+da Internet: imagens do Docker Hub, pacotes do PyPI. Na rede do banco, seja uma máquina de
+desenvolvimento ou a pipeline, só o Harbor e o Nexus são alcançáveis, e as mesmas variáveis
+apontam para lá. Numa máquina ficam no `.env`, que o `docker compose` e os scripts de `ci/`
+lêem; na pipeline, na configuração dela.
 
 | Variável | Para quê | Vazia |
 |---|---|---|
-| `PYTHON_BASE_REGISTRY` | registo da imagem base | `docker.io` |
-| `PYTHON_BASE_NAMESPACE` | caminho dentro do registo | `library` |
+| `IMAGE_REGISTRY` | registo de todas as imagens | `docker.io` |
+| `IMAGE_NAMESPACE` | projecto dentro do registo | o de cada imagem no Docker Hub |
 | `PYTHON_IMAGE` | nome e tag da imagem, se o Harbor usar outros | o do Dockerfile |
 | `PYPI_INDEX_URL` | índice dos pacotes Python | PyPI |
 | `PYPI_TRUSTED_HOST` | host do índice, quando serve em HTTP | — |
@@ -190,18 +192,17 @@ desenvolvimento e não passa nenhuma. A produção passa-as ao build, pela pipel
 | `PYPI_PUBLISH_URL` | onde publicar os pacotes internos | sem publicação |
 | `UV_IMAGE` | imagem do uv, só para os pacotes internos | a do `ghcr.io` |
 
-Em produção só o Harbor e o Nexus são alcançáveis. Com estas variáveis o build não vai a mais
-lado nenhum: os Dockerfiles não têm a linha `# syntax`, que faria o BuildKit ir buscar uma
-imagem ao Docker Hub, e o `ci/service.sh` não corre o uv. O lock resolve-se só em
-desenvolvimento: contra outro índice o uv resolveria tudo de novo, e o `lock` recusa-se quando
-há `PYPI_INDEX_URL`. Onde se põe cada valor está no [README](README.md#onde-se-troca-cada-endereço).
+Com estas variáveis o build não vai a mais lado nenhum: os Dockerfiles não têm a linha
+`# syntax`, que faria o BuildKit ir buscar uma imagem ao Docker Hub, e o `ci/service.sh` não
+corre o uv. O lock resolve-se só numa máquina com Internet: contra outro índice o uv resolveria
+tudo de novo, e o `lock` recusa-se quando há `PYPI_INDEX_URL`. Onde se põe cada valor está no [README](README.md#onde-se-troca-cada-endereço).
 
 Nenhum endereço corporativo está escrito no repositório: mudam de host, de IP e de porta, e
 uma mudança dessas tem de ser uma variável na pipeline, não um commit em cada serviço.
 
 **Os scripts de `ci/` não pressupõem ferramenta de CI.** Recebem tudo pelo ambiente, e o
 GitHub Actions deste repositório chama-os através do `make check`. A pipeline do banco, seja
-ela qual for, chama os mesmos com as variáveis de produção.
+ela qual for, chama os mesmos com as variáveis do Harbor e do Nexus.
 
 **Vulnerabilidades tratam-se em dois sítios diferentes.** Na imagem base (Debian, Python), a
 correcção é uma imagem base nova e reconstruir os serviços, sem mudar código. Numa

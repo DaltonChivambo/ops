@@ -1,8 +1,11 @@
 # MozaOps — infraestrutura local: entrada, base de dados, identidade,
 # observabilidade e os serviços de negócio.
 #
-# Só para desenvolvimento: as imagens vêm do Docker Hub e os pacotes do PyPI.
-# Cada serviço constrói a partir da sua própria pasta.
+# Só para desenvolvimento. Cada serviço constrói a partir da sua própria pasta.
+#
+# De onde vêm as imagens e os pacotes decide-se no `.env`: vazio, do Docker Hub
+# e do PyPI; na rede do banco, do Harbor e do Nexus (IMAGE_REGISTRY,
+# IMAGE_NAMESPACE, PYPI_INDEX_URL, PYPI_TRUSTED_HOST). As tags ficam aqui.
 #
 #   docker compose up -d          sobe tudo
 #   docker compose logs -f        acompanha
@@ -10,11 +13,17 @@
 
 name: mozaops
 
+x-build-args: &build-args
+  IMAGE_REGISTRY: ${IMAGE_REGISTRY:-docker.io}
+  IMAGE_NAMESPACE: ${IMAGE_NAMESPACE:-library}
+  PYPI_INDEX_URL: ${PYPI_INDEX_URL:-}
+  PYPI_TRUSTED_HOST: ${PYPI_TRUSTED_HOST:-}
+
 services:
   # ─── Entrada única ────────────────────────────────────────────────────────
   # O SPA e a API partilham origem por entrarem aqui: é o que dispensa CORS.
   traefik:
-    image: traefik:v3.6
+    image: ${IMAGE_REGISTRY:-docker.io}/${IMAGE_NAMESPACE:-library}/traefik:v3.6
     container_name: mozaops-traefik
     restart: unless-stopped
     command:
@@ -40,7 +49,9 @@ services:
   # ─── Serviços de negócio ──────────────────────────────────────────────────
   # Validação de crédito dos valores de fecho do POS.
   pos-closing-credit-validation:
-    build: ./backend/services/business/reconciliation/pos-closing-credit-validation
+    build:
+      context: ./backend/services/business/reconciliation/pos-closing-credit-validation
+      args: *build-args
     image: mozaops/pos-closing-credit-validation:local
     container_name: mozaops-pos-closing-credit-validation
     restart: unless-stopped
@@ -75,7 +86,9 @@ services:
 
   # Sessões e áreas. O único que fala com o GEEA, e sem base de dados própria.
   auth-service:
-    build: ./backend/services/platform/auth-service
+    build:
+      context: ./backend/services/platform/auth-service
+      args: *build-args
     image: mozaops/auth-service:local
     container_name: mozaops-auth-service
     restart: unless-stopped
@@ -109,7 +122,7 @@ services:
   # Uma base e um role por serviço, com as ligações cruzadas revogadas —
   # ver infra/postgres/initdb/01-create-databases.sh.
   postgres:
-    image: postgres:18-alpine
+    image: ${IMAGE_REGISTRY:-docker.io}/${IMAGE_NAMESPACE:-library}/postgres:18-alpine
     container_name: mozaops-postgres
     restart: unless-stopped
     # Sem isto corre com os valores de origem, onde ordenar 18 mil fechos vai a
@@ -159,7 +172,7 @@ services:
   # ─── Observabilidade ──────────────────────────────────────────────────────
   # Os serviços exportam para aqui e nunca directamente para o Jaeger.
   otel-collector:
-    image: otel/opentelemetry-collector-contrib:0.144.0
+    image: ${IMAGE_REGISTRY:-docker.io}/${IMAGE_NAMESPACE:-otel}/opentelemetry-collector-contrib:0.144.0
     container_name: mozaops-otel
     restart: unless-stopped
     command: ["--config=/etc/otel/collector.yaml"]
@@ -171,7 +184,7 @@ services:
         condition: service_started
 
   jaeger:
-    image: jaegertracing/jaeger:2.12.0
+    image: ${IMAGE_REGISTRY:-docker.io}/${IMAGE_NAMESPACE:-jaegertracing}/jaeger:2.12.0
     container_name: mozaops-jaeger
     restart: unless-stopped
     networks: [mozaops]

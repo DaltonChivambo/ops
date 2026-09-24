@@ -8,22 +8,23 @@
 #   ci/service.sh lock  <pasta>   refaz o uv.lock e os requirements
 #
 # Todas opcionais. Sem elas, tudo vem da Internet:
-#   PYTHON_BASE_REGISTRY  PYTHON_BASE_NAMESPACE   origem da imagem base (Harbor)
+#   IMAGE_REGISTRY        IMAGE_NAMESPACE         origem da imagem base (Harbor)
 #   PYTHON_IMAGE                                  nome:tag dela, se o Harbor usar outro
 #   PYPI_INDEX_URL        PYPI_TRUSTED_HOST       índice dos pacotes Python (Nexus)
 #   DOCKER_REGISTRY                               destino do push (Harbor)
 #   IMAGE_TAG                                     por omissão, a versão do pyproject
 #   UV_LOCK_ARGS                                  ex.: "--upgrade-package pyjwt"
 #
-# Com PYPI_INDEX_URL definido (produção), o build e o check só falam com o
+# Com PYPI_INDEX_URL definido (rede do banco), o build e o check só falam com o
 # Harbor e o Nexus: o uv não corre, e o `lock` recusa-se. O lock é resolvido
 # contra o PyPI, em desenvolvimento; contra outro índice o uv resolvia de novo.
 set -euo pipefail
 export MSYS_NO_PATHCONV=1
 
-# Numa pipeline as variáveis vêm do ambiente; fora dela, do .env.build na raiz.
-env_build="$(dirname "$0")/../.env.build"
-if [[ -f "$env_build" ]]; then set -a; source "$env_build"; set +a; fi
+# Numa pipeline as variáveis vêm do ambiente; numa máquina, do .env da raiz,
+# o mesmo que o docker compose lê.
+env_file="$(dirname "$0")/../.env"
+if [[ -f "$env_file" ]]; then set -a; source "$env_file"; set +a; fi
 
 command=${1:?"uso: $0 <check|build|push|lock> <pasta do serviço>"}
 dir=${2:?"falta a pasta do serviço"}
@@ -42,14 +43,14 @@ uv() {
 }
 
 build_args=()
-for var in PYTHON_BASE_REGISTRY PYTHON_BASE_NAMESPACE PYTHON_IMAGE PYPI_INDEX_URL PYPI_TRUSTED_HOST; do
+for var in IMAGE_REGISTRY IMAGE_NAMESPACE PYTHON_IMAGE PYPI_INDEX_URL PYPI_TRUSTED_HOST; do
   if [[ -n "${!var:-}" ]]; then build_args+=(--build-arg "$var=${!var}"); fi
 done
 
 case "$command" in
   lock)
     if [[ -n "${PYPI_INDEX_URL:-}" ]]; then
-      echo "o lock faz-se em desenvolvimento, sem PYPI_INDEX_URL" >&2
+      echo "o lock faz-se numa máquina com acesso ao PyPI, sem PYPI_INDEX_URL" >&2
       exit 1
     fi
     uv "uv lock -q ${UV_LOCK_ARGS:-} \

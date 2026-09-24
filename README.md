@@ -103,7 +103,7 @@ make down       # pára, mantendo os dados
 Nenhum endereço está escrito no código nem nos Dockerfiles. Mudam de host, de IP e de porta,
 e cada um tem um só sítio onde se troca.
 
-**Quando a aplicação corre** (`.env`, a partir do [`.env.example`](.env.example)):
+**A aplicação** (`.env`, a partir do [`.env.example`](.env.example)):
 
 | O quê | Variáveis |
 |---|---|
@@ -118,26 +118,42 @@ O `.env.example` traz o GEEA simulado activo e, comentadas por baixo, as mesmas 
 GEEA do QAS. Trocar de um para o outro é trocar esse bloco. O `AUTH_ISSUER` tem de
 acompanhar, porque é contra ele que se valida o `iss` de cada token.
 
-**Quando se constrói a imagem** (produção: variáveis da pipeline; fora dela, `.env.build`, a
-partir do [`.env.build.example`](.env.build.example)):
+**De onde vêm as imagens e os pacotes** (também no `.env`):
 
 | O quê | Variáveis |
 |---|---|
-| Harbor: imagem base do Python | `PYTHON_BASE_REGISTRY`, `PYTHON_BASE_NAMESPACE`, e `PYTHON_IMAGE` se o nome diferir |
+| Harbor: todas as imagens (Python, postgres, traefik, otel, jaeger) | `IMAGE_REGISTRY`, `IMAGE_NAMESPACE` |
+| Nexus: os pacotes Python | `PYPI_INDEX_URL`, e `PYPI_TRUSTED_HOST` se servir em HTTP |
 | Harbor: para onde vai a imagem construída | `DOCKER_REGISTRY` |
-| Harbor: imagem do uv, para o `mozaops-libs` | `UV_IMAGE` |
-| Nexus: de onde vêm os pacotes Python | `PYPI_INDEX_URL`, e `PYPI_TRUSTED_HOST` se servir em HTTP |
 | Nexus: onde se publica o `mozaops-libs` | `PYPI_PUBLISH_URL` |
+| Harbor: imagem do uv, para o `mozaops-libs` | `UV_IMAGE` |
 
-Em desenvolvimento não se define nenhuma: tudo vem da Internet, e o `docker compose` não lê o
-`.env.build`. Em produção só o Harbor e o Nexus são alcançáveis, e com estas variáveis o build
-não vai a mais lado nenhum:
+As duas primeiras linhas são as que decidem a máquina. As outras três só servem para publicar.
+
+### Com Internet, ou na rede do banco
+
+O comando é o mesmo nas duas máquinas: `make up` (ou `docker compose up -d --build`). O que
+muda é o `.env`.
+
+- **Com Internet:** deixa-se a secção «De onde vêm as imagens e os pacotes» do `.env`
+  comentada. Tudo vem do Docker Hub e do PyPI.
+- **Na rede do banco**, onde só o Harbor e o Nexus são alcançáveis: descomenta-se e
+  preenche-se essa secção. O build dos serviços, o postgres, o traefik, o otel e o jaeger passam
+  a vir do Harbor, e os pacotes Python do Nexus. O GEEA simulado também, se se subir com o
+  `.env` da raiz:
+  `docker compose -f external-services/geea-keycloak/docker-compose.yml --env-file .env up -d`.
+
+Numa pipeline, as mesmas variáveis vêm da configuração dela, e o `ci/service.sh` usa-as:
 
 ```bash
-cp .env.build.example .env.build          # preencher com o Harbor e o Nexus
 ci/service.sh build backend/services/platform/auth-service
 ci/service.sh push  backend/services/platform/auth-service
 ```
+
+**Uma coisa só se faz com Internet: mudar dependências.** O `ci/service.sh lock` resolve as
+versões contra o PyPI, e recusa correr com `PYPI_INDEX_URL` definido. Contra o Nexus o uv
+resolveria tudo de novo, e o lock deixava de servir à outra máquina. O que o lock produz
+(`requirements.txt`, com hashes) instala-se igual das duas maneiras.
 
 ## Convenções
 

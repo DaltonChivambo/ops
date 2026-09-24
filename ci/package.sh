@@ -14,9 +14,10 @@
 set -euo pipefail
 export MSYS_NO_PATHCONV=1
 
-# Numa pipeline as variáveis vêm do ambiente; fora dela, do .env.build na raiz.
-env_build="$(dirname "$0")/../.env.build"
-if [[ -f "$env_build" ]]; then set -a; source "$env_build"; set +a; fi
+# Numa pipeline as variáveis vêm do ambiente; numa máquina, do .env da raiz,
+# o mesmo que o docker compose lê.
+env_file="$(dirname "$0")/../.env"
+if [[ -f "$env_file" ]]; then set -a; source "$env_file"; set +a; fi
 
 command=${1:?"uso: $0 <check|build|vendor|publish> <pasta do pacote> [serviço]"}
 dir=${2:?"falta a pasta do pacote"}
@@ -29,7 +30,7 @@ wheel="${name//-/_}-$version-py3-none-any.whl"
 
 UV_IMAGE=${UV_IMAGE:-ghcr.io/astral-sh/uv:0.12.1-python3.14-trixie-slim}
 
-# Com PYPI_INDEX_URL (produção) o uv vai ao Nexus e nunca descarrega
+# Com PYPI_INDEX_URL (rede do banco) o uv vai ao Nexus e nunca descarrega
 # interpretadores. O lock foi resolvido contra o PyPI: aqui usa-se como está.
 uv_env=(-e UV_PROJECT_ENVIRONMENT=/tmp/venv -e UV_PUBLISH_USERNAME -e UV_PUBLISH_PASSWORD)
 lock_check="uv lock --check -q"

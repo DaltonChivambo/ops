@@ -5,18 +5,18 @@
 #     docker run --rm auth-service:test
 #
 # Sem argumentos, tudo vem da Internet: a imagem base do Docker Hub e os pacotes
-# do PyPI. A produção passa os ARG abaixo e nada neste ficheiro muda:
-# em produção só o Harbor e o Nexus são alcançáveis.
+# do PyPI. Na rede do banco os ARG apontam ao Harbor e ao Nexus, os únicos
+# alcançáveis, e nada neste ficheiro muda.
 
-# De onde vem a imagem base: registo, caminho dentro dele, e a imagem.
+# De onde vem a imagem base: o registo, o projecto dentro dele, e a imagem.
 # O valor de PYTHON_IMAGE é a versão do Python deste serviço, igual ao
 # `requires-python` do pyproject.toml. Sobrepõe-se só quando o Harbor dá
 # outro nome à mesma versão; mudar de versão é mudar os dois aqui.
-ARG PYTHON_BASE_REGISTRY=docker.io
-ARG PYTHON_BASE_NAMESPACE=library
+ARG IMAGE_REGISTRY=docker.io
+ARG IMAGE_NAMESPACE=library
 ARG PYTHON_IMAGE=python:3.14-slim-trixie
 
-FROM ${PYTHON_BASE_REGISTRY}/${PYTHON_BASE_NAMESPACE}/${PYTHON_IMAGE} AS base
+FROM ${IMAGE_REGISTRY}/${IMAGE_NAMESPACE}/${PYTHON_IMAGE} AS base
 ENV PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1 \
     PIP_DISABLE_PIP_VERSION_CHECK=1 \

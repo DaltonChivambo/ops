@@ -93,9 +93,9 @@ O `vendor` copia o wheel da versão actual, acerta o `pyproject.toml` do serviç
 
 ## Harbor, Nexus e GEEA
 
-Em desenvolvimento não se configura nenhum: as imagens vêm do Docker Hub, os pacotes do PyPI,
-e o GEEA é o simulado. Onde se põe cada endereço de produção está no
-[README da raiz](../README.md#onde-se-troca-cada-endereço).
+Com Internet não se configura nenhum: as imagens vêm do Docker Hub, os pacotes do PyPI, e o
+GEEA é o simulado. Na rede do banco, o Harbor e o Nexus preenchem-se no `.env`. Onde se põe
+cada endereço está no [README da raiz](../README.md#onde-se-troca-cada-endereço).
 
 ## Dependências de um serviço
 
